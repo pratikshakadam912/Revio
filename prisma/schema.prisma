@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ResumeStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum AnalysisStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  EXPIRED
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String?
+  email         String   @unique
+  passwordHash  String?
+  role          UserRole @default(USER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  resumes       Resume[]
+  analyses      ResumeAnalysis[]
+  subscriptions Subscription[]
+  usage         Usage[]
+}
+
+model Resume {
+  id          String       @id @default(cuid())
+  userId      String
+  title       String       @default("My Resume")
+  status      ResumeStatus @default(DRAFT)
+  content     Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analyses    ResumeAnalysis[]
+
+  @@index([userId])
+  @@index([userId, status])
+}
+
+model ResumeAnalysis {
+  id          String         @id @default(cuid())
+  userId      String
+  resumeId    String
+  status      AnalysisStatus @default(PENDING)
+
+  overallScore    Int?
+  atsScore        Int?
+  contentScore    Int?
+  skillsScore     Int?
+  experienceScore Int?
+
+  strengths       Json?
+  weaknesses      Json?
+  suggestions     Json?
+  skills          Json?
+  rawResult       Json?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume      Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resumeId])
+  @@index([userId, createdAt])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String
+  plan                 SubscriptionPlan   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
+
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user                 User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Usage {
+  id             String   @id @default(cuid())
+  userId         String
+  periodStart    DateTime
+  periodEnd      DateTime
+
+  resumeAnalyses Int      @default(0)
+  aiGenerations  Int      @default(0)
+  resumeExports  Int      @default(0)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodStart, periodEnd])
+  @@index([userId])
+}
