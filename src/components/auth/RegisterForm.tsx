@@ -1,4 +1,5 @@
 "use client";
+import { signIn } from "next-auth/react";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -55,7 +56,20 @@ export function RegisterForm() {
         return;
       }
 
-      window.location.href = "/login";
+      const signInResult = await signIn("credentials", {
+        email: form.email,
+        password: form.password,
+        redirect: false,
+      });
+
+      if (signInResult?.error) {
+        setError(
+          "Account created, but we couldn't sign you in. Please log in.",
+        );
+        return;
+      }
+
+      window.location.href = "/dashboard";
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
