@@ -36,7 +36,7 @@ export default async function DashboardPage() {
         <aside className="hidden w-[250px] shrink-0 border-r border-[#E2E7EF] bg-white/85 backdrop-blur-xl lg:flex lg:flex-col">
           <div className="px-7 py-7">
             <Link
-              href="/"
+              href="/dashboard"
               className="flex items-center gap-2.5 text-lg font-semibold tracking-[-0.03em]"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#4F7DF3] text-white shadow-[0_8px_20px_rgba(79,125,243,0.20)]">
