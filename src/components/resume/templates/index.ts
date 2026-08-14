@@ -1,0 +1,1 @@
+export { MinimalTemplate } from "./MinimalTemplate";
