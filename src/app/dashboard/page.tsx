@@ -141,7 +141,7 @@ export default async function DashboardPage() {
             <div className="mx-auto flex h-[76px] max-w-[1400px] items-center justify-between px-5 sm:px-8 lg:px-10">
               <div className="lg:hidden">
                 <Link
-                  href="/"
+                  href="/dashboard"
                   className="flex items-center gap-2 text-lg font-semibold"
                 >
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4F7DF3] text-white">
