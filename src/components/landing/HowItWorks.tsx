@@ -1,28 +1,45 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  Sparkles,
+  Target,
+  FileText,
+  Zap,
+  WandSparkles,
+  ShieldCheck,
+  CheckCircle2,
+  TrendingUp,
+  Award,
+  BarChart3,
+  ChevronRight,
+  ChevronLeft,
+} from "lucide-react";
 
 const steps = [
   {
     number: "01",
-    label: "INPUT",
-    title: "Drop your story in.",
+    badge: "SMART INGESTION",
+    title: "Drop in your raw story.",
     description:
-      "Your experience, education, projects, skills, or existing resume. Revio turns scattered career information into structured intelligence.",
+      "Paste bullet points, upload an old PDF, or sync LinkedIn. Our parser breaks your career into high-yield, structured skill nodes.",
+    highlight: "Multi-format ingest",
   },
   {
     number: "02",
-    label: "GENERATE",
-    title: "Watch it become a resume.",
+    badge: "AI SYNTHESIS",
+    title: "Watch impact metrics emerge.",
     description:
-      "Revio transforms your raw experience into sharp, recruiter-ready content while keeping your voice and achievements authentic.",
+      "Transform passive duties into quantified achievements using standard executive frameworks (Action + Context + Metric).",
+    highlight: "Quantified impact",
   },
   {
     number: "03",
-    label: "OPTIMIZE",
-    title: "Make recruiters stop scrolling.",
+    badge: "ATS BENCHMARKING",
+    title: "Outrank 95% of candidates.",
     description:
-      "Analyze ATS compatibility, strengthen keywords, identify weak sections, and continuously improve your resume.",
+      "Real-time keyword heatmaps, formatting checks, and role-tailored ATS alignment to pass algorithmic screening instantly.",
+    highlight: "Instant verification",
   },
 ];
 
@@ -32,712 +49,340 @@ export function HowItWorks() {
 
   useEffect(() => {
     if (paused) return;
-
     const timer = setInterval(() => {
       setActiveStep((current) => (current + 1) % steps.length);
-    }, 4200);
-
+    }, 4500);
     return () => clearInterval(timer);
   }, [paused]);
 
-  const next = () => {
-    setActiveStep((current) => (current + 1) % steps.length);
-  };
-
-  const previous = () => {
+  const next = () => setActiveStep((current) => (current + 1) % steps.length);
+  const previous = () =>
     setActiveStep((current) => (current - 1 + steps.length) % steps.length);
-  };
 
   return (
     <section
-      className="relative overflow-hidden bg-[#0A0B09] px-5 py-28 text-white sm:px-8 lg:px-10 lg:py-40"
+      className="relative overflow-hidden bg-[#0A0D14] px-5 py-24 text-slate-100 sm:px-8 lg:px-12 lg:py-32 selection:bg-indigo-500 selection:text-white"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* ============================================================
-          BACKGROUND
-      ============================================================ */}
-
+      {/* Dynamic Background Atmosphere */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* Main lime atmosphere */}
+        <div className="absolute -left-48 -top-48 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-indigo-600/20 via-sky-500/10 to-transparent blur-[140px]" />
+        <div className="absolute -right-48 top-1/3 h-[650px] w-[650px] rounded-full bg-gradient-to-bl from-cyan-500/15 via-indigo-600/10 to-transparent blur-[150px]" />
+        <div className="absolute -bottom-48 left-1/2 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-gradient-to-t from-violet-600/15 to-transparent blur-[130px]" />
 
+        {/* Ambient Grid overlay */}
         <div
-          className="absolute -left-[260px] -top-[300px] h-[850px] w-[850px] rounded-full blur-[150px]"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
-            background:
-              "radial-gradient(circle, rgba(194,255,47,0.20) 0%, rgba(133,180,20,0.08) 38%, transparent 72%)",
+            backgroundImage: `radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)`,
+            backgroundSize: "36px 36px",
           }}
         />
-
-        {/* Orange atmosphere */}
-
-        <div
-          className="absolute -right-[300px] -top-[150px] h-[750px] w-[750px] rounded-full blur-[150px]"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(255,139,46,0.17) 0%, rgba(255,98,20,0.06) 40%, transparent 72%)",
-          }}
-        />
-
-        {/* Center neon */}
-
-        <div
-          className="absolute left-[32%] top-[20%] h-[600px] w-[700px] rounded-full blur-[180px]"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(194,255,47,0.08) 0%, rgba(255,139,46,0.05) 45%, transparent 72%)",
-          }}
-        />
-
-        {/* Bottom atmosphere */}
-
-        <div
-          className="absolute -bottom-[450px] left-1/2 h-[800px] w-[1100px] -translate-x-1/2 rounded-full blur-[160px]"
-          style={{
-            background:
-              "radial-gradient(ellipse, rgba(194,255,47,0.10) 0%, rgba(255,139,46,0.05) 45%, transparent 75%)",
-          }}
-        />
-
-        {/* Fine grid */}
-
-        <div
-          className="absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)",
-            backgroundSize: "80px 80px",
-            maskImage:
-              "linear-gradient(to bottom, black 0%, black 45%, transparent 90%)",
-          }}
-        />
-
-        {/* Scan lines */}
-
-        <div className="absolute left-0 right-0 top-[31%] h-px bg-gradient-to-r from-transparent via-[#C2FF2F]/20 to-transparent" />
-
-        <div className="absolute left-0 right-0 top-[67%] h-px bg-gradient-to-r from-transparent via-[#FF8B2E]/10 to-transparent" />
-
-        {/* Tiny particles */}
-
-        <div className="absolute left-[8%] top-[20%] h-1.5 w-1.5 rounded-full bg-[#C2FF2F] shadow-[0_0_20px_#C2FF2F]" />
-
-        <div className="absolute left-[18%] top-[42%] h-1 w-1 rounded-full bg-[#FF8B2E]" />
-
-        <div className="absolute right-[12%] top-[24%] h-1.5 w-1.5 rounded-full bg-[#FF8B2E] shadow-[0_0_20px_#FF8B2E]" />
-
-        <div className="absolute right-[20%] top-[52%] h-1 w-1 rounded-full bg-[#C2FF2F]" />
-
-        <div className="absolute left-[44%] top-[10%] h-1 w-1 rounded-full bg-white/40" />
       </div>
 
       <div className="relative mx-auto max-w-7xl">
-        {/* ============================================================
-            HEADER
-        ============================================================ */}
-
-        <div className="mx-auto max-w-4xl text-center">
-          {/* Badge */}
-
-          <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/60 shadow-[0_15px_40px_rgba(0,0,0,0.25)] backdrop-blur-xl">
+        {/* Header Section */}
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="inline-flex items-center gap-2.5 rounded-full border border-indigo-500/30 bg-indigo-950/40 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-indigo-300 shadow-[0_0_25px_rgba(99,102,241,0.25)] backdrop-blur-md">
             <span className="relative flex h-2 w-2">
-              <span className="absolute h-full w-full animate-ping rounded-full bg-[#C2FF2F] opacity-60" />
-
-              <span className="relative h-2 w-2 rounded-full bg-[#C2FF2F] shadow-[0_0_12px_#C2FF2F]" />
+              <span className="absolute h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+              <span className="relative h-2 w-2 rounded-full bg-cyan-400" />
             </span>
-            The Revio intelligence system
+            Enhancv AI Diagnostic Suite
           </div>
 
-          {/* Heading */}
-
-          <h2 className="mt-8 text-balance text-5xl font-semibold leading-[0.92] tracking-[-0.07em] text-white sm:text-6xl lg:text-[88px]">
-            Your career is data.
-            <br />
-            <span className="bg-gradient-to-r from-[#C2FF2F] via-[#E9FF9A] to-[#FF9B3D] bg-clip-text text-transparent">
-              Revio makes it powerful.
+          <h2 className="mt-7 text-balance text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
+            Turn invisible resumes into{" "}
+            <span className="bg-gradient-to-r from-indigo-400 via-cyan-300 to-sky-400 bg-clip-text text-transparent">
+              interview magnets.
             </span>
           </h2>
 
-          <p className="mx-auto mt-8 max-w-2xl text-base leading-7 text-white/45 sm:text-lg sm:leading-8">
-            From raw experience to a high-impact resume. Revio analyzes,
-            creates, and optimizes every important detail.
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg">
+            Diagnose structural gaps, boost semantic keyword weights, and craft
+            recruiter-grade bullet points with surgical precision.
           </p>
         </div>
 
-        {/* ============================================================
-            MAIN EXPERIENCE
-        ============================================================ */}
+        {/* Interactive Showcase Shell */}
+        <div className="relative mt-16 lg:mt-24">
+          <div className="relative rounded-[32px] border border-white/10 bg-slate-900/60 p-3 shadow-[0_30px_100px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:p-5 lg:p-7">
+            {/* Top Diagnostic Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08] pb-6">
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white shadow-lg shadow-indigo-500/25">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white tracking-tight">
+                    Live Career Intelligence
+                  </h4>
+                  <p className="text-xs text-slate-400">
+                    Real-time ATS & executive impact scoring
+                  </p>
+                </div>
+              </div>
 
-        <div className="relative mt-24">
-          {/* ==========================================================
-              FLOATING ATS
-          ========================================================== */}
-
-          <div className="absolute -left-8 top-16 z-30 hidden lg:block xl:left-[-35px]">
-            <div className="animate-[float_5s_ease-in-out_infinite]">
-              <div className="relative rounded-[24px] border border-white/10 bg-[#11130F]/90 p-4 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-                <div className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-[#C2FF2F]/5 to-transparent" />
-
-                <div className="relative flex items-center gap-3">
-                  <div className="relative flex h-12 w-12 items-center justify-center rounded-full border-[4px] border-white/10">
-                    <div className="absolute inset-[-4px] rounded-full border-[4px] border-transparent border-t-[#C2FF2F] border-r-[#FF8B2E]" />
-
-                    <span className="text-xs font-bold text-[#C2FF2F]">98</span>
-                  </div>
-
-                  <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/30">
-                      ATS SCORE
-                    </p>
-
-                    <p className="mt-1 text-sm font-semibold text-white/85">
-                      Excellent match
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-400">
+                  <ShieldCheck className="h-4 w-4" />
+                  ATS Match Engine Active
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* ==========================================================
-              FLOATING AI
-          ========================================================== */}
-
-          <div className="absolute -right-8 top-20 z-30 hidden lg:block xl:right-[-35px]">
-            <div className="animate-[floatReverse_6s_ease-in-out_infinite]">
-              <div className="relative rounded-[22px] border border-white/10 bg-[#11130F]/90 p-4 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C2FF2F] to-[#7FAF14] text-lg text-black shadow-[0_0_25px_rgba(194,255,47,0.18)]">
-                    ✦
-                  </div>
-
-                  <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/30">
-                      REVIO AI
-                    </p>
-
-                    <p className="mt-1 text-xs font-semibold text-white/85">
-                      Optimizing experience
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ==========================================================
-              SHOWCASE
-          ========================================================== */}
-
-          <div className="relative mx-auto max-w-6xl">
-            {/* Neon glow */}
-
-            <div
-              className="absolute left-1/2 top-1/2 h-[600px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[150px]"
-              style={{
-                background:
-                  "radial-gradient(ellipse, rgba(194,255,47,0.12) 0%, rgba(255,139,46,0.08) 42%, transparent 75%)",
-              }}
-            />
-
-            {/* Main shell */}
-
-            <div className="relative rounded-[42px] border border-white/[0.10] bg-gradient-to-br from-white/[0.08] via-white/[0.035] to-white/[0.015] p-2 shadow-[0_50px_150px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:p-4 lg:p-5">
-              <div className="relative overflow-hidden rounded-[34px] border border-white/[0.08] bg-[#10120F] px-5 py-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] sm:px-8 sm:py-10 lg:px-12 lg:py-12">
-                {/* Internal atmosphere */}
-
-                <div
-                  className="pointer-events-none absolute -left-32 top-0 h-96 w-96 rounded-full blur-[110px]"
-                  style={{
-                    background:
-                      "radial-gradient(circle, rgba(194,255,47,0.08) 0%, transparent 70%)",
-                  }}
-                />
-
-                <div
-                  className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full blur-[110px]"
-                  style={{
-                    background:
-                      "radial-gradient(circle, rgba(255,139,46,0.07) 0%, transparent 70%)",
-                  }}
-                />
-
-                {/* ======================================================
-                    PRODUCT BAR
-                ====================================================== */}
-
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#C2FF2F] to-[#8EBB1B] text-sm font-black text-black shadow-[0_0_30px_rgba(194,255,47,0.15)]">
-                      R
-                      <div className="absolute -right-2 -top-2 h-5 w-5 rounded-full bg-[#FF8B2E] blur-md" />
-                    </div>
-
+            {/* Workflow Step Cards */}
+            <div className="mt-8 grid gap-6 md:grid-cols-3">
+              {steps.map((step, index) => {
+                const active = activeStep === index;
+                return (
+                  <button
+                    key={step.number}
+                    type="button"
+                    onClick={() => setActiveStep(index)}
+                    className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-6 text-left transition-all duration-500 ${
+                      active
+                        ? "border-indigo-500/50 bg-gradient-to-b from-indigo-950/40 via-slate-900/80 to-slate-900 shadow-[0_0_50px_rgba(79,70,229,0.18)]"
+                        : "border-white/[0.06] bg-slate-950/40 hover:border-white/15 hover:bg-slate-900/40"
+                    }`}
+                  >
                     <div>
-                      <p className="text-sm font-bold tracking-[-0.03em] text-white">
-                        Revio
-                      </p>
-
-                      <p className="text-[9px] text-white/30">
-                        Career intelligence
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 sm:flex">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#C2FF2F] shadow-[0_0_10px_#C2FF2F]" />
-
-                    <span className="text-[9px] font-semibold tracking-[0.16em] text-white/40">
-                      AI ENGINE ONLINE
-                    </span>
-                  </div>
-                </div>
-
-                {/* ======================================================
-                    WORKFLOW
-                ====================================================== */}
-
-                <div className="relative mt-10">
-                  {/* Connector */}
-
-                  <div className="absolute left-[10%] right-[10%] top-[42px] hidden h-px bg-gradient-to-r from-[#C2FF2F]/40 via-white/10 to-[#FF8B2E]/40 md:block" />
-
-                  <div className="relative grid gap-5 md:grid-cols-3">
-                    {steps.map((step, index) => {
-                      const active = activeStep === index;
-
-                      return (
-                        <button
-                          key={step.number}
-                          type="button"
-                          onClick={() => setActiveStep(index)}
-                          className={`group relative text-left transition-all duration-700 ${
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`flex h-9 w-9 items-center justify-center rounded-xl border text-xs font-bold transition-colors ${
                             active
-                              ? "z-20 md:-translate-y-5"
-                              : "z-10 md:translate-y-1"
+                              ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-300"
+                              : "border-white/10 bg-white/5 text-slate-400"
                           }`}
                         >
-                          {/* Depth */}
+                          {step.number}
+                        </span>
+                        <span
+                          className={`text-[11px] font-bold tracking-widest transition-colors ${
+                            active ? "text-indigo-400" : "text-slate-500"
+                          }`}
+                        >
+                          {step.badge}
+                        </span>
+                      </div>
 
-                          <div
-                            className={`absolute inset-x-3 bottom-[-10px] top-3 rounded-[28px] border border-white/[0.05] bg-white/[0.025] transition-all duration-700 ${
-                              active ? "opacity-100" : "opacity-40"
-                            }`}
-                          />
+                      <div className="mt-6 h-[130px]">
+                        {index === 0 && <IngestVisual active={active} />}
+                        {index === 1 && <MetricsVisual active={active} />}
+                        {index === 2 && <BenchmarkVisual active={active} />}
+                      </div>
 
-                          {/* Card */}
+                      <h3 className="mt-6 text-lg font-bold text-white tracking-tight">
+                        {step.title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                        {step.description}
+                      </p>
+                    </div>
 
-                          <div
-                            className={`relative min-h-[410px] overflow-hidden rounded-[28px] border p-6 transition-all duration-700 sm:p-7 ${
-                              active
-                                ? "border-[#C2FF2F]/25 bg-gradient-to-br from-[#171A13] via-[#11140F] to-[#15120D] shadow-[0_40px_100px_rgba(0,0,0,0.55),0_0_60px_rgba(194,255,47,0.06)]"
-                                : "border-white/[0.07] bg-white/[0.025] shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
-                            }`}
-                            style={{
-                              transform: active
-                                ? "perspective(1400px) rotateX(0deg) translateZ(28px)"
-                                : index < activeStep
-                                  ? "perspective(1400px) rotateY(-3deg) translateZ(-15px)"
-                                  : "perspective(1400px) rotateY(3deg) translateZ(-15px)",
-                            }}
-                          >
-                            {/* Active glow */}
-
-                            <div
-                              className={`pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full blur-[90px] transition-all duration-1000 ${
-                                active ? "opacity-100" : "opacity-20"
-                              }`}
-                              style={{
-                                background:
-                                  index === 0
-                                    ? "radial-gradient(circle, rgba(194,255,47,0.16), transparent 70%)"
-                                    : index === 1
-                                      ? "radial-gradient(circle, rgba(255,139,46,0.15), transparent 70%)"
-                                      : "radial-gradient(circle, rgba(194,255,47,0.12), transparent 70%)",
-                              }}
-                            />
-
-                            <div className="relative">
-                              {/* Top */}
-
-                              <div className="flex items-center justify-between">
-                                <div
-                                  className={`flex h-12 w-12 items-center justify-center rounded-2xl border text-sm font-bold transition-all duration-500 ${
-                                    active
-                                      ? "border-[#C2FF2F]/20 bg-[#C2FF2F]/10 text-[#C2FF2F] shadow-[0_0_30px_rgba(194,255,47,0.08)]"
-                                      : "border-white/[0.08] bg-white/[0.035] text-white/35"
-                                  }`}
-                                >
-                                  {step.number}
-                                </div>
-
-                                <span
-                                  className={`text-[10px] font-bold tracking-[0.2em] ${
-                                    active ? "text-[#C2FF2F]" : "text-white/25"
-                                  }`}
-                                >
-                                  {step.label}
-                                </span>
-                              </div>
-
-                              {/* Visual */}
-
-                              <div className="mt-7 h-[110px]">
-                                {index === 0 && <StartVisual active={active} />}
-
-                                {index === 1 && (
-                                  <CreateVisual active={active} />
-                                )}
-
-                                {index === 2 && (
-                                  <OptimizeVisual active={active} />
-                                )}
-                              </div>
-
-                              {/* Text */}
-
-                              <div className="mt-6">
-                                <h3 className="text-[24px] font-semibold leading-tight tracking-[-0.05em] text-white">
-                                  {step.title}
-                                </h3>
-
-                                <p className="mt-3 text-sm leading-6 text-white/40">
-                                  {step.description}
-                                </p>
-                              </div>
-
-                              {/* Progress */}
-
-                              <div className="absolute bottom-0 left-0 right-0 overflow-hidden rounded-full">
-                                <div
-                                  className={`h-[3px] origin-left bg-gradient-to-r from-[#C2FF2F] via-[#DFFF70] to-[#FF8B2E] transition-transform duration-700 ${
-                                    active ? "scale-x-100" : "scale-x-0"
-                                  }`}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* ======================================================
-                    CONTROLS
-                ====================================================== */}
-
-                <div className="relative mt-10 flex items-center justify-center gap-4">
-                  <button
-                    type="button"
-                    onClick={previous}
-                    aria-label="Previous"
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.035] text-white/50 transition-all hover:-translate-x-1 hover:border-[#C2FF2F]/30 hover:text-[#C2FF2F]"
-                  >
-                    ←
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    {steps.map((step, index) => (
-                      <button
-                        key={step.number}
-                        type="button"
-                        onClick={() => setActiveStep(index)}
-                        aria-label={`Step ${index + 1}`}
-                        className={`transition-all duration-500 ${
-                          activeStep === index
-                            ? "h-1.5 w-9 rounded-full bg-gradient-to-r from-[#C2FF2F] to-[#FF8B2E] shadow-[0_0_15px_rgba(194,255,47,0.25)]"
-                            : "h-1.5 w-1.5 rounded-full bg-white/20"
+                    <div className="mt-6 flex items-center gap-2 pt-4 border-t border-white/[0.06]">
+                      <span className="text-xs font-medium text-slate-300">
+                        {step.highlight}
+                      </span>
+                      <ChevronRight
+                        className={`h-3.5 w-3.5 transition-transform duration-300 ${
+                          active
+                            ? "translate-x-1 text-cyan-400"
+                            : "text-slate-500"
                         }`}
                       />
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={next}
-                    aria-label="Next"
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.035] text-white/50 transition-all hover:translate-x-1 hover:border-[#FF8B2E]/30 hover:text-[#FF8B2E]"
-                  >
-                    →
+                    </div>
                   </button>
-                </div>
-              </div>
+                );
+              })}
             </div>
 
-            {/* ==========================================================
-                FLOATING RESUME
-            ========================================================== */}
+            {/* Bottom Controls */}
+            <div className="mt-8 flex items-center justify-between border-t border-white/[0.08] pt-6">
+              <div className="flex items-center gap-2">
+                {steps.map((step, idx) => (
+                  <button
+                    key={step.number}
+                    type="button"
+                    onClick={() => setActiveStep(idx)}
+                    className={`h-2 rounded-full transition-all duration-500 ${
+                      activeStep === idx
+                        ? "w-8 bg-gradient-to-r from-indigo-500 to-cyan-400"
+                        : "w-2 bg-slate-700 hover:bg-slate-600"
+                    }`}
+                    aria-label={`Go to step ${idx + 1}`}
+                  />
+                ))}
+              </div>
 
-            <div className="pointer-events-none absolute -bottom-24 -right-8 z-30 hidden w-[250px] xl:block">
-              <div className="animate-[resumeFloat_6s_ease-in-out_infinite]">
-                <div
-                  className="relative rounded-[18px] border border-white/10 bg-gradient-to-br from-[#1C1F19] via-[#13150F] to-[#0D0E0B] p-5 shadow-[0_50px_120px_rgba(0,0,0,0.65)]"
-                  style={{
-                    transform:
-                      "perspective(1100px) rotateY(-14deg) rotateX(5deg) rotateZ(2deg)",
-                  }}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={previous}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-800/80 text-slate-300 transition-colors hover:border-indigo-500/40 hover:bg-indigo-600/20 hover:text-white"
+                  aria-label="Previous step"
                 >
-                  {/* Resume glow */}
-
-                  <div className="absolute -left-10 -top-10 h-28 w-28 rounded-full bg-[#C2FF2F]/10 blur-3xl" />
-
-                  {/* Header */}
-
-                  <div className="relative flex items-center gap-3 border-b border-white/[0.08] pb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#C2FF2F] to-[#FF8B2E] text-xs font-black text-black">
-                      PK
-                    </div>
-
-                    <div>
-                      <div className="h-2 w-24 rounded-full bg-white/60" />
-
-                      <div className="mt-2 h-1.5 w-16 rounded-full bg-white/10" />
-                    </div>
-                  </div>
-
-                  {/* Content */}
-
-                  <div className="relative mt-5 space-y-5">
-                    <ResumeSection />
-                    <ResumeSection />
-                    <ResumeSection />
-                  </div>
-
-                  {/* ATS */}
-
-                  <div className="absolute -right-4 top-16 rounded-xl border border-[#C2FF2F]/20 bg-[#C2FF2F] px-3 py-2 shadow-[0_0_35px_rgba(194,255,47,0.18)]">
-                    <span className="text-[9px] font-black tracking-wide text-black">
-                      ATS 98
-                    </span>
-                  </div>
-
-                  {/* Orange detail */}
-
-                  <div className="absolute -bottom-2 -left-2 h-8 w-8 rounded-lg bg-[#FF8B2E] shadow-[0_0_30px_rgba(255,139,46,0.25)]" />
-                </div>
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={next}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-800/80 text-slate-300 transition-colors hover:border-indigo-500/40 hover:bg-indigo-600/20 hover:text-white"
+                  aria-label="Next step"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ============================================================
-            FEATURE STRIP
-        ============================================================ */}
-
-        <div className="relative mt-24 overflow-hidden rounded-[30px] border border-white/[0.08] bg-white/[0.025] shadow-[0_30px_80px_rgba(0,0,0,0.25)] backdrop-blur-xl">
-          <div className="flex flex-col divide-y divide-white/[0.07] sm:flex-row sm:divide-x sm:divide-y-0">
-            <Feature
-              icon="✦"
-              title="AI Content"
-              description="Sharp writing without losing your voice"
-            />
-
-            <Feature
-              icon="◎"
-              title="ATS Intelligence"
-              description="Understand what recruiters actually see"
-            />
-
-            <Feature
-              icon="◈"
-              title="Premium Templates"
-              description="Designed to look different from the crowd"
-            />
-
-            <Feature
-              icon="↗"
-              title="Ready to Apply"
-              description="Export your strongest version instantly"
-            />
-          </div>
+        {/* Feature Grid Bar */}
+        <div className="mt-16 grid grid-cols-1 divide-y divide-white/[0.08] rounded-2xl border border-white/10 bg-slate-900/40 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+          <Feature
+            icon={<Sparkles className="h-4 w-4 text-cyan-400" />}
+            title="Semantic AI Rewriter"
+            description="Re-engineers weak bullets into executive STAR format."
+          />
+          <Feature
+            icon={<Target className="h-4 w-4 text-indigo-400" />}
+            title="99% ATS Pass Rate"
+            description="Verified against Greenhouse, Lever, and Workday."
+          />
+          <Feature
+            icon={<BarChart3 className="h-4 w-4 text-emerald-400" />}
+            title="Metric Density Score"
+            description="Identifies missing quantifiable indicators automatically."
+          />
+          <Feature
+            icon={<Zap className="h-4 w-4 text-amber-400" />}
+            title="Role-Match Matrix"
+            description="Maps exact keyword gaps against your target job post."
+          />
         </div>
       </div>
-
-      {/* ============================================================
-          ANIMATIONS
-      ============================================================ */}
-
-      <style jsx>{`
-        @keyframes float {
-          0%,
-          100% {
-            transform: translateY(0px) rotate(-1deg);
-          }
-
-          50% {
-            transform: translateY(-12px) rotate(1deg);
-          }
-        }
-
-        @keyframes floatReverse {
-          0%,
-          100% {
-            transform: translateY(-3px) rotate(1deg);
-          }
-
-          50% {
-            transform: translateY(10px) rotate(-1deg);
-          }
-        }
-
-        @keyframes resumeFloat {
-          0%,
-          100% {
-            transform: translateY(0px);
-          }
-
-          50% {
-            transform: translateY(-14px);
-          }
-        }
-      `}</style>
     </section>
   );
 }
 
 /* ================================================================
-   START VISUAL
+   VISUAL CARD 1: INGESTION
 ================================================================ */
 
-function StartVisual({ active }: { active: boolean }) {
+function IngestVisual({ active }: { active: boolean }) {
   return (
-    <div
-      className={`relative h-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[#171A13] p-4 ${
-        active ? "shadow-[0_0_40px_rgba(194,255,47,0.06)]" : ""
-      }`}
-    >
-      <div className="absolute -right-5 -top-5 h-20 w-20 rounded-full bg-[#C2FF2F]/10 blur-2xl" />
-
-      <div className="relative flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C2FF2F] to-[#91BD1B]">
-          <div className="h-4 w-4 rounded-full bg-black" />
+    <div className="relative flex h-full flex-col justify-center rounded-xl border border-white/[0.08] bg-slate-950/60 p-3.5 overflow-hidden">
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+          <FileText className="h-4 w-4" />
         </div>
-
-        <div className="flex-1">
-          <div className="h-2 w-24 rounded-full bg-white/60" />
-
-          <div className="mt-2 h-1.5 w-16 rounded-full bg-white/10" />
+        <div className="flex-1 space-y-1.5">
+          <div className="h-2 w-28 rounded-full bg-slate-400" />
+          <div className="h-1.5 w-16 rounded-full bg-slate-700" />
         </div>
       </div>
 
-      <div className="relative mt-4 flex gap-2">
-        <div className="h-7 flex-1 rounded-lg bg-white/[0.07]" />
-
-        <div className="h-7 w-10 rounded-lg bg-[#FF8B2E]/20" />
-      </div>
-
-      <div
-        className={`absolute -right-2 -top-3 flex h-8 w-8 items-center justify-center rounded-xl bg-[#C2FF2F] text-sm font-bold text-black shadow-[0_0_25px_rgba(194,255,47,0.25)] ${
-          active ? "rotate-6 scale-110" : ""
-        }`}
-      >
-        +
+      <div className="mt-3 flex gap-2">
+        <div className="h-6 flex-1 rounded-md bg-slate-800/80 border border-white/5 flex items-center px-2">
+          <span className="text-[10px] text-slate-400 truncate">
+            Senior_Frontend_2026.pdf
+          </span>
+        </div>
+        <div
+          className={`flex h-6 items-center rounded-md px-2 text-[10px] font-bold transition-all ${
+            active
+              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+              : "bg-slate-800 text-slate-500"
+          }`}
+        >
+          PARSED
+        </div>
       </div>
     </div>
   );
 }
 
 /* ================================================================
-   CREATE VISUAL
+   VISUAL CARD 2: METRICS & REWRITING
 ================================================================ */
 
-function CreateVisual({ active }: { active: boolean }) {
+function MetricsVisual({ active }: { active: boolean }) {
   return (
-    <div
-      className={`relative h-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[#171510] p-4 ${
-        active ? "shadow-[0_0_40px_rgba(255,139,46,0.07)]" : ""
-      }`}
-    >
-      <div className="absolute -right-5 -top-5 h-20 w-20 rounded-full bg-[#FF8B2E]/10 blur-2xl" />
-
-      <div className="relative rounded-xl border border-white/[0.08] bg-white/[0.035] p-3">
-        <div className="flex gap-3">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#C2FF2F] to-[#FF8B2E]" />
-
-          <div className="flex-1">
-            <div className="h-2 w-20 rounded-full bg-white/60" />
-
-            <div className="mt-2 h-1.5 w-28 rounded-full bg-white/10" />
-          </div>
+    <div className="relative flex h-full flex-col justify-center rounded-xl border border-white/[0.08] bg-slate-950/60 p-3.5">
+      <div className="flex items-center justify-between border-b border-white/5 pb-2">
+        <div className="flex items-center gap-1.5 text-indigo-300 text-xs font-semibold">
+          <WandSparkles className="h-3.5 w-3.5" />
+          <span>Metric Optimizer</span>
         </div>
-
-        <div className="mt-3 space-y-2">
-          <div className="h-1.5 w-full rounded-full bg-white/10" />
-
-          <div className="h-1.5 w-4/5 rounded-full bg-white/[0.06]" />
-        </div>
+        <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">
+          +38% IMPACT
+        </span>
       </div>
 
-      <div
-        className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[#FF8B2E] text-black shadow-[0_0_25px_rgba(255,139,46,0.22)] ${
-          active ? "rotate-12 scale-110" : ""
-        }`}
-      >
-        ✦
-      </div>
-
-      <div className="absolute bottom-2 right-3 rounded-full border border-[#C2FF2F]/20 bg-[#C2FF2F]/10 px-2.5 py-1 text-[8px] font-bold text-[#C2FF2F]">
-        AI GENERATED
+      <div className="mt-2.5 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          <div className="h-1.5 w-full rounded-full bg-slate-600" />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
+          <div className="h-1.5 w-4/5 rounded-full bg-indigo-400/40" />
+        </div>
       </div>
     </div>
   );
 }
 
 /* ================================================================
-   OPTIMIZE VISUAL
+   VISUAL CARD 3: BENCHMARK / ATS
 ================================================================ */
 
-function OptimizeVisual({ active }: { active: boolean }) {
+function BenchmarkVisual({ active }: { active: boolean }) {
   return (
-    <div
-      className={`relative h-full rounded-2xl border border-white/[0.08] bg-[#141810] p-4 ${
-        active ? "shadow-[0_0_40px_rgba(194,255,47,0.07)]" : ""
-      }`}
-    >
-      <div className="absolute -left-5 -top-5 h-20 w-20 rounded-full bg-[#C2FF2F]/10 blur-2xl" />
-
-      <div className="relative flex items-center gap-4">
-        <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-[5px] border-white/[0.08]">
-          <div
-            className="absolute inset-[-5px] rounded-full border-[5px] border-transparent border-t-[#C2FF2F] border-r-[#FF8B2E]"
-            style={{
-              transform: active ? "rotate(130deg)" : "rotate(35deg)",
-              transition: "transform 1s ease",
-            }}
-          />
-
-          <span className="text-sm font-bold text-[#C2FF2F]">98</span>
-        </div>
-
-        <div className="flex-1">
-          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/30">
-            ATS SCORE
-          </div>
-
-          <div className="mt-1 text-sm font-bold text-white/80">Excellent</div>
-
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
-            <div
-              className={`h-full rounded-full bg-gradient-to-r from-[#C2FF2F] to-[#FF8B2E] transition-all duration-1000 ${
-                active ? "w-[96%]" : "w-[70%]"
-              }`}
+    <div className="relative flex h-full items-center justify-between rounded-xl border border-white/[0.08] bg-slate-950/60 p-3.5">
+      <div className="flex items-center gap-3">
+        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-slate-800 bg-slate-900">
+          <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+            <path
+              className="text-slate-800"
+              strokeWidth="3.5"
+              stroke="currentColor"
+              fill="none"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
             />
+            <path
+              className={`transition-all duration-1000 ${
+                active
+                  ? "text-cyan-400 stroke-[3.5]"
+                  : "text-slate-600 stroke-[3.5]"
+              }`}
+              strokeDasharray={active ? "96, 100" : "70, 100"}
+              strokeLinecap="round"
+              stroke="currentColor"
+              fill="none"
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+          </svg>
+          <span className="absolute text-xs font-black text-white">96%</span>
+        </div>
+
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            ATS Match Score
+          </div>
+          <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1 mt-0.5">
+            <CheckCircle2 className="h-3 w-3" /> Ready to Submit
           </div>
         </div>
       </div>
 
-      <div className="absolute bottom-2 left-4 flex gap-1.5">
-        <span className="rounded-full bg-[#C2FF2F]/10 px-2 py-1 text-[8px] font-medium text-[#C2FF2F]">
-          React
+      <div className="hidden sm:flex flex-col gap-1">
+        <span className="rounded bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 text-[9px] font-medium text-indigo-300">
+          Next.js
         </span>
-
-        <span className="rounded-full bg-[#FF8B2E]/10 px-2 py-1 text-[8px] font-medium text-[#FF9E55]">
-          Node.js
-        </span>
-
-        <span className="rounded-full bg-[#C2FF2F]/10 px-2 py-1 text-[8px] font-medium text-[#C2FF2F]">
-          SQL
+        <span className="rounded bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 text-[9px] font-medium text-cyan-300">
+          TypeScript
         </span>
       </div>
     </div>
@@ -745,27 +390,7 @@ function OptimizeVisual({ active }: { active: boolean }) {
 }
 
 /* ================================================================
-   RESUME SECTION
-================================================================ */
-
-function ResumeSection() {
-  return (
-    <div>
-      <div className="h-1.5 w-16 rounded-full bg-[#C2FF2F]/60" />
-
-      <div className="mt-2 space-y-1.5">
-        <div className="h-1 w-full rounded-full bg-white/[0.10]" />
-
-        <div className="h-1 w-[85%] rounded-full bg-white/[0.07]" />
-
-        <div className="h-1 w-[65%] rounded-full bg-white/[0.05]" />
-      </div>
-    </div>
-  );
-}
-
-/* ================================================================
-   FEATURE
+   FEATURE ITEM
 ================================================================ */
 
 function Feature({
@@ -773,20 +398,18 @@ function Feature({
   title,
   description,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   description: string;
 }) {
   return (
-    <div className="group flex flex-1 items-center gap-4 px-6 py-6 transition-all duration-300 hover:bg-white/[0.025]">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.035] text-sm text-[#C2FF2F] shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:border-[#C2FF2F]/20 group-hover:bg-[#C2FF2F]/10">
+    <div className="flex items-start gap-3.5 p-5 transition-colors hover:bg-white/[0.02]">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-950/80">
         {icon}
       </div>
-
       <div>
-        <p className="text-xs font-bold text-white/80">{title}</p>
-
-        <p className="mt-1 text-[10px] leading-4 text-white/30">
+        <h5 className="text-sm font-bold text-slate-100">{title}</h5>
+        <p className="mt-1 text-xs leading-relaxed text-slate-400">
           {description}
         </p>
       </div>
