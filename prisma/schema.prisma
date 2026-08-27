@@ -54,19 +54,20 @@ model User {
 }
 
 model Resume {
-  id          String       @id @default(cuid())
-  userId      String
-  title       String       @default("My Resume")
-  status      ResumeStatus @default(DRAFT)
-  content     Json?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String   @id @default(cuid())
 
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  analyses    ResumeAnalysis[]
+  fileName      String
+  fileUrl       String
+  cloudinaryId  String
+  fileType      String
+  fileSize      Int?
 
-  @@index([userId])
-  @@index([userId, status])
+  extractedText String?
+
+  atsScore      Int?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model ResumeAnalysis {
