@@ -99,7 +99,7 @@ export default function DashboardPage() {
         <aside className="hidden w-[260px] shrink-0 border-r border-white/[0.08] bg-slate-950/60 px-5 py-6 backdrop-blur-2xl lg:flex lg:flex-col">
           {/* Logo */}
           <Link
-            href="/"
+            href="/dashboard"
             className="group flex items-center gap-3 px-2 text-lg font-black tracking-tight text-white"
           >
             <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_0_28px_rgba(6,182,212,0.45)]">
@@ -239,7 +239,7 @@ export default function DashboardPage() {
           <header className="flex items-center justify-between">
             {/* Mobile Brand */}
             <Link
-              href="/"
+              href="/dashboard"
               className="flex items-center gap-2.5 text-lg font-black tracking-tight text-white lg:hidden"
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white shadow-md">
@@ -279,49 +279,35 @@ export default function DashboardPage() {
               HERO GREETING & PRIMARY ACTIONS
           ============================================================ */}
 
-          <div className="mt-10 flex flex-col justify-between gap-6 xl:flex-row xl:items-end">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-950/40 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.2)] backdrop-blur-md">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-cyan-400 opacity-75" />
-                  <span className="relative h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-                </span>
-                Active Career Suite
-              </div>
+          {/* ============================================================
+    PRIMARY RESUME ACTIONS
+============================================================ */}
 
-              <h1 className="mt-6 text-balance text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl">
-                Ready to engineer your next{" "}
-                <span className="bg-gradient-to-r from-indigo-400 via-cyan-300 to-sky-400 bg-clip-text text-transparent">
-                  career leap?
-                </span>
-              </h1>
+          <div className="mt-10 flex flex-wrap gap-3">
+            {/* CREATE NEW RESUME */}
+            <Link
+              href="/resume/new"
+              className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 px-5 text-xs font-bold text-white shadow-[0_0_25px_rgba(79,70,229,0.35)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_35px_rgba(6,182,212,0.45)]"
+            >
+              <Plus className="h-4 w-4" />
 
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-400 sm:text-base">
-                Audit existing documents against target job posts, refine STAR
-                metrics, and maintain algorithmic compliance.
-              </p>
-            </div>
+              <span>Create new resume</span>
 
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/resume/new"
-                className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 px-5 text-xs font-bold text-white shadow-[0_0_25px_rgba(79,70,229,0.35)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_35px_rgba(6,182,212,0.45)]"
-              >
-                <Plus className="h-4 w-4" />
-                Create new resume
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-              </Link>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
 
-              <Link
-                href="/analyzer"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-5 text-xs font-semibold text-slate-300 backdrop-blur-xl transition-all duration-300 hover:border-indigo-500/40 hover:bg-slate-800/80 hover:text-white"
-              >
-                <Upload className="h-3.5 w-3.5 text-cyan-400" />
-                Upload for analysis
-              </Link>
-            </div>
+            {/* ANALYZE EXISTING RESUME */}
+            <Link
+              href="/analyzer"
+              className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-500/20 bg-slate-900/70 px-5 text-xs font-semibold text-slate-300 backdrop-blur-xl transition-all duration-300 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-white"
+            >
+              <Upload className="h-3.5 w-3.5 text-cyan-400 transition-transform duration-300 group-hover:-translate-y-0.5" />
+
+              <span>Analyze existing resume</span>
+
+              <ArrowRight className="h-3.5 w-3.5 text-slate-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-cyan-400" />
+            </Link>
           </div>
-
           {/* ============================================================
               KEY PERFORMANCE METRICS
           ============================================================ */}
