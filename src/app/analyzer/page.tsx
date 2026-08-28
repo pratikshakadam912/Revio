@@ -99,10 +99,6 @@ type AnalysisResult = {
   };
 };
 
-/* ============================================================
-   PAGE
-============================================================ */
-
 export default function AnalyzerPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -110,10 +106,6 @@ export default function AnalyzerPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState("");
-
-  /* ==========================================================
-     FILE HANDLING
-  ========================================================== */
 
   const handleFile = (selectedFile: File | null) => {
     if (!selectedFile) return;
@@ -142,10 +134,6 @@ export default function AnalyzerPage() {
     setResult(null);
   };
 
-  /* ==========================================================
-     ANALYZE RESUME
-  ========================================================== */
-
   const analyzeResume = async () => {
     if (!file) return;
 
@@ -156,48 +144,52 @@ export default function AnalyzerPage() {
     try {
       const formData = new FormData();
 
-      formData.append("resume", file);
+      formData.append("file", file);
 
-      /*
-       * Real backend request.
-       *
-       * Expected backend:
-       *
-       * POST /api/analyzer
-       * Content-Type: multipart/form-data
-       *
-       * field:
-       * resume = uploaded file
-       */
-
-      const response = await fetch("/api/analyzer", {
+      const response = await fetch("/api/resume/upload", {
         method: "POST",
         body: formData,
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type") || "";
 
-      if (!response.ok) {
-        throw new Error(data?.message || "Unable to analyze the resume.");
+      let data: any;
+
+      if (contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+
+        console.error("Server returned non-JSON response:", text);
+
+        throw new Error(text || "The server returned an unexpected response.");
       }
 
-      setResult(data);
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            data?.message ||
+            "Unable to upload and analyze the resume.",
+        );
+      }
+
+      console.log("Resume uploaded:", data);
+
+      setError(
+        "Resume uploaded successfully. The analysis pipeline is ready, but the AI analysis endpoint still needs to be connected.",
+      );
     } catch (err) {
       console.error("Resume analysis error:", err);
 
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong while analyzing your resume.",
+          : "Something went wrong while uploading your resume.",
       );
     } finally {
       setIsAnalyzing(false);
     }
   };
-
-  /* ==========================================================
-     RESET
-  ========================================================== */
 
   const resetAnalyzer = () => {
     setFile(null);
