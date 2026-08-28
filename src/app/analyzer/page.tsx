@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -13,6 +13,7 @@ import {
   FileText,
   GraduationCap,
   LayoutTemplate,
+  Loader2,
   MapPin,
   Plus,
   Settings,
@@ -26,13 +27,98 @@ import {
   Zap,
 } from "lucide-react";
 
+/* ============================================================
+   TYPES
+============================================================ */
+
+type ProfileItemData = {
+  label: string;
+  value: string;
+  detail?: string;
+};
+
+type ScoreData = {
+  title: string;
+  score: number;
+};
+
+type RoleData = {
+  rank?: string;
+  role: string;
+  match: number;
+  description?: string;
+  skills?: string[];
+};
+
+type JobData = {
+  role: string;
+  company: string;
+  location: string;
+  match: number;
+};
+
+type SkillGapData = {
+  name: string;
+  level: number;
+};
+
+type AnalysisResult = {
+  overallScore: number;
+
+  summary?: string;
+
+  profile?: {
+    education?: ProfileItemData;
+    experience?: ProfileItemData;
+    careerFocus?: ProfileItemData;
+  };
+
+  skills?: string[];
+
+  scores?: {
+    atsCompatibility?: number;
+    skillsStrength?: number;
+    experience?: number;
+    educationMatch?: number;
+  };
+
+  recommendedRoles?: RoleData[];
+
+  jobs?: JobData[];
+
+  skillGaps?: SkillGapData[];
+
+  nextCareerMove?: {
+    title?: string;
+    description?: string;
+  };
+
+  aiCredits?: {
+    used?: number;
+    total?: number;
+  };
+};
+
+/* ============================================================
+   PAGE
+============================================================ */
+
 export default function AnalyzerPage() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [file, setFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isAnalyzed, setIsAnalyzed] = useState(false);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState("");
+
+  /* ==========================================================
+     FILE HANDLING
+  ========================================================== */
 
   const handleFile = (selectedFile: File | null) => {
     if (!selectedFile) return;
+
+    setError("");
 
     const allowedTypes = [
       "application/pdf",
@@ -40,33 +126,98 @@ export default function AnalyzerPage() {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
 
+    const maxSize = 10 * 1024 * 1024;
+
     if (!allowedTypes.includes(selectedFile.type)) {
-      alert("Please upload a PDF, DOC, or DOCX file.");
+      setError("Please upload a PDF, DOC, or DOCX file.");
+      return;
+    }
+
+    if (selectedFile.size > maxSize) {
+      setError("Resume must be smaller than 10MB.");
       return;
     }
 
     setFile(selectedFile);
-    setIsAnalyzed(false);
+    setResult(null);
   };
 
-  const analyzeResume = () => {
+  /* ==========================================================
+     ANALYZE RESUME
+  ========================================================== */
+
+  const analyzeResume = async () => {
     if (!file) return;
 
     setIsAnalyzing(true);
+    setError("");
+    setResult(null);
 
-    // Temporary simulation.
-    // Later this will call your backend AI analysis API.
-    setTimeout(() => {
+    try {
+      const formData = new FormData();
+
+      formData.append("resume", file);
+
+      /*
+       * Real backend request.
+       *
+       * Expected backend:
+       *
+       * POST /api/analyzer
+       * Content-Type: multipart/form-data
+       *
+       * field:
+       * resume = uploaded file
+       */
+
+      const response = await fetch("/api/analyzer", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Unable to analyze the resume.");
+      }
+
+      setResult(data);
+    } catch (err) {
+      console.error("Resume analysis error:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while analyzing your resume.",
+      );
+    } finally {
       setIsAnalyzing(false);
-      setIsAnalyzed(true);
-    }, 1800);
+    }
   };
+
+  /* ==========================================================
+     RESET
+  ========================================================== */
+
+  const resetAnalyzer = () => {
+    setFile(null);
+    setResult(null);
+    setError("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  /* ==========================================================
+     RENDER
+  ========================================================== */
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0A0D14] text-slate-100">
-      {/* =========================================================
+      {/* ======================================================
           BACKGROUND
-      ========================================================= */}
+      ====================================================== */}
 
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-[260px] -top-[280px] h-[700px] w-[700px] rounded-full bg-indigo-600/20 blur-[150px]" />
@@ -85,18 +236,16 @@ export default function AnalyzerPage() {
         />
       </div>
 
-      {/* =========================================================
+      {/* ======================================================
           APP SHELL
-      ========================================================= */}
+      ====================================================== */}
 
       <div className="relative mx-auto flex min-h-screen max-w-[1600px]">
-        {/* =======================================================
+        {/* ====================================================
             SIDEBAR
-        ======================================================= */}
+        ==================================================== */}
 
         <aside className="hidden w-[260px] shrink-0 border-r border-white/[0.08] bg-slate-950/60 px-5 py-6 backdrop-blur-2xl lg:flex lg:flex-col">
-          {/* Logo */}
-
           <Link
             href="/dashboard"
             className="group flex items-center gap-3 px-2 text-lg font-black tracking-tight"
@@ -111,8 +260,6 @@ export default function AnalyzerPage() {
               Revio<span className="text-cyan-400">.</span>
             </span>
           </Link>
-
-          {/* Workspace */}
 
           <div className="mt-9 px-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
@@ -147,8 +294,6 @@ export default function AnalyzerPage() {
             />
           </nav>
 
-          {/* Intelligence */}
-
           <div className="mt-8 px-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
               Intelligence Tools
@@ -169,8 +314,6 @@ export default function AnalyzerPage() {
             />
           </nav>
 
-          {/* Bottom */}
-
           <div className="mt-auto">
             <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 p-4">
               <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-indigo-600/20 blur-[40px]" />
@@ -185,8 +328,8 @@ export default function AnalyzerPage() {
                 </p>
 
                 <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
-                  Revio evaluates your skills, education and experience to
-                  discover suitable career paths.
+                  Analyze your resume and discover career opportunities based on
+                  your actual profile.
                 </p>
               </div>
             </div>
@@ -196,30 +339,30 @@ export default function AnalyzerPage() {
               className="mt-4 flex items-center gap-3 rounded-xl border border-white/5 bg-slate-950/60 px-3 py-2.5"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-950/60 text-xs font-bold text-cyan-300">
-                AR
+                <UserRound className="h-4 w-4" />
               </div>
 
               <div className="min-w-0">
                 <p className="truncate text-xs font-bold text-slate-200">
-                  Alex Rivera
+                  Account
                 </p>
 
                 <p className="truncate font-mono text-[10px] text-slate-500">
-                  Pro Tier • Active
+                  Manage profile
                 </p>
               </div>
             </Link>
           </div>
         </aside>
 
-        {/* =======================================================
+        {/* ====================================================
             MAIN
-        ======================================================= */}
+        ==================================================== */}
 
         <section className="min-w-0 flex-1 px-5 py-6 sm:px-8 lg:px-10 xl:px-12">
-          {/* =====================================================
+          {/* ==================================================
               TOP BAR
-          ===================================================== */}
+          ================================================== */}
 
           <header className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -242,27 +385,59 @@ export default function AnalyzerPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="hidden items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-950/40 px-3.5 py-1.5 sm:flex">
-                <Zap className="h-3.5 w-3.5 text-cyan-400" />
+              {result?.aiCredits && (
+                <div className="hidden items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-950/40 px-3.5 py-1.5 sm:flex">
+                  <Zap className="h-3.5 w-3.5 text-cyan-400" />
 
-                <span className="text-xs text-slate-400">AI Credits</span>
+                  <span className="text-xs text-slate-400">AI Credits</span>
 
-                <span className="font-mono text-xs font-bold text-cyan-300">
-                  18 / 25
-                </span>
-              </div>
+                  <span className="font-mono text-xs font-bold text-cyan-300">
+                    {result.aiCredits.used ?? 0} / {result.aiCredits.total ?? 0}
+                  </span>
+                </div>
+              )}
 
-              <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/80 text-slate-300">
+              <Link
+                href="/settings"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/80 text-slate-300 transition hover:border-white/20 hover:text-white"
+              >
                 <UserRound className="h-4 w-4" />
-              </button>
+              </Link>
             </div>
           </header>
 
-          {/* =====================================================
-              PAGE INTRO
-          ===================================================== */}
+          {/* ==================================================
+              ERROR
+          ================================================== */}
 
-          {!isAnalyzed && (
+          {error && (
+            <div className="mx-auto mt-8 flex max-w-3xl items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/[0.06] p-4">
+              <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-red-300">
+                  Analysis failed
+                </p>
+
+                <p className="mt-1 text-xs leading-relaxed text-red-200/60">
+                  {error}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setError("")}
+                className="text-red-300/60 transition hover:text-red-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* ==================================================
+              UPLOAD VIEW
+          ================================================== */}
+
+          {!result && (
             <>
               <section className="mx-auto mt-14 max-w-4xl text-center">
                 <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-950/40 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-widest text-indigo-300">
@@ -271,21 +446,20 @@ export default function AnalyzerPage() {
                 </div>
 
                 <h1 className="mt-6 text-balance text-4xl font-black leading-[1.04] tracking-tight text-white sm:text-5xl lg:text-6xl">
-                  Don't just analyze your resume.
+                  Understand what your resume
                   <span className="block bg-gradient-to-r from-indigo-400 via-cyan-300 to-sky-400 bg-clip-text text-transparent">
-                    Understand your career.
+                    says about your career.
                   </span>
                 </h1>
 
                 <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
-                  Revio reads your resume to understand your skills, education
-                  and experience — then identifies the roles you're best suited
-                  for and the opportunities you can target.
+                  Upload your resume and let Revio analyze your actual skills,
+                  education, experience and career potential.
                 </p>
               </section>
 
               {/* =================================================
-                  UPLOAD AREA
+                  UPLOAD
               ================================================= */}
 
               <section className="mx-auto mt-12 max-w-3xl">
@@ -293,6 +467,7 @@ export default function AnalyzerPage() {
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault();
+
                     handleFile(e.dataTransfer.files?.[0] ?? null);
                   }}
                   className={`relative overflow-hidden rounded-[32px] border ${
@@ -313,18 +488,19 @@ export default function AnalyzerPage() {
                         </div>
 
                         <h2 className="mt-6 text-center text-xl font-bold text-white">
-                          Upload your existing resume
+                          Upload your resume
                         </h2>
 
                         <p className="mx-auto mt-2 max-w-md text-center text-xs leading-relaxed text-slate-400">
-                          Upload your current resume and let Revio discover your
-                          strongest career opportunities.
+                          Revio will extract and analyze the information
+                          directly from your resume.
                         </p>
 
                         <label className="mx-auto mt-7 flex w-fit cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 px-6 py-3 text-xs font-bold text-white shadow-[0_0_25px_rgba(79,70,229,0.3)] transition hover:scale-[1.02]">
                           <Upload className="h-4 w-4" />
                           Choose Resume
                           <input
+                            ref={fileInputRef}
                             type="file"
                             hidden
                             accept=".pdf,.doc,.docx"
@@ -345,7 +521,7 @@ export default function AnalyzerPage() {
                         </div>
 
                         <div className="mt-5 text-center">
-                          <p className="text-sm font-bold text-white">
+                          <p className="break-all text-sm font-bold text-white">
                             {file.name}
                           </p>
 
@@ -355,22 +531,22 @@ export default function AnalyzerPage() {
                         </div>
 
                         <div className="mx-auto mt-6 flex max-w-sm items-center gap-3 rounded-xl border border-white/10 bg-slate-950/60 p-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
                             <Check className="h-4 w-4" />
                           </div>
 
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-semibold text-white">
-                              Ready for analysis
+                              Resume ready
                             </p>
 
                             <p className="mt-0.5 text-[10px] text-slate-500">
-                              Revio will analyze the complete resume.
+                              Ready to be analyzed by Revio.
                             </p>
                           </div>
 
                           <button
-                            onClick={() => setFile(null)}
+                            onClick={resetAnalyzer}
                             className="text-slate-500 transition hover:text-white"
                           >
                             <X className="h-4 w-4" />
@@ -384,8 +560,8 @@ export default function AnalyzerPage() {
                         >
                           {isAnalyzing ? (
                             <>
-                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                              Understanding your resume...
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Analyzing resume...
                             </>
                           ) : (
                             <>
@@ -402,7 +578,7 @@ export default function AnalyzerPage() {
               </section>
 
               {/* =================================================
-                  WHAT REVIO ANALYZES
+                  ANALYSIS AREAS
               ================================================= */}
 
               <section className="mx-auto mt-10 max-w-4xl">
@@ -410,406 +586,36 @@ export default function AnalyzerPage() {
                   <AnalysisFeature
                     icon={<Target className="h-4 w-4" />}
                     title="Skills"
-                    description="Technical & professional skills"
+                    description="Technical and professional capabilities"
                   />
 
                   <AnalysisFeature
                     icon={<GraduationCap className="h-4 w-4" />}
                     title="Education"
-                    description="Degree & academic background"
+                    description="Academic background and qualifications"
                   />
 
                   <AnalysisFeature
                     icon={<BriefcaseBusiness className="h-4 w-4" />}
                     title="Experience"
-                    description="Roles, projects & seniority"
+                    description="Roles, projects and career level"
                   />
                 </div>
               </section>
 
-              {/* Security */}
-
               <div className="mx-auto mt-8 flex max-w-xl items-center justify-center gap-2 text-center text-[10px] text-slate-500">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                Your resume is securely processed and used only to generate your
-                career analysis.
+                Your resume is processed securely for your analysis.
               </div>
             </>
           )}
 
-          {/* =====================================================
+          {/* ==================================================
               RESULTS
-          ===================================================== */}
+          ================================================== */}
 
-          {isAnalyzed && (
-            <section className="mt-10">
-              {/* Results Header */}
-
-              <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-                <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-400">
-                    <Check className="h-3 w-3" />
-                    Analysis Complete
-                  </div>
-
-                  <h1 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">
-                    Here's what Revio found.
-                  </h1>
-
-                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-                    Your resume has been analyzed across skills, education,
-                    experience and career potential.
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setFile(null);
-                    setIsAnalyzed(false);
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2.5 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white"
-                >
-                  <Upload className="h-3.5 w-3.5" />
-                  Analyze another resume
-                </button>
-              </div>
-
-              {/* =================================================
-                  TOP SCORE + PROFILE
-              ================================================= */}
-
-              <div className="mt-8 grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
-                {/* Score */}
-
-                <div className="relative overflow-hidden rounded-[28px] border border-indigo-500/20 bg-gradient-to-br from-indigo-950/60 via-slate-900/80 to-slate-950/90 p-7">
-                  <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-indigo-600/20 blur-[70px]" />
-
-                  <div className="relative">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                          Resume Health
-                        </p>
-
-                        <h2 className="mt-1 text-base font-bold text-white">
-                          Overall Score
-                        </h2>
-                      </div>
-
-                      <Sparkles className="h-5 w-5 text-cyan-400" />
-                    </div>
-
-                    <div className="mt-8 flex items-end gap-2">
-                      <span className="text-6xl font-black tracking-tight text-white">
-                        87
-                      </span>
-
-                      <span className="mb-2 text-sm font-bold text-slate-500">
-                        /100
-                      </span>
-                    </div>
-
-                    <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-800">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400"
-                        style={{ width: "87%" }}
-                      />
-                    </div>
-
-                    <p className="mt-4 text-xs leading-relaxed text-slate-400">
-                      Strong foundation for entry-level software development
-                      roles. A few improvements can increase your
-                      competitiveness.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Candidate Profile */}
-
-                <div className="rounded-[28px] border border-white/10 bg-slate-900/60 p-7 backdrop-blur-xl">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                        Candidate Profile
-                      </p>
-
-                      <h2 className="mt-1 text-base font-bold text-white">
-                        What Revio understands about you
-                      </h2>
-                    </div>
-
-                    <UserRound className="h-5 w-5 text-slate-500" />
-                  </div>
-
-                  <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                    <ProfileItem
-                      icon={<GraduationCap />}
-                      label="Education"
-                      value="MCA"
-                      detail="Computer Applications"
-                    />
-
-                    <ProfileItem
-                      icon={<BriefcaseBusiness />}
-                      label="Experience"
-                      value="Entry Level"
-                      detail="Projects + internship"
-                    />
-
-                    <ProfileItem
-                      icon={<Target />}
-                      label="Career Focus"
-                      value="Software"
-                      detail="Full Stack Development"
-                    />
-                  </div>
-
-                  <div className="mt-6">
-                    <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      Detected Skills
-                    </p>
-
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        "React",
-                        "JavaScript",
-                        "TypeScript",
-                        "Node.js",
-                        "Express",
-                        "PostgreSQL",
-                        "MongoDB",
-                        "Git",
-                        "REST APIs",
-                      ].map((skill) => (
-                        <span
-                          key={skill}
-                          className="rounded-lg border border-white/10 bg-slate-950/60 px-2.5 py-1.5 text-[10px] font-medium text-slate-300"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* =================================================
-                  SCORE BREAKDOWN
-              ================================================= */}
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <ScoreCard
-                  title="ATS Compatibility"
-                  score={91}
-                  icon={<ShieldCheck />}
-                />
-
-                <ScoreCard title="Skills Strength" score={86} icon={<Zap />} />
-
-                <ScoreCard
-                  title="Experience"
-                  score={74}
-                  icon={<BriefcaseBusiness />}
-                />
-
-                <ScoreCard
-                  title="Education Match"
-                  score={95}
-                  icon={<GraduationCap />}
-                />
-              </div>
-
-              {/* =================================================
-                  CAREER RECOMMENDATIONS
-              ================================================= */}
-
-              <section className="mt-12">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    Career Intelligence
-                  </p>
-
-                  <h2 className="mt-1 text-2xl font-black tracking-tight text-white">
-                    Roles you're best suited for
-                  </h2>
-
-                  <p className="mt-2 text-xs text-slate-400">
-                    Based on the skills, education and experience detected in
-                    your resume.
-                  </p>
-                </div>
-
-                <div className="mt-6 grid gap-4 lg:grid-cols-3">
-                  <RoleCard
-                    rank="BEST MATCH"
-                    role="Junior Full Stack Developer"
-                    match="94%"
-                    description="Your strongest combination of frontend, backend and database skills."
-                    skills={["React", "Node.js", "REST APIs", "SQL"]}
-                  />
-
-                  <RoleCard
-                    role="Frontend Developer"
-                    match="91%"
-                    description="Your React and JavaScript experience makes this a strong target."
-                    skills={["React", "JavaScript", "TypeScript", "CSS"]}
-                  />
-
-                  <RoleCard
-                    role="React Developer"
-                    match="89%"
-                    description="Your frontend projects and React experience align well with this role."
-                    skills={["React", "TypeScript", "JavaScript"]}
-                  />
-                </div>
-              </section>
-
-              {/* =================================================
-                  JOB OPPORTUNITIES
-              ================================================= */}
-
-              <section className="mt-12">
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      Opportunity Finder
-                    </p>
-
-                    <h2 className="mt-1 text-2xl font-black tracking-tight text-white">
-                      Jobs you can target
-                    </h2>
-
-                    <p className="mt-2 text-xs text-slate-400">
-                      Opportunities selected based on your current profile.
-                    </p>
-                  </div>
-
-                  <button className="hidden items-center gap-1 text-xs font-semibold text-cyan-300 sm:flex">
-                    View all jobs
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
-                <div className="mt-6 space-y-3">
-                  <JobCard
-                    role="Junior Full Stack Developer"
-                    company="Technology Company"
-                    location="Bangalore, India"
-                    match="92%"
-                  />
-
-                  <JobCard
-                    role="Frontend Developer — React"
-                    company="Product Startup"
-                    location="Remote · India"
-                    match="89%"
-                  />
-
-                  <JobCard
-                    role="Software Engineer Intern"
-                    company="SaaS Company"
-                    location="Bangalore, India"
-                    match="86%"
-                  />
-                </div>
-              </section>
-
-              {/* =================================================
-                  SKILL GAPS
-              ================================================= */}
-
-              <section className="mt-12 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-[28px] border border-white/10 bg-slate-900/60 p-7">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-400">
-                      <CircleAlert className="h-5 w-5" />
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-bold text-white">
-                        Skills to strengthen
-                      </p>
-
-                      <p className="text-[10px] text-slate-500">
-                        Skills that could unlock more opportunities
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-7 space-y-5">
-                    <SkillGap name="Testing" level={62} />
-                    <SkillGap name="Docker" level={48} />
-                    <SkillGap name="AWS / Cloud" level={42} />
-                    <SkillGap name="CI/CD" level={35} />
-                  </div>
-                </div>
-
-                <div className="relative overflow-hidden rounded-[28px] border border-indigo-500/20 bg-gradient-to-br from-indigo-950/60 to-slate-950/90 p-7">
-                  <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-cyan-500/10 blur-[80px]" />
-
-                  <div className="relative">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
-                      <WandSparkles className="h-5 w-5" />
-                    </div>
-
-                    <h3 className="mt-5 text-xl font-black text-white">
-                      Your next career move
-                    </h3>
-
-                    <p className="mt-3 text-xs leading-relaxed text-slate-400">
-                      You're already positioned well for junior full-stack
-                      roles. Strengthening testing, Docker and cloud deployment
-                      would make your profile considerably stronger.
-                    </p>
-
-                    <button className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-slate-950 transition hover:scale-[1.02]">
-                      Build my roadmap
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </section>
-
-              {/* =================================================
-                  ACTIONS
-              ================================================= */}
-
-              <section className="mt-10 mb-10 flex flex-col items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-slate-900/40 px-6 py-5 sm:flex-row">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-cyan-300">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-white">
-                      Ready to improve your resume?
-                    </p>
-
-                    <p className="text-[10px] text-slate-500">
-                      Use Revio's AI tools to turn these insights into changes.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Link
-                    href="/ai"
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900 px-4 py-2.5 text-xs font-semibold text-slate-300"
-                  >
-                    <WandSparkles className="h-3.5 w-3.5 text-cyan-400" />
-                    Improve Resume
-                  </Link>
-
-                  <Link
-                    href="/resume/new"
-                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 px-4 py-2.5 text-xs font-bold text-white"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Create New Resume
-                  </Link>
-                </div>
-              </section>
-            </section>
+          {result && (
+            <AnalysisResults result={result} onAnalyzeAnother={resetAnalyzer} />
           )}
         </section>
       </div>
@@ -818,7 +624,428 @@ export default function AnalyzerPage() {
 }
 
 /* =============================================================
-   COMPONENTS
+   RESULTS
+============================================================= */
+
+function AnalysisResults({
+  result,
+  onAnalyzeAnother,
+}: {
+  result: AnalysisResult;
+  onAnalyzeAnother: () => void;
+}) {
+  return (
+    <section className="mt-10">
+      {/* ======================================================
+          HEADER
+      ====================================================== */}
+
+      <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+            <Check className="h-3 w-3" />
+            Analysis Complete
+          </div>
+
+          <h1 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">
+            Your resume intelligence report.
+          </h1>
+
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
+            Revio analyzed the information extracted from your resume.
+          </p>
+        </div>
+
+        <button
+          onClick={onAnalyzeAnother}
+          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2.5 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white"
+        >
+          <Upload className="h-3.5 w-3.5" />
+          Analyze another resume
+        </button>
+      </div>
+
+      {/* ======================================================
+          SCORE + PROFILE
+      ====================================================== */}
+
+      <div className="mt-8 grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
+        <OverallScore score={result.overallScore} />
+
+        <CandidateProfile result={result} />
+      </div>
+
+      {/* ======================================================
+          SCORE BREAKDOWN
+      ====================================================== */}
+
+      {result.scores && (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {result.scores.atsCompatibility !== undefined && (
+            <ScoreCard
+              title="ATS Compatibility"
+              score={result.scores.atsCompatibility}
+              icon={<ShieldCheck />}
+            />
+          )}
+
+          {result.scores.skillsStrength !== undefined && (
+            <ScoreCard
+              title="Skills Strength"
+              score={result.scores.skillsStrength}
+              icon={<Zap />}
+            />
+          )}
+
+          {result.scores.experience !== undefined && (
+            <ScoreCard
+              title="Experience"
+              score={result.scores.experience}
+              icon={<BriefcaseBusiness />}
+            />
+          )}
+
+          {result.scores.educationMatch !== undefined && (
+            <ScoreCard
+              title="Education Match"
+              score={result.scores.educationMatch}
+              icon={<GraduationCap />}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ======================================================
+          SUMMARY
+      ====================================================== */}
+
+      {result.summary && (
+        <section className="mt-10 rounded-[28px] border border-white/10 bg-slate-900/60 p-7">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            Resume Intelligence
+          </p>
+
+          <h2 className="mt-1 text-xl font-black text-white">
+            What Revio understands
+          </h2>
+
+          <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-400">
+            {result.summary}
+          </p>
+        </section>
+      )}
+
+      {/* ======================================================
+          RECOMMENDED ROLES
+      ====================================================== */}
+
+      {result.recommendedRoles && result.recommendedRoles.length > 0 && (
+        <section className="mt-12">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            Career Intelligence
+          </p>
+
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-white">
+            Roles you're best suited for
+          </h2>
+
+          <p className="mt-2 text-xs text-slate-400">
+            Career recommendations generated from your actual resume.
+          </p>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+            {result.recommendedRoles.map((role, index) => (
+              <RoleCard
+                key={`${role.role}-${index}`}
+                {...role}
+                match={role.match}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ======================================================
+          JOBS
+      ====================================================== */}
+
+      {result.jobs && result.jobs.length > 0 && (
+        <section className="mt-12">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Opportunity Finder
+              </p>
+
+              <h2 className="mt-1 text-2xl font-black tracking-tight text-white">
+                Jobs you can target
+              </h2>
+
+              <p className="mt-2 text-xs text-slate-400">
+                Opportunities matched against your analyzed profile.
+              </p>
+            </div>
+
+            <button className="hidden items-center gap-1 text-xs font-semibold text-cyan-300 sm:flex">
+              View all jobs
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {result.jobs.map((job, index) => (
+              <JobCard key={`${job.role}-${index}`} {...job} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ======================================================
+          SKILL GAPS
+      ====================================================== */}
+
+      {result.skillGaps && result.skillGaps.length > 0 && (
+        <section className="mt-12">
+          <div className="rounded-[28px] border border-white/10 bg-slate-900/60 p-7">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-400">
+                <CircleAlert className="h-5 w-5" />
+              </div>
+
+              <div>
+                <p className="text-sm font-bold text-white">
+                  Skills to strengthen
+                </p>
+
+                <p className="text-[10px] text-slate-500">
+                  Areas that could improve your career opportunities
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-7 grid gap-5 md:grid-cols-2">
+              {result.skillGaps.map((skill, index) => (
+                <SkillGap
+                  key={`${skill.name}-${index}`}
+                  name={skill.name}
+                  level={skill.level}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ======================================================
+          NEXT CAREER MOVE
+      ====================================================== */}
+
+      {result.nextCareerMove && (
+        <section className="mt-12">
+          <div className="relative overflow-hidden rounded-[28px] border border-indigo-500/20 bg-gradient-to-br from-indigo-950/60 to-slate-950/90 p-7">
+            <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-cyan-500/10 blur-[80px]" />
+
+            <div className="relative">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
+                <WandSparkles className="h-5 w-5" />
+              </div>
+
+              <h3 className="mt-5 text-xl font-black text-white">
+                {result.nextCareerMove.title || "Your next career move"}
+              </h3>
+
+              {result.nextCareerMove.description && (
+                <p className="mt-3 max-w-3xl text-xs leading-relaxed text-slate-400">
+                  {result.nextCareerMove.description}
+                </p>
+              )}
+
+              <Link
+                href="/ai"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-slate-950 transition hover:scale-[1.02]"
+              >
+                Build my roadmap
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ======================================================
+          ACTIONS
+      ====================================================== */}
+
+      <section className="mt-10 mb-10 flex flex-col items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-slate-900/40 px-6 py-5 sm:flex-row">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-cyan-300">
+            <Sparkles className="h-4 w-4" />
+          </div>
+
+          <div>
+            <p className="text-xs font-bold text-white">
+              Ready to improve your resume?
+            </p>
+
+            <p className="text-[10px] text-slate-500">
+              Turn your analysis into actionable resume improvements.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Link
+            href="/ai"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900 px-4 py-2.5 text-xs font-semibold text-slate-300"
+          >
+            <WandSparkles className="h-3.5 w-3.5 text-cyan-400" />
+            Improve Resume
+          </Link>
+
+          <Link
+            href="/resume/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 px-4 py-2.5 text-xs font-bold text-white"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Create New Resume
+          </Link>
+        </div>
+      </section>
+    </section>
+  );
+}
+
+/* =============================================================
+   OVERALL SCORE
+============================================================= */
+
+function OverallScore({ score }: { score: number }) {
+  return (
+    <div className="relative overflow-hidden rounded-[28px] border border-indigo-500/20 bg-gradient-to-br from-indigo-950/60 via-slate-900/80 to-slate-950/90 p-7">
+      <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-indigo-600/20 blur-[70px]" />
+
+      <div className="relative">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              Resume Health
+            </p>
+
+            <h2 className="mt-1 text-base font-bold text-white">
+              Overall Score
+            </h2>
+          </div>
+
+          <Sparkles className="h-5 w-5 text-cyan-400" />
+        </div>
+
+        <div className="mt-8 flex items-end gap-2">
+          <span className="text-6xl font-black tracking-tight text-white">
+            {score}
+          </span>
+
+          <span className="mb-2 text-sm font-bold text-slate-500">/100</span>
+        </div>
+
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-800">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 transition-all duration-700"
+            style={{
+              width: `${Math.min(Math.max(score, 0), 100)}%`,
+            }}
+          />
+        </div>
+
+        <p className="mt-4 text-xs leading-relaxed text-slate-400">
+          This score was generated from the resume analysis.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* =============================================================
+   CANDIDATE PROFILE
+============================================================= */
+
+function CandidateProfile({ result }: { result: AnalysisResult }) {
+  const profileItems = [
+    result.profile?.education,
+    result.profile?.experience,
+    result.profile?.careerFocus,
+  ].filter(Boolean) as ProfileItemData[];
+
+  return (
+    <div className="rounded-[28px] border border-white/10 bg-slate-900/60 p-7 backdrop-blur-xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            Candidate Profile
+          </p>
+
+          <h2 className="mt-1 text-base font-bold text-white">
+            What Revio found in your resume
+          </h2>
+        </div>
+
+        <UserRound className="h-5 w-5 text-slate-500" />
+      </div>
+
+      {profileItems.length > 0 && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          {profileItems.map((item, index) => (
+            <ProfileItem
+              key={`${item.label}-${index}`}
+              label={item.label}
+              value={item.value}
+              detail={item.detail || ""}
+              icon={
+                item.label.toLowerCase().includes("education") ? (
+                  <GraduationCap />
+                ) : item.label.toLowerCase().includes("experience") ? (
+                  <BriefcaseBusiness />
+                ) : (
+                  <Target />
+                )
+              }
+            />
+          ))}
+        </div>
+      )}
+
+      {result.skills && result.skills.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            Detected Skills
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {result.skills.map((skill, index) => (
+              <span
+                key={`${skill}-${index}`}
+                className="rounded-lg border border-white/10 bg-slate-950/60 px-2.5 py-1.5 text-[10px] font-medium text-slate-300"
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!profileItems.length &&
+        (!result.skills || result.skills.length === 0) && (
+          <div className="mt-6 rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-6 text-center">
+            <p className="text-xs text-slate-500">
+              No profile information was returned by the analyzer.
+            </p>
+          </div>
+        )}
+    </div>
+  );
+}
+
+/* =============================================================
+   NAV ITEM
 ============================================================= */
 
 function NavItem({
@@ -856,6 +1083,10 @@ function NavItem({
   );
 }
 
+/* =============================================================
+   ANALYSIS FEATURE
+============================================================= */
+
 function AnalysisFeature({
   icon,
   title,
@@ -880,6 +1111,10 @@ function AnalysisFeature({
   );
 }
 
+/* =============================================================
+   PROFILE ITEM
+============================================================= */
+
 function ProfileItem({
   icon,
   label,
@@ -903,10 +1138,14 @@ function ProfileItem({
 
       <p className="mt-3 text-sm font-black text-white">{value}</p>
 
-      <p className="mt-1 text-[10px] text-slate-500">{detail}</p>
+      {detail && <p className="mt-1 text-[10px] text-slate-500">{detail}</p>}
     </div>
   );
 }
+
+/* =============================================================
+   SCORE CARD
+============================================================= */
 
 function ScoreCard({
   title,
@@ -935,27 +1174,21 @@ function ScoreCard({
 
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-800">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400"
-          style={{ width: `${score}%` }}
+          className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all duration-700"
+          style={{
+            width: `${Math.min(Math.max(score, 0), 100)}%`,
+          }}
         />
       </div>
     </div>
   );
 }
 
-function RoleCard({
-  rank,
-  role,
-  match,
-  description,
-  skills,
-}: {
-  rank?: string;
-  role: string;
-  match: string;
-  description: string;
-  skills: string[];
-}) {
+/* =============================================================
+   ROLE CARD
+============================================================= */
+
+function RoleCard({ rank, role, match, description, skills }: RoleData) {
   return (
     <div className="group rounded-[26px] border border-white/10 bg-slate-900/60 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-500/30">
       <div className="flex items-start justify-between gap-3">
@@ -970,7 +1203,7 @@ function RoleCard({
         </div>
 
         <div className="text-right">
-          <p className="text-xl font-black text-cyan-300">{match}</p>
+          <p className="text-xl font-black text-cyan-300">{match}%</p>
 
           <p className="text-[9px] uppercase tracking-wider text-slate-500">
             match
@@ -978,20 +1211,24 @@ function RoleCard({
         </div>
       </div>
 
-      <p className="mt-4 text-xs leading-relaxed text-slate-400">
-        {description}
-      </p>
+      {description && (
+        <p className="mt-4 text-xs leading-relaxed text-slate-400">
+          {description}
+        </p>
+      )}
 
-      <div className="mt-5 flex flex-wrap gap-1.5">
-        {skills.map((skill) => (
-          <span
-            key={skill}
-            className="rounded-md border border-white/[0.07] bg-slate-950/60 px-2 py-1 text-[9px] text-slate-400"
-          >
-            ✓ {skill}
-          </span>
-        ))}
-      </div>
+      {skills && skills.length > 0 && (
+        <div className="mt-5 flex flex-wrap gap-1.5">
+          {skills.map((skill, index) => (
+            <span
+              key={`${skill}-${index}`}
+              className="rounded-md border border-white/[0.07] bg-slate-950/60 px-2 py-1 text-[9px] text-slate-400"
+            >
+              ✓ {skill}
+            </span>
+          ))}
+        </div>
+      )}
 
       <button className="mt-6 flex items-center gap-1.5 text-[10px] font-bold text-cyan-300 transition group-hover:text-white">
         View role analysis
@@ -1001,17 +1238,11 @@ function RoleCard({
   );
 }
 
-function JobCard({
-  role,
-  company,
-  location,
-  match,
-}: {
-  role: string;
-  company: string;
-  location: string;
-  match: string;
-}) {
+/* =============================================================
+   JOB CARD
+============================================================= */
+
+function JobCard({ role, company, location, match }: JobData) {
   return (
     <div className="group flex flex-col gap-5 rounded-[22px] border border-white/10 bg-slate-900/60 p-5 transition hover:border-indigo-500/30 sm:flex-row sm:items-center">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
@@ -1025,13 +1256,14 @@ function JobCard({
 
         <div className="mt-2 flex items-center gap-1 text-[10px] text-slate-500">
           <MapPin className="h-3 w-3" />
+
           {location}
         </div>
       </div>
 
       <div className="flex items-center gap-4">
         <div className="text-right">
-          <p className="text-lg font-black text-emerald-400">{match}</p>
+          <p className="text-lg font-black text-emerald-400">{match}%</p>
 
           <p className="text-[9px] uppercase tracking-wider text-slate-500">
             profile match
@@ -1046,7 +1278,11 @@ function JobCard({
   );
 }
 
-function SkillGap({ name, level }: { name: string; level: number }) {
+/* =============================================================
+   SKILL GAP
+============================================================= */
+
+function SkillGap({ name, level }: SkillGapData) {
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -1057,8 +1293,10 @@ function SkillGap({ name, level }: { name: string; level: number }) {
 
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400"
-          style={{ width: `${level}%` }}
+          className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all duration-700"
+          style={{
+            width: `${Math.min(Math.max(level, 0), 100)}%`,
+          }}
         />
       </div>
     </div>

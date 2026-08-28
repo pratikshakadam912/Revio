@@ -57,7 +57,8 @@ model User {
 model Resume {
   id String @id @default(cuid())
 
-  userId       String
+  userId String
+
   fileName     String
   fileUrl      String
   cloudinaryId String

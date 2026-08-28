@@ -5,6 +5,8 @@ import { Readable } from "stream";
 import { prisma } from "@/lib/db/prisma";
 import { auth } from "@/lib/auth";
 
+export const runtime = "nodejs";
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -21,9 +23,10 @@ function uploadToCloudinary(buffer: Buffer) {
       (error, result) => {
         if (error) {
           reject(error);
-        } else {
-          resolve(result);
+          return;
         }
+
+        resolve(result);
       },
     );
 
@@ -33,20 +36,25 @@ function uploadToCloudinary(buffer: Buffer) {
 
 export async function POST(request: NextRequest) {
   try {
-    //  Check authentication
+    // =========================================================
+    // 1. AUTHENTICATION
+    // =========================================================
 
     const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json(
         {
-          error: "You must be logged in to upload a resume",
+          success: false,
+          error: "You must be logged in to upload a resume.",
         },
         { status: 401 },
       );
     }
 
-    //  Read uploaded file
+    // =========================================================
+    // 2. READ FORM DATA
+    // =========================================================
 
     const formData = await request.formData();
 
@@ -55,47 +63,63 @@ export async function POST(request: NextRequest) {
     if (!(file instanceof File)) {
       return NextResponse.json(
         {
-          error: "Resume file is required",
+          success: false,
+          error: "Resume file is required.",
         },
         { status: 400 },
       );
     }
 
-    //  Validate file type
+    // =========================================================
+    // 3. VALIDATE FILE TYPE
+    // =========================================================
 
     if (file.type !== "application/pdf") {
       return NextResponse.json(
         {
-          error: "Only PDF resumes are supported",
+          success: false,
+          error: "Only PDF resumes are supported.",
         },
         { status: 400 },
       );
     }
 
-    //  Validate file size
+    // =========================================================
+    // 4. VALIDATE FILE SIZE
+    // =========================================================
 
     const maxSize = 5 * 1024 * 1024;
 
     if (file.size > maxSize) {
       return NextResponse.json(
         {
-          error: "Resume must be smaller than 5MB",
+          success: false,
+          error: "Resume must be smaller than 5MB.",
         },
         { status: 400 },
       );
     }
 
-    // 5. Convert PDF to Buffer
+    // =========================================================
+    // 5. CONVERT FILE TO BUFFER
+    // =========================================================
 
     const bytes = await file.arrayBuffer();
-
     const buffer = Buffer.from(bytes);
 
-    //  Upload to Cloudinary
+    // =========================================================
+    // 6. UPLOAD TO CLOUDINARY
+    // =========================================================
 
     const uploadedFile = await uploadToCloudinary(buffer);
 
-    //  Save resume in PostgreSQL
+    if (!uploadedFile?.secure_url || !uploadedFile?.public_id) {
+      throw new Error("Cloudinary upload failed.");
+    }
+
+    // =========================================================
+    // 7. SAVE RESUME TO DATABASE
+    // =========================================================
 
     const resume = await prisma.resume.create({
       data: {
@@ -106,16 +130,45 @@ export async function POST(request: NextRequest) {
         cloudinaryId: uploadedFile.public_id,
         fileType: file.type,
         fileSize: file.size,
+
+        // We will populate this when the AI analysis
+        // pipeline extracts the resume text.
+        extractedText: null,
       },
     });
 
-    // 8. Return response
+    // =========================================================
+    // 8. CREATE ANALYSIS RECORD
+    // =========================================================
+
+    const analysis = await prisma.resumeAnalysis.create({
+      data: {
+        userId: session.user.id,
+        resumeId: resume.id,
+        status: "PENDING",
+      },
+    });
+
+    // =========================================================
+    // 9. RETURN SUCCESS RESPONSE
+    // =========================================================
 
     return NextResponse.json(
       {
         success: true,
-        message: "Resume uploaded successfully",
-        resume,
+        message: "Resume uploaded successfully.",
+
+        resume: {
+          id: resume.id,
+          fileName: resume.fileName,
+          fileUrl: resume.fileUrl,
+          fileSize: resume.fileSize,
+        },
+
+        analysis: {
+          id: analysis.id,
+          status: analysis.status,
+        },
       },
       { status: 201 },
     );
@@ -124,7 +177,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error: "Failed to upload resume",
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to upload resume.",
       },
       { status: 500 },
     );
