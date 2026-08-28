@@ -79,7 +79,7 @@ export default function Hero() {
             {/* Action Buttons */}
             <div className="mt-8 flex flex-col gap-3.5 sm:flex-row">
               <Link
-                href="/dashboard/resume"
+                href="/login"
                 className="group inline-flex h-12 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 px-7 text-sm font-bold text-white shadow-[0_0_30px_rgba(79,70,229,0.35)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(6,182,212,0.45)]"
               >
                 Analyze my resume
