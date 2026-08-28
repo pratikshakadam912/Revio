@@ -33,21 +33,20 @@ function uploadToCloudinary(buffer: Buffer) {
 
 export async function POST(request: NextRequest) {
   try {
-    // --------------------------------
-    // 1. Check authentication
-    // --------------------------------
+    //  Check authentication
 
     const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: "You must be logged in to upload a resume" },
+        {
+          error: "You must be logged in to upload a resume",
+        },
         { status: 401 },
       );
     }
-    // --------------------------------
-    // 2. Get uploaded file
-    // --------------------------------
+
+    //  Read uploaded file
 
     const formData = await request.formData();
 
@@ -55,51 +54,48 @@ export async function POST(request: NextRequest) {
 
     if (!(file instanceof File)) {
       return NextResponse.json(
-        { error: "Resume file is required" },
+        {
+          error: "Resume file is required",
+        },
         { status: 400 },
       );
     }
 
-    // --------------------------------
-    // 3. Validate file type
-    // --------------------------------
+    //  Validate file type
 
     if (file.type !== "application/pdf") {
       return NextResponse.json(
-        { error: "Only PDF resumes are supported" },
+        {
+          error: "Only PDF resumes are supported",
+        },
         { status: 400 },
       );
     }
 
-    // --------------------------------
-    // 4. Validate file size
-    // --------------------------------
+    //  Validate file size
 
     const maxSize = 5 * 1024 * 1024;
 
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: "Resume must be smaller than 5MB" },
+        {
+          error: "Resume must be smaller than 5MB",
+        },
         { status: 400 },
       );
     }
 
-    // --------------------------------
-    // 5. Convert file to Buffer
-    // --------------------------------
+    // 5. Convert PDF to Buffer
 
     const bytes = await file.arrayBuffer();
+
     const buffer = Buffer.from(bytes);
 
-    // --------------------------------
-    // 6. Upload to Cloudinary
-    // --------------------------------
+    //  Upload to Cloudinary
 
     const uploadedFile = await uploadToCloudinary(buffer);
 
-    // --------------------------------
-    // 7. Save resume in PostgreSQL
-    // --------------------------------
+    //  Save resume in PostgreSQL
 
     const resume = await prisma.resume.create({
       data: {
@@ -113,13 +109,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // --------------------------------
     // 8. Return response
-    // --------------------------------
 
     return NextResponse.json(
       {
         success: true,
+        message: "Resume uploaded successfully",
         resume,
       },
       { status: 201 },
