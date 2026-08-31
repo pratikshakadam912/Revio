@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import { Readable } from "stream";
+import PDFParser from "pdf2json";
 
 import { prisma } from "@/lib/db/prisma";
 import { auth } from "@/lib/auth";
@@ -34,12 +35,34 @@ function uploadToCloudinary(buffer: Buffer) {
   });
 }
 
+function extractPdfText(buffer: Buffer): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const parser = new PDFParser();
+
+    parser.on("pdfParser_dataError", (error: any) => {
+      reject(error?.parserError || error);
+    });
+
+    parser.on("pdfParser_dataReady", (pdfData: any) => {
+      try {
+        const text = pdfData.Pages.map((page: any) =>
+          page.Texts.map((item: any) => decodeURIComponent(item.R[0].T)).join(
+            " ",
+          ),
+        ).join("\n");
+
+        resolve(text.trim());
+      } catch (error) {
+        reject(error);
+      }
+    });
+
+    parser.parseBuffer(buffer);
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // =========================================================
-    // 1. AUTHENTICATION
-    // =========================================================
-
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -52,12 +75,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // =========================================================
-    // 2. READ FORM DATA
-    // =========================================================
-
     const formData = await request.formData();
-
     const file = formData.get("file");
 
     if (!(file instanceof File)) {
@@ -70,10 +88,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // =========================================================
-    // 3. VALIDATE FILE TYPE
-    // =========================================================
-
     if (file.type !== "application/pdf") {
       return NextResponse.json(
         {
@@ -83,10 +97,6 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-
-    // =========================================================
-    // 4. VALIDATE FILE SIZE
-    // =========================================================
 
     const maxSize = 5 * 1024 * 1024;
 
@@ -100,16 +110,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // =========================================================
-    // 5. CONVERT FILE TO BUFFER
-    // =========================================================
-
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // =========================================================
-    // 6. UPLOAD TO CLOUDINARY
-    // =========================================================
+    const extractedText = await extractPdfText(buffer);
+
+    if (!extractedText) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Could not extract text from this PDF. Please upload a text-based PDF.",
+        },
+        { status: 400 },
+      );
+    }
 
     const uploadedFile = await uploadToCloudinary(buffer);
 
@@ -117,29 +132,17 @@ export async function POST(request: NextRequest) {
       throw new Error("Cloudinary upload failed.");
     }
 
-    // =========================================================
-    // 7. SAVE RESUME TO DATABASE
-    // =========================================================
-
     const resume = await prisma.resume.create({
       data: {
         userId: session.user.id,
-
         fileName: file.name,
         fileUrl: uploadedFile.secure_url,
         cloudinaryId: uploadedFile.public_id,
         fileType: file.type,
         fileSize: file.size,
-
-        // We will populate this when the AI analysis
-        // pipeline extracts the resume text.
-        extractedText: null,
+        extractedText,
       },
     });
-
-    // =========================================================
-    // 8. CREATE ANALYSIS RECORD
-    // =========================================================
 
     const analysis = await prisma.resumeAnalysis.create({
       data: {
@@ -149,22 +152,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // =========================================================
-    // 9. RETURN SUCCESS RESPONSE
-    // =========================================================
-
     return NextResponse.json(
       {
         success: true,
-        message: "Resume uploaded successfully.",
-
+        message: "Resume uploaded and text extracted successfully.",
         resume: {
           id: resume.id,
           fileName: resume.fileName,
           fileUrl: resume.fileUrl,
           fileSize: resume.fileSize,
         },
-
         analysis: {
           id: analysis.id,
           status: analysis.status,

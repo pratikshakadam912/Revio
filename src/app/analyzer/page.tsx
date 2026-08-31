@@ -142,49 +142,76 @@ export default function AnalyzerPage() {
     setResult(null);
 
     try {
+      // Upload resume
       const formData = new FormData();
-
       formData.append("file", file);
 
-      const response = await fetch("/api/resume/upload", {
+      const uploadResponse = await fetch("/api/resume/upload", {
         method: "POST",
         body: formData,
       });
 
-      const contentType = response.headers.get("content-type") || "";
+      const uploadText = await uploadResponse.text();
 
-      let data: any;
+      let uploadData;
 
-      if (contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-
-        console.error("Server returned non-JSON response:", text);
-
-        throw new Error(text || "The server returned an unexpected response.");
-      }
-
-      if (!response.ok) {
+      try {
+        uploadData = JSON.parse(uploadText);
+      } catch {
         throw new Error(
-          data?.error ||
-            data?.message ||
-            "Unable to upload and analyze the resume.",
+          `Upload server returned an invalid response: ${uploadText.slice(0, 150)}`,
         );
       }
 
-      console.log("Resume uploaded:", data);
+      if (!uploadResponse.ok) {
+        throw new Error(uploadData?.error || "Failed to upload resume.");
+      }
 
-      setError(
-        "Resume uploaded successfully. The analysis pipeline is ready, but the AI analysis endpoint still needs to be connected.",
-      );
+      const resumeId = uploadData?.resume?.id;
+
+      if (!resumeId) {
+        throw new Error("Resume ID was not returned by the server.");
+      }
+
+      // Analyze resume with Gemini
+      const analyzeResponse = await fetch("/api/resume/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resumeId,
+        }),
+      });
+
+      const analyzeText = await analyzeResponse.text();
+
+      let analyzeData;
+
+      try {
+        analyzeData = JSON.parse(analyzeText);
+      } catch {
+        throw new Error(
+          `Analysis server returned an invalid response: ${analyzeText.slice(0, 150)}`,
+        );
+      }
+
+      if (!analyzeResponse.ok) {
+        throw new Error(analyzeData?.error || "Unable to analyze the resume.");
+      }
+
+      if (!analyzeData?.result) {
+        throw new Error("No analysis result was returned.");
+      }
+
+      setResult(analyzeData.result);
     } catch (err) {
       console.error("Resume analysis error:", err);
 
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong while uploading your resume.",
+          : "Something went wrong while analyzing your resume.",
       );
     } finally {
       setIsAnalyzing(false);
