@@ -60,7 +60,6 @@ type SkillGapData = {
   name: string;
   level: number;
 };
-
 type ProjectData = {
   name: string;
   description: string;
@@ -1010,7 +1009,6 @@ function OverallScore({ score }: { score: number }) {
 /* =============================================================
    CANDIDATE PROFILE
 ============================================================= */
-
 function CandidateProfile({ result }: { result: AnalysisResult }) {
   const profileItems = [
     result.profile?.education,
@@ -1034,6 +1032,41 @@ function CandidateProfile({ result }: { result: AnalysisResult }) {
         <UserRound className="h-5 w-5 text-slate-500" />
       </div>
 
+      {/* Candidate identity */}
+      {result.candidate && (
+        <div className="mt-6 rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/[0.08] to-cyan-500/[0.05] p-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/10 text-cyan-300">
+              <UserRound className="h-5 w-5" />
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                Candidate
+              </p>
+
+              <h3 className="mt-1 truncate text-xl font-black text-white">
+                {result.candidate.name || "Candidate name not detected"}
+              </h3>
+
+              {result.candidate.headline && (
+                <p className="mt-1 text-xs text-slate-400">
+                  {result.candidate.headline}
+                </p>
+              )}
+
+              {result.candidate.location && (
+                <div className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-500">
+                  <MapPin className="h-3 w-3" />
+                  {result.candidate.location}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile information */}
       {profileItems.length > 0 && (
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {profileItems.map((item, index) => (
@@ -1056,6 +1089,7 @@ function CandidateProfile({ result }: { result: AnalysisResult }) {
         </div>
       )}
 
+      {/* Skills */}
       {result.skills && result.skills.length > 0 && (
         <div className="mt-6">
           <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
@@ -1075,7 +1109,8 @@ function CandidateProfile({ result }: { result: AnalysisResult }) {
         </div>
       )}
 
-      {!profileItems.length &&
+      {!result.candidate &&
+        !profileItems.length &&
         (!result.skills || result.skills.length === 0) && (
           <div className="mt-6 rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-6 text-center">
             <p className="text-xs text-slate-500">
