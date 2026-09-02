@@ -28,8 +28,7 @@ import {
 } from "lucide-react";
 
 /* ============================================================
-   TYPES
-============================================================ */
+   TYPES*/
 
 type ProfileItemData = {
   label: string;
@@ -62,7 +61,23 @@ type SkillGapData = {
   level: number;
 };
 
+type ProjectData = {
+  name: string;
+  description: string;
+  contribution?: string;
+  technologies?: string[];
+  impact?: string;
+};
+
+type CandidateData = {
+  name?: string;
+  headline?: string;
+  location?: string;
+};
+
 type AnalysisResult = {
+  candidate?: CandidateData;
+
   overallScore: number;
 
   summary?: string;
@@ -75,11 +90,20 @@ type AnalysisResult = {
 
   skills?: string[];
 
+  projects?: ProjectData[];
+
+  strengths?: string[];
+
+  weaknesses?: string[];
+
+  suggestions?: string[];
+
   scores?: {
     atsCompatibility?: number;
     skillsStrength?: number;
     experience?: number;
     educationMatch?: number;
+    contentQuality?: number;
   };
 
   recommendedRoles?: RoleData[];
