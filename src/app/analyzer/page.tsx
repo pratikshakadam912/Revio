@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -57,6 +57,7 @@ type JobData = {
 type SkillGapData = {
   name: string;
   level: number;
+  reason?: string;
 };
 
 type ProjectData = {
@@ -90,6 +91,23 @@ type AnalysisResult = {
 
   projects?: ProjectData[];
 
+  experienceDetails?: {
+    company: string;
+    role: string;
+    duration: string;
+    description: string;
+    responsibilities?: string[];
+    achievements?: string[];
+  }[];
+
+  atsAnalysis?: {
+    keywordOptimization?: string;
+    formatting?: string;
+    sectionStructure?: string;
+    readability?: string;
+    issues?: string[];
+  };
+
   strengths?: string[];
 
   weaknesses?: string[];
@@ -122,6 +140,64 @@ type AnalysisResult = {
 };
 
 /* ============================================================
+   API HELPERS
+============================================================ */
+
+type ApiResponse<T = unknown> = {
+  success?: boolean;
+  error?: string;
+  details?: string;
+  message?: string;
+  result?: T;
+  resume?: {
+    id?: string;
+  };
+};
+
+async function readApiResponse<T = unknown>(
+  response: Response,
+): Promise<ApiResponse<T>> {
+  const text = await response.text();
+
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text) as ApiResponse<T>;
+  } catch {
+    throw new Error(
+      `Server returned an invalid response (${response.status}).`,
+    );
+  }
+}
+
+function getApiError(data: ApiResponse, fallback: string): string {
+  const error =
+    typeof data.error === "string" && data.error.trim()
+      ? data.error.trim()
+      : typeof data.message === "string" && data.message.trim()
+        ? data.message.trim()
+        : "";
+
+  const details =
+    typeof data.details === "string" && data.details.trim()
+      ? data.details.trim()
+      : "";
+
+  /*
+   * During development the analyze API returns `details`
+   * so we can see the actual Gemini error instead of getting
+   * a generic "temporarily unavailable" message.
+   */
+  if (process.env.NODE_ENV !== "production" && details) {
+    return `${error || fallback} ${details}`;
+  }
+
+  return error || fallback;
+}
+
+/* ============================================================
    PAGE
 ============================================================ */
 
@@ -148,10 +224,25 @@ export default function AnalyzerPage() {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
 
+    const allowedExtensions = [".pdf", ".doc", ".docx"];
+
+    const fileName = selectedFile.name.toLowerCase();
+
+    const hasValidType = allowedTypes.includes(selectedFile.type);
+
+    const hasValidExtension = allowedExtensions.some((extension) =>
+      fileName.endsWith(extension),
+    );
+
     const maxSize = 10 * 1024 * 1024;
 
-    if (!allowedTypes.includes(selectedFile.type)) {
+    if (!hasValidType && !hasValidExtension) {
       setError("Please upload a PDF, DOC, or DOCX file.");
+      return;
+    }
+
+    if (selectedFile.size === 0) {
+      setError("The selected file is empty. Please choose another resume.");
       return;
     }
 
@@ -169,7 +260,7 @@ export default function AnalyzerPage() {
   ========================================================== */
 
   const analyzeResume = async () => {
-    if (!file) return;
+    if (!file || isAnalyzing) return;
 
     setIsAnalyzing(true);
     setError("");
@@ -177,7 +268,7 @@ export default function AnalyzerPage() {
 
     try {
       /* ------------------------------------------------------
-         UPLOAD
+         STEP 1 — UPLOAD
       ------------------------------------------------------ */
 
       const formData = new FormData();
@@ -188,33 +279,22 @@ export default function AnalyzerPage() {
         body: formData,
       });
 
-      const uploadText = await uploadResponse.text();
+      const uploadData = await readApiResponse<unknown>(uploadResponse);
 
-      let uploadData;
+      if (!uploadResponse.ok) {
+        throw new Error(getApiError(uploadData, "Failed to upload resume."));
+      }
 
-      try {
-        uploadData = JSON.parse(uploadText);
-      } catch {
+      const resumeId = uploadData.resume?.id;
+
+      if (!resumeId) {
         throw new Error(
-          `Upload server returned an invalid response: ${uploadText.slice(
-            0,
-            200,
-          )}`,
+          "Resume was uploaded, but the server did not return a resume ID.",
         );
       }
 
-      if (!uploadResponse.ok) {
-        throw new Error(uploadData?.error || "Failed to upload resume.");
-      }
-
-      const resumeId = uploadData?.resume?.id;
-
-      if (!resumeId) {
-        throw new Error("Resume ID was not returned by the server.");
-      }
-
       /* ------------------------------------------------------
-         ANALYZE
+         STEP 2 — ANALYZE
       ------------------------------------------------------ */
 
       const analyzeResponse = await fetch("/api/resume/analyze", {
@@ -227,38 +307,46 @@ export default function AnalyzerPage() {
         }),
       });
 
-      const analyzeText = await analyzeResponse.text();
+      const analyzeData =
+        await readApiResponse<AnalysisResult>(analyzeResponse);
 
-      let analyzeData;
-
-      try {
-        analyzeData = JSON.parse(analyzeText);
-      } catch {
+      if (!analyzeResponse.ok) {
         throw new Error(
-          `Analysis server returned an invalid response: ${analyzeText.slice(
-            0,
-            200,
-          )}`,
+          getApiError(analyzeData, "Unable to analyze the resume."),
         );
       }
 
-      if (!analyzeResponse.ok) {
-        throw new Error(analyzeData?.error || "Unable to analyze the resume.");
+      /* ------------------------------------------------------
+         STEP 3 — VALIDATE RESULT
+      ------------------------------------------------------ */
+
+      if (!analyzeData.result) {
+        throw new Error(
+          "The analysis completed, but no analysis result was returned.",
+        );
       }
 
-      if (!analyzeData?.result) {
-        throw new Error("No analysis result was returned.");
+      const analysisResult = analyzeData.result;
+
+      /*
+       * Basic validation so a malformed Gemini response does
+       * not crash the results UI.
+       */
+      if (typeof analysisResult !== "object" || analysisResult === null) {
+        throw new Error("The analyzer returned an invalid analysis result.");
       }
 
-      setResult(analyzeData.result);
+      setResult(analysisResult);
     } catch (err) {
       console.error("Resume analysis error:", err);
 
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong while analyzing your resume.",
-      );
+      let message = "Something went wrong while analyzing your resume.";
+
+      if (err instanceof Error && err.message.trim()) {
+        message = err.message;
+      }
+
+      setError(message);
     } finally {
       setIsAnalyzing(false);
     }
@@ -272,6 +360,7 @@ export default function AnalyzerPage() {
     setFile(null);
     setResult(null);
     setError("");
+    setIsAnalyzing(false);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -321,6 +410,7 @@ export default function AnalyzerPage() {
           >
             <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 shadow-[0_0_22px_rgba(99,102,241,0.35)]">
               <Sparkles className="relative z-10 h-4 w-4 text-white" />
+
               <div className="absolute -right-2 -top-2 h-5 w-5 rounded-full bg-white/30 blur-sm" />
             </span>
 
@@ -487,14 +577,16 @@ export default function AnalyzerPage() {
                   Analysis failed
                 </p>
 
-                <p className="mt-1 text-xs leading-relaxed text-red-200/60">
+                <p className="mt-1 break-words text-xs leading-relaxed text-red-200/70">
                   {error}
                 </p>
               </div>
 
               <button
+                type="button"
+                aria-label="Dismiss error"
                 onClick={() => setError("")}
-                className="text-red-300/60 transition hover:text-red-300"
+                className="shrink-0 text-red-300/60 transition hover:text-red-300"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -532,9 +624,14 @@ export default function AnalyzerPage() {
 
               <section className="mx-auto mt-12 max-w-3xl">
                 <div
-                  onDragOver={(e) => e.preventDefault()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                  }}
                   onDrop={(e) => {
                     e.preventDefault();
+
+                    if (isAnalyzing) return;
+
                     handleFile(e.dataTransfer.files?.[0] ?? null);
                   }}
                   className={`relative overflow-hidden rounded-[32px] border ${
@@ -570,7 +667,7 @@ export default function AnalyzerPage() {
                             ref={fileInputRef}
                             type="file"
                             hidden
-                            accept=".pdf,.doc,.docx"
+                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                             onChange={(e) =>
                               handleFile(e.target.files?.[0] ?? null)
                             }
@@ -613,14 +710,18 @@ export default function AnalyzerPage() {
                           </div>
 
                           <button
+                            type="button"
+                            disabled={isAnalyzing}
+                            aria-label="Remove selected resume"
                             onClick={resetAnalyzer}
-                            className="text-slate-500 transition hover:text-white"
+                            className="text-slate-500 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             <X className="h-4 w-4" />
                           </button>
                         </div>
 
                         <button
+                          type="button"
                           onClick={analyzeResume}
                           disabled={isAnalyzing}
                           className="mx-auto mt-7 flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 px-7 py-3 text-xs font-bold text-white shadow-[0_0_30px_rgba(79,70,229,0.3)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
@@ -638,6 +739,14 @@ export default function AnalyzerPage() {
                             </>
                           )}
                         </button>
+
+                        {isAnalyzing && (
+                          <p className="mx-auto mt-4 max-w-md text-center text-[10px] leading-relaxed text-slate-500">
+                            Revio is extracting your resume and generating your
+                            career intelligence report. This can take a little
+                            while.
+                          </p>
+                        )}
                       </>
                     )}
                   </div>
@@ -724,6 +833,7 @@ function AnalysisResults({
         </div>
 
         <button
+          type="button"
           onClick={onAnalyzeAnother}
           className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2.5 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:text-white"
         >
@@ -733,7 +843,7 @@ function AnalysisResults({
       </div>
 
       {/* ======================================================
-          CANDIDATE NAME
+          CANDIDATE
       ====================================================== */}
 
       {result.candidate && (
@@ -881,13 +991,210 @@ function AnalysisResults({
       )}
 
       {/* ======================================================
+          EXPERIENCE DETAILS
+      ====================================================== */}
+
+      {result.experienceDetails && result.experienceDetails.length > 0 && (
+        <section className="mt-12">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              Experience Intelligence
+            </p>
+
+            <h2 className="mt-1 text-2xl font-black tracking-tight text-white">
+              Your professional experience
+            </h2>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {result.experienceDetails.map((experience, index) => (
+              <article
+                key={`${experience.company}-${experience.role}-${index}`}
+                className="rounded-[26px] border border-white/10 bg-slate-900/60 p-6"
+              >
+                <div className="flex flex-col justify-between gap-3 sm:flex-row">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                      {experience.company}
+                    </p>
+
+                    <h3 className="mt-1 text-lg font-black text-white">
+                      {experience.role}
+                    </h3>
+                  </div>
+
+                  {experience.duration && (
+                    <span className="h-fit rounded-lg border border-white/10 bg-slate-950/50 px-3 py-1.5 text-[10px] font-medium text-slate-400">
+                      {experience.duration}
+                    </span>
+                  )}
+                </div>
+
+                {experience.description && (
+                  <p className="mt-5 text-sm leading-7 text-slate-400">
+                    {experience.description}
+                  </p>
+                )}
+
+                {experience.responsibilities &&
+                  experience.responsibilities.length > 0 && (
+                    <div className="mt-5">
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                        Responsibilities
+                      </p>
+
+                      <div className="mt-3 space-y-2">
+                        {experience.responsibilities.map((item, itemIndex) => (
+                          <div
+                            key={`${item}-${itemIndex}`}
+                            className="flex gap-3 rounded-xl border border-white/[0.06] bg-slate-950/40 p-3"
+                          >
+                            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-400" />
+
+                            <p className="text-xs leading-6 text-slate-400">
+                              {item}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                {experience.achievements &&
+                  experience.achievements.length > 0 && (
+                    <div className="mt-5">
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                        Achievements
+                      </p>
+
+                      <div className="mt-3 space-y-2">
+                        {experience.achievements.map((item, itemIndex) => (
+                          <div
+                            key={`${item}-${itemIndex}`}
+                            className="flex gap-3 rounded-xl border border-emerald-500/10 bg-emerald-500/[0.03] p-3"
+                          >
+                            <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+
+                            <p className="text-xs leading-6 text-slate-400">
+                              {item}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ======================================================
+          ATS ANALYSIS
+      ====================================================== */}
+
+      {result.atsAnalysis && (
+        <section className="mt-12">
+          <div className="rounded-[28px] border border-white/10 bg-slate-900/60 p-7">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-cyan-300">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  ATS Intelligence
+                </p>
+
+                <h2 className="mt-1 text-lg font-black text-white">
+                  How your resume performs with ATS systems
+                </h2>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {result.atsAnalysis.keywordOptimization && (
+                <div className="rounded-2xl border border-white/[0.07] bg-slate-950/50 p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                    Keyword Optimization
+                  </p>
+
+                  <p className="mt-3 text-xs leading-6 text-slate-400">
+                    {result.atsAnalysis.keywordOptimization}
+                  </p>
+                </div>
+              )}
+
+              {result.atsAnalysis.formatting && (
+                <div className="rounded-2xl border border-white/[0.07] bg-slate-950/50 p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                    Formatting
+                  </p>
+
+                  <p className="mt-3 text-xs leading-6 text-slate-400">
+                    {result.atsAnalysis.formatting}
+                  </p>
+                </div>
+              )}
+
+              {result.atsAnalysis.sectionStructure && (
+                <div className="rounded-2xl border border-white/[0.07] bg-slate-950/50 p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                    Section Structure
+                  </p>
+
+                  <p className="mt-3 text-xs leading-6 text-slate-400">
+                    {result.atsAnalysis.sectionStructure}
+                  </p>
+                </div>
+              )}
+
+              {result.atsAnalysis.readability && (
+                <div className="rounded-2xl border border-white/[0.07] bg-slate-950/50 p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                    Readability
+                  </p>
+
+                  <p className="mt-3 text-xs leading-6 text-slate-400">
+                    {result.atsAnalysis.readability}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {result.atsAnalysis.issues &&
+              result.atsAnalysis.issues.length > 0 && (
+                <div className="mt-6">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                    ATS Issues
+                  </p>
+
+                  <div className="mt-3 space-y-2">
+                    {result.atsAnalysis.issues.map((issue, index) => (
+                      <div
+                        key={`${issue}-${index}`}
+                        className="flex gap-3 rounded-xl border border-amber-500/10 bg-amber-500/[0.03] p-3"
+                      >
+                        <CircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+
+                        <p className="text-xs leading-6 text-slate-400">
+                          {issue}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </div>
+        </section>
+      )}
+
+      {/* ======================================================
           STRENGTHS + WEAKNESSES
       ====================================================== */}
 
-      {(result.strengths?.length || result.weaknesses?.length) && (
+      {result.strengths?.length || result.weaknesses?.length ? (
         <section className="mt-12 grid gap-5 lg:grid-cols-2">
-          {/* Strengths */}
-
           {result.strengths && result.strengths.length > 0 && (
             <InsightCard
               title="Resume strengths"
@@ -897,8 +1204,6 @@ function AnalysisResults({
               type="positive"
             />
           )}
-
-          {/* Weaknesses */}
 
           {result.weaknesses && result.weaknesses.length > 0 && (
             <InsightCard
@@ -910,7 +1215,7 @@ function AnalysisResults({
             />
           )}
         </section>
-      )}
+      ) : null}
 
       {/* ======================================================
           SUGGESTIONS
@@ -1006,7 +1311,10 @@ function AnalysisResults({
               </p>
             </div>
 
-            <button className="hidden items-center gap-1 text-xs font-semibold text-cyan-300 sm:flex">
+            <button
+              type="button"
+              className="hidden items-center gap-1 text-xs font-semibold text-cyan-300 sm:flex"
+            >
               View all jobs
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
@@ -1045,11 +1353,15 @@ function AnalysisResults({
 
             <div className="mt-7 grid gap-5 md:grid-cols-2">
               {result.skillGaps.map((skill, index) => (
-                <SkillGap
-                  key={`${skill.name}-${index}`}
-                  name={skill.name}
-                  level={skill.level}
-                />
+                <div key={`${skill.name}-${index}`}>
+                  <SkillGap name={skill.name} level={skill.level} />
+
+                  {skill.reason && (
+                    <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+                      {skill.reason}
+                    </p>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -1300,8 +1612,6 @@ function ProjectCard({
       <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-indigo-600/10 blur-[70px]" />
 
       <div className="relative">
-        {/* Project Header */}
-
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-cyan-300">
@@ -1335,8 +1645,6 @@ function ProjectCard({
           )}
         </div>
 
-        {/* Description */}
-
         {project.description && (
           <div className="mt-6">
             <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
@@ -1348,8 +1656,6 @@ function ProjectCard({
             </p>
           </div>
         )}
-
-        {/* Contribution */}
 
         {project.contribution && (
           <div className="mt-5 rounded-2xl border border-white/[0.07] bg-slate-950/50 p-4">
@@ -1368,8 +1674,6 @@ function ProjectCard({
             </p>
           </div>
         )}
-
-        {/* Impact */}
 
         {project.impact && (
           <div className="mt-4 rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] p-4">
@@ -1601,6 +1905,8 @@ function ScoreCard({
 ============================================================= */
 
 function RoleCard({ rank, role, match, description, skills }: RoleData) {
+  const safeMatch = Math.min(Math.max(Number(match) || 0, 0), 100);
+
   return (
     <div className="group rounded-[26px] border border-white/10 bg-slate-900/60 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-500/30">
       <div className="flex items-start justify-between gap-3">
@@ -1615,7 +1921,7 @@ function RoleCard({ rank, role, match, description, skills }: RoleData) {
         </div>
 
         <div className="text-right">
-          <p className="text-xl font-black text-cyan-300">{match}%</p>
+          <p className="text-xl font-black text-cyan-300">{safeMatch}%</p>
 
           <p className="text-[9px] uppercase tracking-wider text-slate-500">
             match
@@ -1642,7 +1948,10 @@ function RoleCard({ rank, role, match, description, skills }: RoleData) {
         </div>
       )}
 
-      <button className="mt-6 flex items-center gap-1.5 text-[10px] font-bold text-cyan-300 transition group-hover:text-white">
+      <button
+        type="button"
+        className="mt-6 flex items-center gap-1.5 text-[10px] font-bold text-cyan-300 transition group-hover:text-white"
+      >
         View role analysis
         <ArrowRight className="h-3 w-3 transition group-hover:translate-x-1" />
       </button>
@@ -1655,6 +1964,8 @@ function RoleCard({ rank, role, match, description, skills }: RoleData) {
 ============================================================= */
 
 function JobCard({ role, company, location, match }: JobData) {
+  const safeMatch = Math.min(Math.max(Number(match) || 0, 0), 100);
+
   return (
     <div className="group flex flex-col gap-5 rounded-[22px] border border-white/10 bg-slate-900/60 p-5 transition hover:border-indigo-500/30 sm:flex-row sm:items-center">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
@@ -1674,14 +1985,18 @@ function JobCard({ role, company, location, match }: JobData) {
 
       <div className="flex items-center gap-4">
         <div className="text-right">
-          <p className="text-lg font-black text-emerald-400">{match}%</p>
+          <p className="text-lg font-black text-emerald-400">{safeMatch}%</p>
 
           <p className="text-[9px] uppercase tracking-wider text-slate-500">
             profile match
           </p>
         </div>
 
-        <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-950/60 text-slate-400 transition group-hover:border-cyan-400/30 group-hover:text-cyan-300">
+        <button
+          type="button"
+          aria-label={`Open ${role}`}
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-950/60 text-slate-400 transition group-hover:border-cyan-400/30 group-hover:text-cyan-300"
+        >
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>
