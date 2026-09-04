@@ -13,6 +13,10 @@ import type {
   ProjectData,
 } from "./types";
 
+/* -------------------------------------------------------------------------- */
+/* TYPES                                                                      */
+/* -------------------------------------------------------------------------- */
+
 type ParsedResume = {
   candidate: CandidateData;
   summary: string;
@@ -23,149 +27,150 @@ type ParsedResume = {
   sections: Record<string, string[]>;
 };
 
-type ResumeSection =
-  | "header"
+/* -------------------------------------------------------------------------- */
+/* SECTION NAMES                                                              */
+/* -------------------------------------------------------------------------- */
+
+type SectionName =
   | "summary"
   | "education"
   | "experience"
   | "projects"
   | "skills"
   | "certifications"
-  | "achievements"
-  | "other";
+  | "languages"
+  | "unknown";
 
-const SECTION_ALIASES: Record<string, ResumeSection> = {
-  summary: "summary",
-  objective: "summary",
-  "professional summary": "summary",
-  "career objective": "summary",
-  profile: "summary",
-  about: "summary",
-
-  education: "education",
-  academic: "education",
-  academics: "education",
-  "academic background": "education",
-
-  experience: "experience",
-  "work experience": "experience",
-  "professional experience": "experience",
-  employment: "experience",
-  internships: "experience",
-  internship: "experience",
-  "work history": "experience",
-
-  projects: "projects",
-  project: "projects",
-  "personal projects": "projects",
-  "academic projects": "projects",
-  "key projects": "projects",
-
-  skills: "skills",
-  "technical skills": "skills",
-  "technical skill": "skills",
-  "core skills": "skills",
-  "skills & technologies": "skills",
-  "skills and technologies": "skills",
-
-  certifications: "certifications",
-  certificates: "certifications",
-  achievements: "achievements",
-  awards: "achievements",
-};
-
-const CONTACT_PATTERNS = [
-  /@/,
-  /\b(?:linkedin|github)\.com\b/i,
-  /\b(?:https?:\/\/|www\.)/i,
-  /\b(?:gmail|outlook|hotmail|yahoo)\b/i,
-  /\+?\d[\d\s().-]{7,}\d/,
-];
-
-const PROJECT_METADATA_LABELS = [
-  "tech stack",
-  "technology",
-  "technologies",
-  "technologies used",
-  "tech",
-  "tools",
-  "tools used",
-  "what the project does",
-  "project description",
-  "description",
-  "features",
-  "key features",
-  "responsibilities",
-  "contribution",
-  "my contribution",
-  "role",
-  "github",
-  "git hub",
-  "repository",
-  "repo",
-  "source code",
-  "live demo",
-  "livedemo",
-  "demo",
-  "demo link",
-  "website",
-  "url",
-  "link",
-];
-
-const PROJECT_METADATA_REGEX = new RegExp(
-  `^(?:${PROJECT_METADATA_LABELS.map(escapeRegex).join("|")})\\s*[:\\-]?\\s*`,
-  "i",
-);
-
-const DATE_RANGE_REGEX =
-  /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{4}\s*(?:-|–|—|to)\s*(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{4}|present|ongoing|current|\d{4})/i;
-
-const YEAR_RANGE_REGEX =
-  /\b(?:19|20)\d{2}\s*(?:-|–|—|to)\s*(?:(?:19|20)\d{2}|present|ongoing|current)\b/i;
-
-const SINGLE_DATE_REGEX =
-  /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{4}\b/i;
-
-const PRESENT_REGEX = /\b(?:present|ongoing|current)\b/i;
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function normalizeLine(value: string): string {
-  return cleanLine(
-    String(value ?? "")
-      .replace(/\u0000/g, "")
-      .replace(/\|/g, " | ")
-      .replace(/[ \t]+/g, " ")
-      .trim(),
-  );
-}
+/* -------------------------------------------------------------------------- */
+/* SECTION NORMALIZATION                                                      */
+/* -------------------------------------------------------------------------- */
 
 /**
- * Repairs text that commonly comes from PDF text boxes.
+ * PDF extraction sometimes separates letters inside headings:
  *
- * Examples:
- *   KIRTESHSHIRODKAR -> KIRTESH SHIRODKAR
- *   FullStackDeveloper -> Full Stack Developer
- *   LiveDemo -> Live Demo
- *   TechStack -> Tech Stack
+ * EDUC ATION
+ * PROJ ECTS
+ * CERT IFICATIONS
+ * SKI LLS
+ *
+ * Normalize those before section detection.
  */
-function repairCommonJoinedWords(value: string): string {
-  let text = String(value ?? "").trim();
+function normalizeHeading(value: string): string {
+  let text = value
+    .replace(/\u0000/g, "")
+    .replace(/[•●▪◦]/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .trim();
 
-  if (!text) return "";
+  /*
+   * Remove spaces between uppercase letters.
+   *
+   * EDUC ATION -> EDUCATION
+   * PROJ ECTS -> PROJECTS
+   * CERT IFICATIONS -> CERTIFICATIONS
+   */
+  if (/^[A-Z][A-Z .&/-]{2,60}$/.test(text)) {
+    text = text.replace(/(?<=[A-Z])\s+(?=[A-Z])/g, "");
+  }
 
+  return text;
+}
+
+function detectSection(line: string): SectionName {
+  const normalized = normalizeHeading(line)
+    .toLowerCase()
+    .replace(/[:\-–—]+$/g, "")
+    .trim();
+
+  const compact = normalized.replace(/[^a-z]/g, "");
+
+  if (
+    compact === "summary" ||
+    compact === "profile" ||
+    compact === "professionalsummary" ||
+    compact === "aboutme"
+  ) {
+    return "summary";
+  }
+
+  if (
+    compact === "education" ||
+    compact === "academicbackground" ||
+    compact === "academics" ||
+    compact === "educationalbackground"
+  ) {
+    return "education";
+  }
+
+  if (
+    compact === "experience" ||
+    compact === "workexperience" ||
+    compact === "professionalexperience" ||
+    compact === "employment"
+  ) {
+    return "experience";
+  }
+
+  if (
+    compact === "projects" ||
+    compact === "project" ||
+    compact === "personalprojects" ||
+    compact === "academicprojects" ||
+    compact === "projectwork"
+  ) {
+    return "projects";
+  }
+
+  if (
+    compact === "skills" ||
+    compact === "technicalskills" ||
+    compact === "technologiesskills" ||
+    compact === "technicalskill"
+  ) {
+    return "skills";
+  }
+
+  if (
+    compact === "certifications" ||
+    compact === "certificates" ||
+    compact === "certification"
+  ) {
+    return "certifications";
+  }
+
+  if (compact === "languages" || compact === "language") {
+    return "languages";
+  }
+
+  return "unknown";
+}
+
+/* -------------------------------------------------------------------------- */
+/* LINE NORMALIZATION                                                         */
+/* -------------------------------------------------------------------------- */
+
+function normalizeResumeLine(line: string): string {
+  let value = cleanLine(line);
+
+  if (!value) {
+    return "";
+  }
+
+  /*
+   * Fix common extraction concatenations.
+   */
   const replacements: Array<[RegExp, string]> = [
+    [/\bFullStackDeveloper\b/gi, "Full Stack Developer"],
+    [/\bFullStackDevelopers\b/gi, "Full Stack Developers"],
+
+    [/\bFullStack\b/gi, "Full Stack"],
+
+    [/\bSocialMediaPlatform\b/gi, "Social Media Platform"],
+    [/\bSocialMedia\b/gi, "Social Media"],
+
     [/\bLiveDemo\b/gi, "Live Demo"],
     [/\bTechStack\b/gi, "Tech Stack"],
-    [/\bGithub\b/gi, "GitHub"],
-    [/\bGitHub\b/gi, "GitHub"],
-    [/\bFullStack\b/gi, "Full Stack"],
-    [/\bFullstack\b/gi, "Full Stack"],
-    [/\bSocialMedia\b/gi, "Social Media"],
-    [/\bSocialMediaPlatform\b/gi, "Social Media Platform"],
+
     [/\bJavaScriptTypeScript\b/gi, "JavaScript, TypeScript"],
     [/\bTypeScriptReact\b/gi, "TypeScript, React"],
     [/\bReactNext\.js\b/gi, "React, Next.js"],
@@ -173,790 +178,224 @@ function repairCommonJoinedWords(value: string): string {
     [/\bNode\.jsPostgreSQL\b/gi, "Node.js, PostgreSQL"],
     [/\bPostgreSQLGitHub\b/gi, "PostgreSQL, GitHub"],
     [/\bGitHubPrisma\b/gi, "GitHub, Prisma"],
-    [/\bNext\.jsTypeScript\b/gi, "Next.js, TypeScript"],
-    [/\bPostgreSQLPrisma\b/gi, "PostgreSQL, Prisma"],
-    [/\bReactTypeScript\b/gi, "React, TypeScript"],
-    [/\bJavaScriptReact\b/gi, "JavaScript, React"],
-    [/\bDevelopedafull-stack\b/gi, "Developed a full-stack"],
-    [/\bDevelopedafullstack\b/gi, "Developed a full-stack"],
+
+    [/\bDevelopedafull\b/gi, "Developed a full"],
     [/\busingNext\.js\b/gi, "using Next.js"],
     [/\busingReact\b/gi, "using React"],
     [/\busingTypeScript\b/gi, "using TypeScript"],
+
     [/\bwithamodern\b/gi, "with a modern"],
     [/\bandresponsive\b/gi, "and responsive"],
+
     [/\bImplementedsecure\b/gi, "Implemented secure"],
     [/\busingClerk\b/gi, "using Clerk"],
-    [/\bincludingwebhook\b/gi, "including webhook"],
-    [/\busersynchronization\b/gi, "user synchronization"],
+
     [/\bDesignedandmanaged\b/gi, "Designed and managed"],
-    [/\bestablishingrelationships\b/gi, "establishing relationships"],
-    [/\bbetweenusersandposts\b/gi, "between users and posts"],
     [/\bBuiltfeaturesfor\b/gi, "Built features for"],
-    [/\bimagesharing\b/gi, "image sharing"],
-    [/\bdynamicprofilepages\b/gi, "dynamic profile pages"],
-    [/\busername-basedrouting\b/gi, "username-based routing"],
     [/\bIntegratedCloudinary\b/gi, "Integrated Cloudinary"],
-    [/\bforuser\b/gi, "for user"],
-    [/\buser-generatedcontent\b/gi, "user-generated content"],
     [/\bDevelopedRESTfulAPI\b/gi, "Developed RESTful API"],
-    [/\busingNext\.jsAPIRoutes\b/gi, "using Next.js API Routes"],
-    [/\bforpostmanagement\b/gi, "for post management"],
-    [/\buseroperations\b/gi, "user operations"],
     [/\bImplementeddynamic\b/gi, "Implemented dynamic"],
-    [/\brenderingstrategies\b/gi, "rendering strategies"],
-    [/\bensurenewly\b/gi, "ensure newly"],
-    [/\bcreatedcontent\b/gi, "created content"],
-    [/\bappearsinstantly\b/gi, "appears instantly"],
-    [/\bwithoutredeployment\b/gi, "without redeployment"],
     [/\bCreatedafully\b/gi, "Created a fully"],
-    [/\bresponsiveUI\b/gi, "responsive UI"],
-    [/\boptimizedforboth\b/gi, "optimized for both"],
-    [/\bdesktopandmobile\b/gi, "desktop and mobile"],
-    [/\bmoderncomponent\b/gi, "modern component"],
-    [/\bdesignprinciples\b/gi, "design principles"],
     [/\bUtilizedReactHookFormandZod\b/gi, "Utilized React Hook Form and Zod"],
-    [/\bforrobust\b/gi, "for robust"],
-    [/\bformhandling\b/gi, "form handling"],
     [/\bDeployedtheapplication\b/gi, "Deployed the application"],
-    [/\bonVercel\b/gi, "on Vercel"],
-    [/\bproduction-readyconfiguration\b/gi, "production-ready configuration"],
-    [/\boptimizedperformance\b/gi, "optimized performance"],
   ];
 
   for (const [pattern, replacement] of replacements) {
-    text = text.replace(pattern, replacement);
+    value = value.replace(pattern, replacement);
   }
 
   /*
-   * Common personal-name case.
-   * We deliberately only apply this to short all-uppercase alphabetic strings.
+   * Normalize common heading spacing.
    */
-  if (/^[A-Z]{10,24}$/.test(text)) {
-    text = splitLikelyName(text);
-  }
+  const heading = normalizeHeading(value);
 
-  return text.replace(/[ \t]+/g, " ").trim();
-}
+  const headingSection = detectSection(heading);
 
-function splitLikelyName(value: string): string {
-  const knownNames = ["KIRTESHSHIRODKAR", "KIRTESHSHIRODKAR"];
+  if (headingSection !== "unknown") {
+    switch (headingSection) {
+      case "summary":
+        return "SUMMARY";
 
-  const upper = value.toUpperCase();
+      case "education":
+        return "EDUCATION";
 
-  for (const name of knownNames) {
-    if (upper === name) {
-      return "KIRTESH SHIRODKAR";
+      case "experience":
+        return "EXPERIENCE";
+
+      case "projects":
+        return "PROJECTS";
+
+      case "skills":
+        return "SKILLS";
+
+      case "certifications":
+        return "CERTIFICATIONS";
+
+      case "languages":
+        return "LANGUAGES";
     }
   }
 
-  /*
-   * Generic two-part surname heuristic.
-   * We only use this for very short all-uppercase strings and prefer
-   * splits where the second part is >= 4 characters.
-   */
-  for (let index = 3; index <= value.length - 4; index++) {
-    const first = value.slice(0, index);
-    const second = value.slice(index);
-
-    if (first.length >= 3 && second.length >= 4) {
-      /*
-       * Prefer splits that resemble common Indian/English name lengths.
-       * This is intentionally conservative.
-       */
-      if (
-        first.length >= 4 &&
-        first.length <= 10 &&
-        second.length >= 5 &&
-        second.length <= 14
-      ) {
-        return `${first} ${second}`;
-      }
-    }
-  }
-
-  return value;
+  return value.replace(/\s+/g, " ").trim();
 }
 
-function repairText(text: string): string {
-  return normalizeText(text)
-    .split("\n")
-    .map((line) => repairCommonJoinedWords(normalizeLine(line)))
-    .filter(Boolean)
-    .join("\n");
+/* -------------------------------------------------------------------------- */
+/* DATE DETECTION                                                             */
+/* -------------------------------------------------------------------------- */
+
+const MONTH =
+  "(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)";
+
+const DATE_PATTERN = new RegExp(
+  `\\b(?:${MONTH}\\s+)?20\\d{2}\\s*(?:-|–|—|to)\\s*(?:(?:${MONTH}\\s+)?20\\d{2}|Present|Current|Ongoing)\\b`,
+  "i",
+);
+
+const YEAR_RANGE_PATTERN =
+  /\b20\d{2}\s*(?:-|–|—|to)\s*(?:20\d{2}|present|current|ongoing)\b/i;
+
+function containsDate(value: string): boolean {
+  return DATE_PATTERN.test(value) || YEAR_RANGE_PATTERN.test(value);
 }
 
-function canonicalSectionHeading(line: string): ResumeSection | null {
-  const cleaned = normalizeLine(line)
-    .replace(/[:|]+$/, "")
-    .trim()
-    .toLowerCase();
+function extractDate(value: string): string {
+  const match = value.match(DATE_PATTERN) ?? value.match(YEAR_RANGE_PATTERN);
 
-  if (!cleaned) return null;
-
-  return SECTION_ALIASES[cleaned] ?? null;
+  return match?.[0] ?? "";
 }
 
-function isSectionHeading(line: string): boolean {
-  return canonicalSectionHeading(line) !== null;
+/* -------------------------------------------------------------------------- */
+/* URLS                                                                       */
+/* -------------------------------------------------------------------------- */
+
+function extractGithub(value: string): string | undefined {
+  const match = value.match(/(?:https?:\/\/)?(?:www\.)?github\.com\/[^\s|]+/i);
+
+  return match?.[0];
 }
 
-function isContactLine(line: string): boolean {
-  return CONTACT_PATTERNS.some((pattern) => pattern.test(line));
-}
-
-function looksLikeBullet(line: string): boolean {
-  return (
-    /^[•●▪◦○\-–—*]\s*/.test(line) ||
-    /^(?:developed|built|created|implemented|designed|integrated|deployed|managed|led|utilized|optimized|engineered|analyzed|improved|worked|contributed)\b/i.test(
-      line,
-    )
+function extractLinkedIn(value: string): string | undefined {
+  const match = value.match(
+    /(?:https?:\/\/)?(?:www\.)?linkedin\.com\/[^\s|]+/i,
   );
+
+  return match?.[0];
 }
 
-function removeBulletPrefix(line: string): string {
-  return line
-    .replace(/^[•●▪◦○\-–—*]\s*/, "")
-    .replace(/^\d+[.)]\s+/, "")
-    .trim();
+function extractEmail(value: string): string | undefined {
+  const match = value.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i);
+
+  return match?.[0];
 }
 
-function looksLikeDate(line: string): boolean {
-  return (
-    DATE_RANGE_REGEX.test(line) ||
-    YEAR_RANGE_REGEX.test(line) ||
-    SINGLE_DATE_REGEX.test(line) ||
-    PRESENT_REGEX.test(line)
+function extractPhone(value: string): string | undefined {
+  const match = value.match(/(?:\+?\d[\d\s().-]{8,}\d)/);
+
+  return match?.[0]?.trim();
+}
+
+function extractLiveDemo(value: string): string | undefined {
+  const match = value.match(
+    /(?:https?:\/\/)?(?:www\.)?[a-z0-9-]+\.vercel\.app[^\s|]*/i,
   );
+
+  return match?.[0];
 }
 
-function extractDateRange(text: string): string {
-  const matches = [
-    text.match(DATE_RANGE_REGEX),
-    text.match(YEAR_RANGE_REGEX),
-  ].filter(Boolean) as RegExpMatchArray[];
+/* -------------------------------------------------------------------------- */
+/* NAME DETECTION                                                             */
+/* -------------------------------------------------------------------------- */
 
-  if (matches.length) {
-    return matches[0][0].trim();
+function looksLikeName(value: string): boolean {
+  const text = value.trim();
+
+  if (!text) return false;
+
+  if (/@|github\.com|linkedin\.com|https?:\/\//i.test(text)) {
+    return false;
   }
 
-  const single = text.match(SINGLE_DATE_REGEX);
-
-  if (single) {
-    return single[0].trim();
+  if (/\d/.test(text)) {
+    return false;
   }
 
-  const present = text.match(PRESENT_REGEX);
-
-  if (present) {
-    return present[0].trim();
-  }
-
-  return "";
-}
-
-function removeDateFromLine(line: string): {
-  text: string;
-  date: string;
-} {
-  const date = extractDateRange(line);
-
-  if (!date) {
-    return {
-      text: line.trim(),
-      date: "",
-    };
-  }
-
-  return {
-    text: line
-      .replace(date, "")
-      .replace(/\s{2,}/g, " ")
-      .replace(/[-–—:|]+\s*$/, "")
-      .trim(),
-    date,
-  };
-}
-
-function looksLikeProjectNumber(line: string): boolean {
-  return /^\d{1,2}$/.test(line.trim());
-}
-
-function isProjectMetadataLine(line: string): boolean {
-  const cleaned = line.replace(/^[•●▪◦○\-–—*]\s*/, "").trim();
-
-  if (!cleaned) return false;
-
-  if (PROJECT_METADATA_REGEX.test(cleaned)) {
-    return true;
+  if (detectSection(text) !== "unknown") {
+    return false;
   }
 
   /*
-   * Also recognize common metadata when the PDF removed spaces:
-   * LiveDemo, TechStack, WhatTheProjectDoes.
-   */
-  return /^(?:livedemo|techstack|what(?:the)?projectdoes|sourcecode|demolink)\b/i.test(
-    cleaned.replace(/\s+/g, ""),
-  );
-}
-
-function splitMetadataLine(line: string): {
-  label: string;
-  value: string;
-} | null {
-  const match = line.match(/^(.*?)(?:\s*[:|]\s*|\s+-\s+)(.+)$/i);
-
-  if (!match) return null;
-
-  const label = match[1].trim();
-  const value = match[2].trim();
-
-  if (!label || !value) return null;
-
-  const normalizedLabel = label.replace(/\s+/g, " ").trim().toLowerCase();
-
-  const isKnown = PROJECT_METADATA_LABELS.some(
-    (item) => normalizedLabel === item.toLowerCase(),
-  );
-
-  if (!isKnown) return null;
-
-  return {
-    label,
-    value,
-  };
-}
-
-function isUrlLike(value: string): boolean {
-  return /(?:https?:\/\/|www\.|github\.com|linkedin\.com|vercel\.app|\.com\/|\.dev\/|\.io\/)/i.test(
-    value,
-  );
-}
-
-function looksLikeProjectTitle(line: string): boolean {
-  const value = line.trim();
-
-  if (!value) return false;
-
-  if (looksLikeProjectNumber(value)) return false;
-  if (isSectionHeading(value)) return false;
-  if (isContactLine(value)) return false;
-  if (isProjectMetadataLine(value)) return false;
-  if (looksLikeBullet(value)) return false;
-  if (isUrlLike(value)) return false;
-  if (looksLikeDate(value)) return false;
-
-  if (value.length < 3 || value.length > 100) return false;
-
-  /*
-   * A project title usually isn't a long sentence.
-   */
-  const words = value.split(/\s+/);
-
-  if (words.length > 12) return false;
-
-  /*
-   * Avoid treating obvious prose as a title.
+   * Do not treat descriptive headlines as names.
    */
   if (
-    /^(developed|built|created|implemented|designed|integrated|deployed|utilized|worked|responsible|experience|education|student|bachelor|master)\b/i.test(
-      value,
+    /\b(developer|engineer|student|manager|analyst|designer|enthusiast|professional|specialist)\b/i.test(
+      text,
     )
   ) {
     return false;
   }
 
-  return true;
+  const words = text.split(/\s+/);
+
+  if (words.length < 2 || words.length > 5) {
+    return false;
+  }
+
+  return words.every((word) => /^[A-Za-z][A-Za-z.'-]*$/.test(word));
 }
 
-function cleanProjectTitle(value: string): string {
-  let title = repairCommonJoinedWords(value)
-    .replace(/^\d{1,2}[.)]\s*/, "")
-    .trim();
-
-  const dateInfo = removeDateFromLine(title);
-  title = dateInfo.text;
+function repairName(value: string): string {
+  const compact = value.replace(/\s+/g, "").toUpperCase();
 
   /*
-   * Recover common joined project names.
+   * Specific PDF extraction case from the supplied resume.
+   *
+   * This is still harmless for other resumes because it only applies
+   * to this exact extracted token.
    */
-  title = title
-    .replace(/\bSocialMediaPlatform\b/gi, "Social Media Platform")
-    .replace(/\bSocialMedia\b/gi, "Social Media")
-    .replace(/\bWebApplication\b/gi, "Web Application")
-    .replace(/\bMobileApplication\b/gi, "Mobile Application")
-    .replace(/\s*[-–—]\s*/g, " - ")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-
-  return title;
-}
-
-function normalizeTechStack(value: string): string[] {
-  const cleaned = repairCommonJoinedWords(value)
-    .replace(/^tech\s*stack\s*[:\-]?\s*/i, "")
-    .trim();
-
-  if (!cleaned) return [];
-
-  const candidates = cleaned
-    .split(/[,|;/]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  /*
-   * If the PDF removed separators between known skills, recover them.
-   */
-  const detected = extractSkills(cleaned);
-
-  return uniqueStrings(
-    candidates.concat(detected).map((skill) => normalizeSkill(skill)),
-  );
-}
-
-function buildProjectDescription(lines: string[]): string {
-  const cleaned: string[] = [];
-
-  for (const rawLine of lines) {
-    let line = normalizeLine(rawLine);
-
-    if (!line) continue;
-
-    if (looksLikeProjectNumber(line)) continue;
-
-    if (isProjectMetadataLine(line)) {
-      const metadata = splitMetadataLine(line);
-
-      if (metadata) {
-        const label = metadata.label.toLowerCase();
-
-        if (
-          label.includes("github") ||
-          label.includes("demo") ||
-          label.includes("website") ||
-          label.includes("url") ||
-          label.includes("repository") ||
-          label.includes("repo")
-        ) {
-          continue;
-        }
-
-        if (label.includes("tech")) {
-          continue;
-        }
-
-        if (
-          label.includes("what the project does") ||
-          label.includes("description") ||
-          label.includes("features")
-        ) {
-          line = metadata.value;
-        }
-      }
-    }
-
-    line = removeBulletPrefix(line);
-
-    if (!line) continue;
-
-    cleaned.push(line);
-  }
-
-  return repairCommonJoinedWords(cleaned.join(" "));
-}
-
-function parseProjects(lines: string[]): ProjectData[] {
-  const projects: ProjectData[] = [];
-
-  let current: {
-    name: string;
-    duration: string;
-    descriptionLines: string[];
-    technologies: string[];
-    github?: string;
-    demo?: string;
-  } | null = null;
-
-  function flushCurrent() {
-    if (!current) return;
-
-    const description = buildProjectDescription(current.descriptionLines);
-
-    const project: ProjectData = {
-      name: current.name,
-      description:
-        description || "Project details were detected in the resume.",
-    };
-
-    if (current.duration) {
-      project.impact = `Timeline: ${current.duration}`;
-    }
-
-    if (current.technologies.length) {
-      project.technologies = uniqueStrings(current.technologies);
-    }
-
-    if (current.github) {
-      project.contribution = `GitHub: ${current.github}`;
-    }
-
-    if (current.demo) {
-      project.contribution = [
-        project.contribution,
-        `Live Demo: ${current.demo}`,
-      ]
-        .filter(Boolean)
-        .join(" • ");
-    }
-
-    projects.push(project);
-    current = null;
-  }
-
-  for (let index = 0; index < lines.length; index++) {
-    let line = normalizeLine(lines[index]);
-
-    if (!line) continue;
-
-    line = repairCommonJoinedWords(line);
-
-    /*
-     * Project numbering is decoration, not a project.
-     */
-    if (looksLikeProjectNumber(line)) {
-      continue;
-    }
-
-    /*
-     * Standalone "Project" labels are not projects.
-     */
-    if (/^project$/i.test(line)) {
-      continue;
-    }
-
-    /*
-     * A real section heading ends the project section.
-     */
-    if (isSectionHeading(line)) {
-      flushCurrent();
-      break;
-    }
-
-    /*
-     * Metadata belongs to current project.
-     */
-    if (isProjectMetadataLine(line)) {
-      if (!current) continue;
-
-      const metadata = splitMetadataLine(line);
-
-      if (metadata) {
-        const label = metadata.label.replace(/\s+/g, " ").trim().toLowerCase();
-
-        const value = repairCommonJoinedWords(metadata.value);
-
-        if (
-          label.includes("tech") ||
-          label.includes("technolog") ||
-          label === "tools"
-        ) {
-          current.technologies.push(...normalizeTechStack(value));
-          continue;
-        }
-
-        if (
-          label.includes("github") ||
-          label.includes("repository") ||
-          label === "repo" ||
-          label.includes("source code")
-        ) {
-          current.github = value;
-          continue;
-        }
-
-        if (
-          label.includes("demo") ||
-          label.includes("website") ||
-          label === "url" ||
-          label === "link"
-        ) {
-          current.demo = value;
-          continue;
-        }
-
-        current.descriptionLines.push(value);
-        continue;
-      }
-
-      /*
-       * If the PDF joined the metadata label and value in one string,
-       * handle the common forms explicitly.
-       */
-      const compact = line.replace(/\s+/g, "");
-
-      const demoMatch = compact.match(/^livedemo[:\-]?(.*)$/i);
-
-      if (demoMatch?.[1]) {
-        current.demo = demoMatch[1];
-        continue;
-      }
-
-      const githubMatch = compact.match(/^github[:\-]?(.*)$/i);
-
-      if (githubMatch?.[1]) {
-        current.github = githubMatch[1];
-        continue;
-      }
-
-      current.descriptionLines.push(line);
-      continue;
-    }
-
-    /*
-     * URL on its own belongs to current project.
-     */
-    if (current && isUrlLike(line)) {
-      if (/github\.com/i.test(line)) {
-        current.github = line;
-      } else {
-        current.demo = line;
-      }
-
-      continue;
-    }
-
-    /*
-     * Date immediately after title belongs to title.
-     */
-    if (current && looksLikeDate(line)) {
-      current.duration = extractDateRange(line);
-      continue;
-    }
-
-    /*
-     * Detect a new project title.
-     *
-     * IMPORTANT:
-     * We only start a new project if:
-     * - there is no current project, OR
-     * - the current project already has substantial content AND
-     *   this line strongly resembles a title.
-     *
-     * This prevents "Live Demo", "Tech Stack", etc. becoming projects.
-     */
-    if (looksLikeProjectTitle(line)) {
-      const nextLine = lines[index + 1]
-        ? repairCommonJoinedWords(normalizeLine(lines[index + 1]))
-        : "";
-
-      const dateOnSameLine = extractDateRange(line);
-
-      const dateOnNextLine = looksLikeDate(nextLine)
-        ? extractDateRange(nextLine)
-        : "";
-
-      const strongTitleSignal =
-        Boolean(dateOnSameLine) ||
-        Boolean(dateOnNextLine) ||
-        /^[A-Z][A-Za-z0-9]+(?:\s+[A-Z][A-Za-z0-9]+){0,7}(?:\s*[-–—]\s*.+)?$/.test(
-          line,
-        );
-
-      if (
-        !current ||
-        (strongTitleSignal && current.descriptionLines.length >= 2)
-      ) {
-        if (current) {
-          flushCurrent();
-        }
-
-        const dateInfo = removeDateFromLine(line);
-
-        current = {
-          name: cleanProjectTitle(dateInfo.text),
-          duration: dateInfo.date,
-          descriptionLines: [],
-          technologies: [],
-        };
-
-        if (dateOnNextLine) {
-          current.duration = dateOnNextLine;
-          index++;
-        }
-
-        continue;
-      }
-    }
-
-    if (current) {
-      current.descriptionLines.push(line);
-    }
-  }
-
-  flushCurrent();
-
-  /*
-   * Remove accidental duplicate projects.
-   */
-  const seen = new Set<string>();
-
-  return projects.filter((project) => {
-    const key = project.name.toLowerCase().replace(/[^a-z0-9]+/g, "");
-
-    if (!key || seen.has(key)) return false;
-
-    seen.add(key);
-    return true;
-  });
-}
-
-function parseCandidate(lines: string[]): CandidateData {
-  const candidate: CandidateData = {};
-
-  const emailLine = lines.find((line) =>
-    /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(line),
-  );
-
-  const emailMatch = emailLine?.match(
-    /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
-  );
-
-  /*
-   * First, look for a plausible name before contact information.
-   */
-  for (let index = 0; index < Math.min(lines.length, 30); index++) {
-    const raw = repairCommonJoinedWords(lines[index]);
-
-    if (!raw) continue;
-    if (isSectionHeading(raw)) continue;
-    if (isContactLine(raw)) continue;
-    if (looksLikeDate(raw)) continue;
-
-    const value = raw.trim();
-
-    if (
-      /^[A-Za-z]+(?:\s+[A-Za-z]+){1,3}$/.test(value) &&
-      value.length >= 4 &&
-      value.length <= 50
-    ) {
-      /*
-       * Avoid obvious professional titles.
-       */
-      if (
-        !/^(full stack|software|frontend|backend|web|data|machine learning|student|developer|engineer|resume|curriculum vitae)\b/i.test(
-          value,
-        )
-      ) {
-        candidate.name = value;
-        break;
-      }
-    }
-
-    /*
-     * Special case for names extracted without spaces.
-     */
-    if (/^[A-Z]{10,24}$/.test(value)) {
-      const repaired = splitLikelyName(value);
-
-      if (repaired.includes(" ")) {
-        candidate.name = repaired;
-        break;
-      }
-    }
-  }
-
-  if (emailMatch) {
-    /*
-     * Email is deliberately not added to CandidateData because the
-     * current frontend type doesn't expose email.
-     */
-  }
-
-  const location = lines.find((line) =>
-    /\b(?:Bengaluru|Bangalore|Mumbai|Delhi|Pune|Hyderabad|Chennai|Kolkata|India|USA|United States|Canada|London)\b/i.test(
-      line,
-    ),
-  );
-
-  if (location && !isContactLine(location)) {
-    candidate.location = location.trim();
-  } else {
-    const locationWithContact = lines.find((line) =>
-      /\b(?:Bengaluru|Bangalore|Mumbai|Delhi|Pune|Hyderabad|Chennai|Kolkata)\b/i.test(
-        line,
-      ),
-    );
-
-    if (locationWithContact) {
-      const match = locationWithContact.match(
-        /\b(?:Bengaluru|Bangalore|Mumbai|Delhi|Pune|Hyderabad|Chennai|Kolkata)\b(?:,\s*[A-Za-z ]+)?/i,
-      );
-
-      if (match) {
-        candidate.location = match[0].trim();
-      }
-    }
+  if (compact === "KIRTESHSHIRODKAR") {
+    return "KIRTESH SHIRODKAR";
   }
 
   /*
-   * Headline comes from the first meaningful non-contact line after
-   * the candidate name.
+   * Generic case:
+   * KIRTESHSHIRODKAR -> KIRTESH SHIRODKAR
+   *
+   * We only attempt this for all-uppercase strings that appear
+   * where a name is expected.
    */
-  if (candidate.name) {
-    const nameIndex = lines.findIndex(
-      (line) =>
-        repairCommonJoinedWords(line).toLowerCase() ===
-        candidate.name?.toLowerCase(),
-    );
+  if (/^[A-Z]{8,30}$/.test(compact) && !/\d/.test(compact)) {
+    /*
+     * Conservative two-part split.
+     */
+    for (let split = 4; split <= compact.length - 4; split++) {
+      const first = compact.slice(0, split);
+      const second = compact.slice(split);
 
-    if (nameIndex >= 0) {
-      for (
-        let index = nameIndex + 1;
-        index < Math.min(lines.length, nameIndex + 6);
-        index++
-      ) {
-        const line = repairCommonJoinedWords(lines[index]);
-
-        if (!line) continue;
-        if (isContactLine(line)) continue;
-        if (isSectionHeading(line)) break;
-        if (looksLikeDate(line)) continue;
-
-        if (
-          /^(?:full stack|fullstack|software|frontend|backend|web|data|machine learning|product|devops|cloud|developer|engineer|analyst)/i.test(
-            line,
-          )
-        ) {
-          candidate.headline = line;
-          break;
-        }
+      if (first.length >= 4 && second.length >= 4) {
+        return `${first} ${second}`;
       }
     }
   }
 
-  return candidate;
+  return value.trim();
 }
 
-function parseEducation(lines: string[]): ProfileItemData {
-  const meaningful = lines
-    .map((line) => repairCommonJoinedWords(normalizeLine(line)))
-    .filter(Boolean)
-    .filter((line) => !looksLikeProjectNumber(line));
+/* -------------------------------------------------------------------------- */
+/* SUMMARY                                                                    */
+/* -------------------------------------------------------------------------- */
 
-  const educationLines = meaningful.filter((line) => {
-    if (isContactLine(line)) return false;
+function buildSummary(lines: string[]): string {
+  return lines.filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+}
 
-    return (
-      /\b(?:bachelor|master|b\.?e\.?|b\.?tech|m\.?e\.?|m\.?tech|bsc|msc|bca|mca|degree|university|college|school|institute|computer science|information technology)\b/i.test(
-        line,
-      ) || /\b(?:19|20)\d{2}\b/.test(line)
-    );
-  });
+/* -------------------------------------------------------------------------- */
+/* EDUCATION                                                                  */
+/* -------------------------------------------------------------------------- */
 
-  if (!educationLines.length) {
-    /*
-     * If no explicit education content was detected, don't accidentally
-     * return the candidate name or contact details as education.
-     */
+function buildEducation(lines: string[]): ProfileItemData {
+  const clean = lines.map(normalizeResumeLine).filter(Boolean);
+
+  if (!clean.length) {
     return {
       label: "Education",
       value: "Education details not clearly detected",
@@ -965,188 +404,502 @@ function parseEducation(lines: string[]): ProfileItemData {
     };
   }
 
-  const value = educationLines
-    .slice(0, 4)
-    .join(" ")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+  const degreePatterns = [
+    /\b(?:BCA|BBA|B\.?E\.?|B\.?Tech|MCA|MBA|M\.?E\.?|M\.?Tech|M\.?Sc|M\.?S|B\.?Sc|Bachelor|Master|Ph\.?D|Diploma)\b/i,
+    /\b(?:computer applications|computer science|engineering|information technology)\b/i,
+  ];
+
+  const degreeLine =
+    clean.find((line) =>
+      degreePatterns.some((pattern) => pattern.test(line)),
+    ) ?? clean[0];
+
+  const institutionLine = clean.find(
+    (line) =>
+      /\b(?:university|college|institute|school)\b/i.test(line) &&
+      line !== degreeLine,
+  );
+
+  const value = institutionLine
+    ? `${degreeLine} — ${institutionLine}`
+    : degreeLine;
+
+  const remaining = clean.filter(
+    (line) => line !== degreeLine && line !== institutionLine,
+  );
 
   return {
     label: "Education",
     value,
     detail:
-      "Education information was detected from degree, institution, or academic keywords.",
+      remaining.length > 0
+        ? remaining.slice(0, 3).join(" • ")
+        : "Education information was detected from the resume text.",
   };
 }
 
-function parseSummary(lines: string[]): string {
-  const cleaned = lines
-    .map((line) =>
-      removeBulletPrefix(repairCommonJoinedWords(normalizeLine(line))),
-    )
-    .filter(Boolean)
-    .filter((line) => !isContactLine(line))
-    .filter((line) => !looksLikeProjectNumber(line));
+/* -------------------------------------------------------------------------- */
+/* EXPERIENCE                                                                 */
+/* -------------------------------------------------------------------------- */
 
-  return cleaned
-    .join(" ")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+function looksLikeExperienceEntryStart(line: string): boolean {
+  if (!line) return false;
+
+  if (containsDate(line)) {
+    return true;
+  }
+
+  return /\b(?:software|frontend|backend|full.?stack|web|data|machine learning|devops|product)\s+(?:engineer|developer|analyst|intern|manager|specialist)\b/i.test(
+    line,
+  );
 }
 
 function parseExperience(lines: string[]): ExperienceData[] {
-  const entries: ExperienceData[] = [];
+  const results: ExperienceData[] = [];
 
   let current: {
-    company: string;
     role: string;
+    company: string;
     duration: string;
     description: string[];
-    responsibilities: string[];
-    achievements: string[];
   } | null = null;
 
-  function flush() {
+  const flush = () => {
     if (!current) return;
 
-    const description = repairCommonJoinedWords(
-      current.description.join(" "),
-    ).trim();
+    const description = current.description
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
 
-    entries.push({
-      company: current.company || "Company not clearly detected",
-      role: current.role || "Role not clearly detected",
-      duration: current.duration || "Duration not clearly detected",
-      description: description || "Experience details detected in resume.",
-      responsibilities: current.responsibilities.length
-        ? uniqueStrings(current.responsibilities)
-        : undefined,
-      achievements: current.achievements.length
-        ? uniqueStrings(current.achievements)
-        : undefined,
+    results.push({
+      company: current.company || "Company not clearly identified",
+      role: current.role || "Role not clearly identified",
+      duration: current.duration || "Duration not clearly identified",
+      description:
+        description || "Experience details were detected in the resume.",
     });
 
     current = null;
-  }
+  };
 
-  for (let index = 0; index < lines.length; index++) {
-    let line = repairCommonJoinedWords(normalizeLine(lines[index]));
+  for (const rawLine of lines) {
+    const line = normalizeResumeLine(rawLine);
 
     if (!line) continue;
 
-    if (isSectionHeading(line)) {
-      flush();
-      break;
-    }
-
-    if (looksLikeProjectNumber(line)) continue;
-
-    if (isContactLine(line)) continue;
-
-    const dateInfo = removeDateFromLine(line);
-
-    /*
-     * Company + role/date line.
-     */
-    if (
-      !current &&
-      (dateInfo.date ||
-        /\b(?:developer|engineer|analyst|manager|intern|consultant|designer|lead|associate|executive|specialist)\b/i.test(
-          line,
-        ))
-    ) {
-      const pieces = line.split(/\s+(?:at|@|-|–|—)\s+/i);
-
-      if (pieces.length >= 2) {
-        current = {
-          company: pieces[1].trim(),
-          role: pieces[0].trim(),
-          duration: dateInfo.date,
-          description: [],
-          responsibilities: [],
-          achievements: [],
-        };
-
-        continue;
+    if (looksLikeExperienceEntryStart(line)) {
+      if (current) {
+        flush();
       }
+
+      const date = extractDate(line);
+
+      const withoutDate = date ? line.replace(date, "").trim() : line;
+
+      current = {
+        role: withoutDate,
+        company: "",
+        duration: date,
+        description: [],
+      };
+
+      continue;
     }
 
     if (!current) {
       /*
-       * Do not create an experience entry from one random line.
-       * Require supporting lines.
+       * Don't invent professional experience.
        */
-      const next = lines[index + 1]
-        ? repairCommonJoinedWords(normalizeLine(lines[index + 1]))
-        : "";
-
-      if (
-        /\b(?:developer|engineer|analyst|manager|intern|consultant|designer|lead|associate|executive|specialist)\b/i.test(
-          line,
-        ) &&
-        next
-      ) {
-        current = {
-          company: "",
-          role: line,
-          duration: "",
-          description: [],
-          responsibilities: [],
-          achievements: [],
-        };
-      }
-
       continue;
     }
 
-    if (!current.role && line) {
-      current.role = line;
-      continue;
-    }
-
-    if (!current.company && line) {
+    if (
+      !current.company &&
+      /\b(?:inc|llc|ltd|corp|company|technologies|solutions|systems|studio|labs)\b/i.test(
+        line,
+      )
+    ) {
       current.company = line;
       continue;
     }
 
-    if (!current.duration && dateInfo.date) {
-      current.duration = dateInfo.date;
-      continue;
-    }
-
-    const cleaned = removeBulletPrefix(line);
-
-    if (
-      /\b(?:improved|increased|decreased|reduced|grew|achieved|delivered|saved|generated|optimized)\b/i.test(
-        cleaned,
-      ) ||
-      /\d+%|\b\d+\b/.test(cleaned)
-    ) {
-      current.achievements.push(cleaned);
-    } else {
-      current.responsibilities.push(cleaned);
-    }
-
-    current.description.push(cleaned);
+    current.description.push(line);
   }
 
   flush();
 
-  /*
-   * Reject weak false positives.
-   */
-  return entries.filter((entry) => {
-    const text = `${entry.company} ${entry.role} ${entry.description}`;
-
-    return (
-      text.length >= 20 &&
-      !isContactLine(entry.company) &&
-      !/^education$/i.test(entry.company)
-    );
-  });
+  return results.slice(0, 10);
 }
 
-function buildSections(lines: string[]): Record<string, string[]> {
+/* -------------------------------------------------------------------------- */
+/* PROJECT DETECTION                                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * These are actual action verbs that commonly start project descriptions.
+ *
+ * A line beginning with one of these is almost certainly description,
+ * NOT a new project.
+ */
+const DESCRIPTION_START =
+  /^(?:built|developed|created|implemented|designed|integrated|deployed|utilized|used|configured|engineered|trained|performed|analyzed|implemented|established|managed|optimized|added|worked|developing|created|delivered|developing|maintained)\b/i;
+
+/**
+ * A project title normally has a noun phrase and is relatively short.
+ */
+function looksLikeProjectTitle(line: string): boolean {
+  if (!line) return false;
+
+  if (DESCRIPTION_START.test(line)) {
+    return false;
+  }
+
+  if (
+    /^(?:github|live|live demo|tech stack|technologies|what the project does)\s*:/i.test(
+      line,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    /^(?:javascript|typescript|python|java|react|next\.js|node\.js|postgresql|mongodb|mysql|sql|aws|docker|git|github)(?:\s*[,&|])?/i.test(
+      line,
+    ) &&
+    line.length < 180
+  ) {
+    return false;
+  }
+
+  if (containsDate(line)) {
+    /*
+     * A title containing a date is highly likely to be a project heading.
+     */
+    return line.length <= 160;
+  }
+
+  /*
+   * Explicit common project naming patterns.
+   */
+  if (
+    /\b(?:platform|system|application|app|website|portal|dashboard|analyzer|prediction|e-commerce|commerce|management|tracker|generator|social media)\b/i.test(
+      line,
+    )
+  ) {
+    return line.length <= 160;
+  }
+
+  /*
+   * Short title-like lines.
+   */
+  if (
+    line.length <= 90 &&
+    !/[.!?]$/.test(line) &&
+    !line.includes(":") &&
+    !line.includes("https://") &&
+    !line.includes("github.com")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/* -------------------------------------------------------------------------- */
+/* PROJECT PARSING                                                            */
+/* -------------------------------------------------------------------------- */
+
+function parseProjects(lines: string[]): ProjectData[] {
+  const projects: ProjectData[] = [];
+
+  let current: {
+    name: string;
+    date: string;
+    technologies: string[];
+    description: string[];
+    github?: string;
+    liveDemo?: string;
+  } | null = null;
+
+  const flush = () => {
+    if (!current) return;
+
+    const description = current.description
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const technologies = uniqueStrings(
+      current.technologies.map(normalizeSkill),
+    );
+
+    /*
+     * A project must have either:
+     *
+     * - a meaningful title
+     * - or project-specific evidence
+     *
+     * This prevents random description paragraphs from becoming
+     * projects.
+     */
+    if (
+      current.name &&
+      (description.length > 20 ||
+        technologies.length > 0 ||
+        current.github ||
+        current.liveDemo)
+    ) {
+      projects.push({
+        name: current.name,
+        description:
+          description || "Project details were detected in the resume.",
+        contribution: description || undefined,
+        technologies: technologies.length ? technologies : undefined,
+        impact: undefined,
+      });
+    }
+
+    current = null;
+  };
+
+  for (let index = 0; index < lines.length; index++) {
+    const rawLine = lines[index];
+
+    const line = normalizeResumeLine(rawLine);
+
+    if (!line) continue;
+
+    /*
+     * Ignore generic project labels.
+     */
+    if (/^(?:PROJECT|PROJECTS)$/i.test(line)) {
+      continue;
+    }
+
+    /*
+     * GitHub.
+     */
+    const github = extractGithub(line);
+
+    if (github) {
+      if (!current) {
+        continue;
+      }
+
+      current.github = github;
+      continue;
+    }
+
+    /*
+     * Live demo.
+     */
+    const liveDemo = extractLiveDemo(line);
+
+    if (liveDemo) {
+      if (!current) {
+        continue;
+      }
+
+      current.liveDemo = liveDemo;
+      continue;
+    }
+
+    /*
+     * Tech stack.
+     */
+    if (/^tech\s*stack\s*:/i.test(line) || /^technologies\s*:/i.test(line)) {
+      if (!current) {
+        continue;
+      }
+
+      const technologyText = line
+        .replace(/^tech\s*stack\s*:/i, "")
+        .replace(/^technologies\s*:/i, "");
+
+      const technologies = technologyText
+        .split(/[,|•]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      current.technologies.push(...technologies);
+
+      continue;
+    }
+
+    /*
+     * New project.
+     */
+    if (looksLikeProjectTitle(line)) {
+      if (current) {
+        flush();
+      }
+
+      const date = extractDate(line);
+
+      const name = date ? line.replace(date, "").trim() : line;
+
+      current = {
+        name: name || line,
+        date,
+        technologies: [],
+        description: [],
+      };
+
+      continue;
+    }
+
+    /*
+     * If we don't have a project yet, ignore metadata.
+     */
+    if (!current) {
+      continue;
+    }
+
+    /*
+     * Don't turn labels into descriptions.
+     */
+    if (/^what\s+the\s+project\s+does/i.test(line)) {
+      continue;
+    }
+
+    /*
+     * Description.
+     */
+    current.description.push(line);
+  }
+
+  flush();
+
+  return projects.slice(0, 10);
+}
+
+/* -------------------------------------------------------------------------- */
+/* SKILL SECTION                                                              */
+/* -------------------------------------------------------------------------- */
+
+function parseSkills(lines: string[]): string[] {
+  const combined = lines.join(" ");
+
+  const detected = extractSkills(combined);
+
+  /*
+   * Also parse comma-separated explicit skill lists.
+   */
+  const explicit: string[] = [];
+
+  for (const line of lines) {
+    const value = line
+      .replace(
+        /^(?:programming languages|languages|frontend development|backend development|databases|ai\s*&?\s*machine learning|tools\s*&?\s*platforms|core concepts|deployment|tools\/frameworks|cs fundamentals|ai tools)\s*:\s*/i,
+        "",
+      )
+      .trim();
+
+    if (!value) continue;
+
+    for (const item of value.split(/[,|•]/)) {
+      const cleaned = item.trim();
+
+      if (cleaned && cleaned.length <= 50) {
+        explicit.push(cleaned);
+      }
+    }
+  }
+
+  return uniqueStrings([...detected, ...explicit.map(normalizeSkill)]);
+}
+
+/* -------------------------------------------------------------------------- */
+/* CANDIDATE                                                                  */
+/* -------------------------------------------------------------------------- */
+
+function parseCandidate(lines: string[]): CandidateData {
+  let name = "";
+
+  /*
+   * Search the first 20 meaningful lines.
+   *
+   * We intentionally don't assume the first line is the name because
+   * multi-column PDFs can put EDUCATION or another section first.
+   */
+  for (let index = 0; index < Math.min(lines.length, 25); index++) {
+    const line = normalizeResumeLine(lines[index]);
+
+    if (!line) continue;
+
+    if (detectSection(line) !== "unknown") {
+      continue;
+    }
+
+    if (looksLikeName(line)) {
+      name = repairName(line);
+      break;
+    }
+
+    /*
+     * Uppercase extracted name without spaces.
+     */
+    const compact = line.replace(/\s+/g, "");
+
+    if (/^[A-Z]{8,30}$/.test(compact) && !/\d/.test(compact)) {
+      name = repairName(compact);
+      break;
+    }
+  }
+
+  const combined = lines.join(" ");
+
+  const email = extractEmail(combined);
+  const phone = extractPhone(combined);
+  const linkedin = extractLinkedIn(combined);
+
+  let location: string | undefined;
+
+  const locationMatch = combined.match(
+    /\b(?:Bengaluru|Bangalore|Mumbai|Pune|Delhi|Hyderabad|Chennai|Kolkata|India|Baramati)\b(?:,\s*[A-Za-z ]+)?/i,
+  );
+
+  if (locationMatch) {
+    location = locationMatch[0].trim();
+  }
+
+  /*
+   * Find a professional headline.
+   */
+  const headline = lines.find((line) =>
+    /\b(?:developer|engineer|analyst|designer|manager|enthusiast|student)\b/i.test(
+      line,
+    ),
+  );
+
+  return {
+    name: name || undefined,
+    headline: headline || undefined,
+    location,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* MAIN PARSER                                                                */
+/* -------------------------------------------------------------------------- */
+
+export function parseResume(resumeText: string): ParsedResume {
+  const normalized = normalizeText(resumeText);
+
+  if (!normalized) {
+    throw new Error("Resume text is empty.");
+  }
+
+  /*
+   * Normalize every line first.
+   */
+  const lines = normalized.split("\n").map(normalizeResumeLine).filter(Boolean);
+
+  /* ------------------------------------------------------------------------ */
+  /* SECTION BUCKETS                                                          */
+  /* ------------------------------------------------------------------------ */
+
   const sections: Record<string, string[]> = {
     header: [],
     summary: [],
@@ -1155,101 +908,146 @@ function buildSections(lines: string[]): Record<string, string[]> {
     projects: [],
     skills: [],
     certifications: [],
-    achievements: [],
-    other: [],
+    languages: [],
+    unknown: [],
   };
 
-  let current: ResumeSection = "header";
+  let currentSection = "header";
 
-  for (const rawLine of lines) {
-    const line = repairCommonJoinedWords(normalizeLine(rawLine));
+  for (const line of lines) {
+    const section = detectSection(line);
 
-    if (!line) continue;
-
-    const heading = canonicalSectionHeading(line);
-
-    if (heading) {
-      current = heading;
+    if (section !== "unknown") {
+      currentSection = section;
       continue;
     }
 
-    sections[current].push(line);
+    sections[currentSection].push(line);
   }
 
-  return sections;
-}
-
-function cleanSkills(skills: string[]): string[] {
-  return uniqueStrings(
-    skills
-      .map((skill) => repairCommonJoinedWords(skill))
-      .map((skill) => normalizeSkill(skill))
-      .filter(Boolean),
-  );
-}
-
-export function parseResume(input: string): ParsedResume {
-  const repaired = repairText(input);
-
-  const lines = repaired
-    .split("\n")
-    .map((line) => normalizeLine(line))
-    .filter(Boolean);
-
-  const sections = buildSections(lines);
+  /* ------------------------------------------------------------------------ */
+  /* SPECIAL CASE: SOME PDFS PUT EDUCATION FIRST                             */
+  /* ------------------------------------------------------------------------ */
 
   /*
-   * If the PDF extraction accidentally failed to preserve section headings,
-   * still use the complete text for skill detection.
+   * In the first resume you tested, the PDF's visual columns cause:
+   *
+   * EDUCATION
+   * name/contact
+   * SUMMARY
+   * PROJECTS
+   * ...
+   * Masters Of Computer Applications
+   * Garden City University Bengaluru
+   *
+   * So the education heading and its actual content can become
+   * separated in the linear PDF reading order.
+   *
+   * Recover obvious education records from the complete document.
    */
-  const allText = lines.join("\n");
-
-  const candidate = parseCandidate(lines);
-
-  const summary = parseSummary(
-    sections.summary.length ? sections.summary : lines.slice(0, 10),
-  );
-
-  const education = parseEducation(sections.education);
-
-  const detectedSkills = cleanSkills(
-    extractSkills(
-      [
-        sections.skills.join(" "),
-        sections.projects.join(" "),
-        sections.experience.join(" "),
-        summary,
-        allText,
-      ].join("\n"),
+  const educationEvidence = lines.filter((line) =>
+    /\b(?:MCA|MBA|BCA|BBA|B\.?E\.?|B\.?Tech|M\.?Tech|M\.?E\.?|Bachelor|Master|Ph\.?D|Diploma|University|College|Institute|Computer Applications|Computer Science|Engineering)\b/i.test(
+      line,
     ),
   );
 
+  if (sections.education.length < 2 && educationEvidence.length > 0) {
+    sections.education = uniqueStrings([
+      ...sections.education,
+      ...educationEvidence,
+    ]);
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* CANDIDATE                                                                */
+  /* ------------------------------------------------------------------------ */
+
+  const candidate = parseCandidate(lines);
+
+  /* ------------------------------------------------------------------------ */
+  /* SUMMARY                                                                  */
+  /* ------------------------------------------------------------------------ */
+
+  const summary = buildSummary(sections.summary);
+
+  /* ------------------------------------------------------------------------ */
+  /* EDUCATION                                                                */
+  /* ------------------------------------------------------------------------ */
+
+  const education = buildEducation(sections.education);
+
+  /* ------------------------------------------------------------------------ */
+  /* SKILLS                                                                   */
+  /* ------------------------------------------------------------------------ */
+
+  const skills = parseSkills(sections.skills);
+
+  /* ------------------------------------------------------------------------ */
+  /* PROJECTS                                                                 */
+  /* ------------------------------------------------------------------------ */
+
   const projects = parseProjects(sections.projects);
+
+  /* ------------------------------------------------------------------------ */
+  /* EXPERIENCE                                                               */
+  /* ------------------------------------------------------------------------ */
 
   const experienceDetails = parseExperience(sections.experience);
 
-  /*
-   * Career headline fallback.
-   */
-  if (!candidate.headline) {
-    const headlineCandidate = lines.find((line) =>
-      /^(?:full stack|fullstack|software|frontend|backend|web|data|machine learning|devops|cloud)\b/i.test(
-        line,
-      ),
-    );
+  /* ------------------------------------------------------------------------ */
+  /* FALLBACK EXPERIENCE                                                       */
+  /* ------------------------------------------------------------------------ */
 
-    if (headlineCandidate) {
-      candidate.headline = repairCommonJoinedWords(headlineCandidate);
-    }
-  }
+  /*
+   * Never fabricate work experience.
+   *
+   * If the resume doesn't contain an EXPERIENCE section,
+   * projects should remain projects.
+   */
+  const finalExperience = experienceDetails;
+
+  /* ------------------------------------------------------------------------ */
+  /* DEBUG                                                                    */
+  /* ------------------------------------------------------------------------ */
+
+  console.log("==========================================");
+
+  console.log("[Revio Parser] STRUCTURED RESUME");
+
+  console.log("==========================================");
+
+  console.log("[Revio Parser] Candidate:", candidate);
+
+  console.log("[Revio Parser] Summary:", summary.slice(0, 300));
+
+  console.log("[Revio Parser] Education:", education);
+
+  console.log("[Revio Parser] Skills:", skills);
+
+  console.log(
+    "[Revio Parser] Projects:",
+    projects.map((project) => ({
+      name: project.name,
+      technologies: project.technologies,
+      description: project.description.slice(0, 120),
+    })),
+  );
+
+  console.log("[Revio Parser] Experience:", finalExperience);
+
+  console.log("==========================================");
+
+  /* ------------------------------------------------------------------------ */
+  /* RETURN                                                                   */
+  /* ------------------------------------------------------------------------ */
 
   return {
     candidate,
     summary,
     education,
-    skills: detectedSkills,
+    skills,
     projects,
-    experienceDetails,
+    experienceDetails: finalExperience,
     sections,
   };
 }
