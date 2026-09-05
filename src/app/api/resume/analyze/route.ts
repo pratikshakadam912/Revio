@@ -7,7 +7,7 @@ import { analyzeResume } from "@/lib/analyzer";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Safely converts unknown errors into readable messages.
+// Safely gets an error message.
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -22,6 +22,25 @@ function getErrorMessage(error: unknown): string {
   } catch {
     return "Unknown error";
   }
+}
+
+// Downloads the resume PDF.
+async function downloadResume(fileUrl: string): Promise<Buffer> {
+  const response = await fetch(fileUrl);
+
+  if (!response.ok) {
+    throw new Error(
+      `Unable to download resume file. Status: ${response.status}`,
+    );
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+
+  if (!arrayBuffer.byteLength) {
+    throw new Error("The resume file is empty.");
+  }
+
+  return Buffer.from(arrayBuffer);
 }
 
 export async function POST(request: NextRequest) {
@@ -89,14 +108,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const resumeText = resume.extractedText?.trim();
-
-    if (!resumeText) {
+    if (!resume.fileUrl) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "No resume text was extracted. Please upload the resume again.",
+          error: "Resume file URL is missing.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (resume.fileType && !resume.fileType.toLowerCase().includes("pdf")) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Only PDF resumes are currently supported.",
         },
         { status: 400 },
       );
@@ -108,7 +134,7 @@ export async function POST(request: NextRequest) {
     console.log("Resume:", resume.fileName);
     console.log("Resume ID:", resume.id);
     console.log("Engine: Revio TypeScript Analyzer");
-    console.log("Extracted text length:", resumeText.length);
+    console.log("File type:", resume.fileType);
     console.log("==========================================");
 
     const analysis = await prisma.resumeAnalysis.create({
@@ -121,9 +147,15 @@ export async function POST(request: NextRequest) {
 
     analysisId = analysis.id;
 
+    console.log("[Revio] Downloading resume...");
+
+    const pdfBuffer = await downloadResume(resume.fileUrl);
+
+    console.log("[Revio] Resume downloaded:", pdfBuffer.length, "bytes");
+
     console.log("[Revio] Running local analysis engine...");
 
-    const result = await analyzeResume(resumeText);
+    const result = await analyzeResume(pdfBuffer);
 
     console.log("[Revio] Local analysis completed.");
 
@@ -133,15 +165,15 @@ export async function POST(request: NextRequest) {
       },
       data: {
         status: "COMPLETED",
-        overallScore: result.overallScore,
-        atsScore: result.scores.atsCompatibility,
-        contentScore: result.scores.contentQuality,
-        skillsScore: result.scores.skillsStrength,
+        overallScore: result.scores.overall,
+        atsScore: result.scores.ats,
+        contentScore: result.scores.content,
+        skillsScore: result.scores.skills,
         experienceScore: result.scores.experience,
         strengths: result.strengths,
         weaknesses: result.weaknesses,
         suggestions: result.suggestions,
-        skills: result.skills,
+        skills: result.resume.skills,
         rawResult: result as any,
       },
     });
@@ -151,27 +183,37 @@ export async function POST(request: NextRequest) {
         id: resume.id,
       },
       data: {
-        atsScore: result.scores.atsCompatibility,
+        atsScore: result.scores.ats,
+        extractedText: result.resume.cleanText,
       },
     });
 
     const responseResult = {
       id: updatedAnalysis.id,
       ...result,
-      educationScore: result.scores.educationMatch,
-      atsScore: result.scores.atsCompatibility,
-      contentScore: result.scores.contentQuality,
-      skillsScore: result.scores.skillsStrength,
+
+      overallScore: result.scores.overall,
+
+      atsScore: result.scores.ats,
+      contentScore: result.scores.content,
+      skillsScore: result.scores.skills,
       experienceScore: result.scores.experience,
+      educationScore: result.scores.education,
+      projectsScore: result.scores.projects,
+
+      skills: result.resume.skills,
+      projects: result.resume.projects,
+      education: result.resume.education,
+      experience: result.resume.experience,
     };
 
     console.log("==========================================");
     console.log("[Revio] ANALYSIS COMPLETED");
-    console.log("[Revio] Overall:", result.overallScore);
-    console.log("[Revio] ATS:", result.scores.atsCompatibility);
-    console.log("[Revio] Skills:", result.scores.skillsStrength);
+    console.log("[Revio] Overall:", result.scores.overall);
+    console.log("[Revio] ATS:", result.scores.ats);
+    console.log("[Revio] Skills:", result.scores.skills);
     console.log("[Revio] Experience:", result.scores.experience);
-    console.log("[Revio] Projects:", result.projects.length);
+    console.log("[Revio] Projects:", result.resume.projects.length);
     console.log("==========================================");
 
     return NextResponse.json({

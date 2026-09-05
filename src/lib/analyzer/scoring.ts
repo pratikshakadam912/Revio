@@ -1,23 +1,7 @@
-import { clamp } from "./normalize";
+// Evidence-based resume scoring aligned with the canonical Revio ResumeData model.
 
-type ScoreInput = {
-  resume?: any;
-  text?: string;
-  skills?: string[];
-  experienceCount?: number;
-  projectCount?: number;
-  educationText?: string;
-  atsScore: number;
-};
-
-type Scores = {
-  atsCompatibility: number;
-  skillsStrength: number;
-  experience: number;
-  educationMatch: number;
-  contentQuality: number;
-  overallScore: number;
-};
+import { clamp, normalizeSkill } from "./normalize";
+import type { ATSAnalysis, ResumeData, ResumeScores } from "./types";
 
 const ACTION_VERBS = [
   "built",
@@ -39,30 +23,17 @@ const ACTION_VERBS = [
   "reduced",
   "generated",
   "architected",
+  "integrated",
+  "migrated",
+  "configured",
+  "mentored",
+  "coordinated",
+  "resolved",
+  "streamlined",
+  "established",
 ];
 
-const METRIC_PATTERN =
-  /\b\d+(?:\.\d+)?\s*(?:%|percent|x|users?|customers?|projects?|months?|years?|days?|hours?|ms|seconds?|million|thousand|k|m)\b/gi;
-
-const EDUCATION_TERMS = [
-  "bachelor",
-  "master",
-  "phd",
-  "doctorate",
-  "b.tech",
-  "m.tech",
-  "b.e.",
-  "m.e.",
-  "bca",
-  "mca",
-  "bsc",
-  "msc",
-  "mba",
-  "degree",
-  "diploma",
-];
-
-const CONTENT_WEAK_PHRASES = [
+const WEAK_PHRASES = [
   "hard working",
   "hardworking",
   "team player",
@@ -71,197 +42,424 @@ const CONTENT_WEAK_PHRASES = [
   "helped with",
   "good communication",
   "quick learner",
+  "passionate individual",
+  "self motivated",
+  "self-motivated",
 ];
 
-export function calculateScores(input: ScoreInput): Scores {
-  const resume = input.resume;
+const METRIC_PATTERN =
+  /\b\d+(?:\.\d+)?\s*(?:%|percent|x|users?|customers?|projects?|months?|years?|days?|hours?|ms|seconds?|million|thousand|k|m)\b/gi;
 
-  const text = input.text || resume?.cleanText || resume?.text || "";
+const DEGREE_PATTERN =
+  /\b(?:bachelor|master|ph\.?\s*d|doctorate|b\.?\s*tech|m\.?\s*tech|b\.?\s*e\.?|m\.?\s*e\.?|bca|mca|b\.?\s*sc|m\.?\s*sc|mba|degree|diploma)\b/i;
 
-  const skills = Array.isArray(input.skills)
-    ? input.skills
-    : Array.isArray(resume?.skills)
-      ? resume.skills
-      : [];
+export function calculateScores(
+  resume: ResumeData,
+  ats: ATSAnalysis,
+): ResumeScores {
+  const atsScore = clamp(ats.score);
 
-  const experienceCount =
-    typeof input.experienceCount === "number"
-      ? input.experienceCount
-      : Array.isArray(resume?.experienceDetails)
-        ? resume.experienceDetails.length
-        : 0;
+  const skills = calculateSkillsScore(resume);
+  const experience = calculateExperienceScore(resume);
+  const education = calculateEducationScore(resume);
+  const projects = calculateProjectsScore(resume);
+  const content = calculateContentScore(resume);
 
-  const projectCount =
-    typeof input.projectCount === "number"
-      ? input.projectCount
-      : Array.isArray(resume?.projects)
-        ? resume.projects.length
-        : 0;
-
-  const educationText =
-    input.educationText || getEducationText(resume?.education);
-
-  const atsCompatibility = clamp(input.atsScore);
-
-  const skillsStrength = calculateSkillsScore(skills.length);
-
-  const experience = calculateExperienceScore(experienceCount, text);
-
-  const educationMatch = calculateEducationScore(educationText);
-
-  const contentQuality = calculateContentScore(text, projectCount);
-
-  const overallScore = clamp(
-    atsCompatibility * 0.25 +
-      contentQuality * 0.2 +
-      skillsStrength * 0.2 +
+  const overall = clamp(
+    atsScore * 0.25 +
+      skills * 0.15 +
       experience * 0.2 +
-      educationMatch * 0.15,
+      education * 0.1 +
+      projects * 0.1 +
+      content * 0.2,
   );
 
   return {
-    atsCompatibility,
-    skillsStrength,
+    overall,
+    ats: atsScore,
+    skills,
     experience,
-    educationMatch,
-    contentQuality,
-    overallScore,
+    education,
+    projects,
+    content,
   };
 }
 
-export function calculateOverallScore(scores: Scores): number {
+export function calculateOverallScore(scores: ResumeScores): number {
   return clamp(
-    scores.atsCompatibility * 0.25 +
-      scores.contentQuality * 0.2 +
-      scores.skillsStrength * 0.2 +
+    scores.ats * 0.25 +
+      scores.skills * 0.15 +
       scores.experience * 0.2 +
-      scores.educationMatch * 0.15,
+      scores.education * 0.1 +
+      scores.projects * 0.1 +
+      scores.content * 0.2,
   );
 }
 
-function calculateSkillsScore(skillCount: number): number {
-  if (skillCount <= 0) {
-    return 20;
+function calculateSkillsScore(resume: ResumeData): number {
+  const skills = resume.skills.map(normalizeSkill).filter(Boolean);
+
+  if (skills.length === 0) {
+    return 15;
   }
 
-  if (skillCount >= 15) {
-    return 95;
+  let score = 35;
+
+  if (skills.length >= 3) {
+    score += 10;
   }
 
-  if (skillCount >= 10) {
-    return 88;
+  if (skills.length >= 5) {
+    score += 10;
   }
 
-  if (skillCount >= 7) {
-    return 80;
+  if (skills.length >= 8) {
+    score += 8;
   }
 
-  if (skillCount >= 5) {
-    return 70;
+  if (skills.length >= 12) {
+    score += 7;
   }
 
-  if (skillCount >= 3) {
-    return 58;
+  if (resume.skillCategories.length > 0) {
+    score += 8;
   }
 
-  return 42;
-}
+  const contextualSkills = skills.filter(
+    (skill) =>
+      skillAppearsInExperience(resume, skill) ||
+      skillAppearsInProjects(resume, skill),
+  );
 
-function calculateExperienceScore(
-  experienceCount: number,
-  text: string,
-): number {
-  if (experienceCount === 0) {
-    return /\bintern(ship)?\b|\bproject\b/i.test(text) ? 45 : 25;
-  }
+  const contextualRatio = contextualSkills.length / Math.max(skills.length, 1);
 
-  let score = 45;
-
-  score += Math.min(experienceCount * 10, 35);
-
-  const metrics = text.match(METRIC_PATTERN)?.length ?? 0;
-
-  score += Math.min(metrics * 4, 12);
-
-  const actionVerbCount = ACTION_VERBS.filter((verb) =>
-    new RegExp(`\\b${escapeRegex(verb)}\\b`, "i").test(text),
-  ).length;
-
-  score += Math.min(actionVerbCount * 1.5, 8);
+  score += Math.round(contextualRatio * 15);
 
   return clamp(score);
 }
 
-function calculateEducationScore(educationText: string): number {
-  const value = educationText.trim().toLowerCase();
+function calculateExperienceScore(resume: ResumeData): number {
+  if (resume.experience.length === 0) {
+    if (resume.projects.length > 0) {
+      return 45;
+    }
 
-  if (!value || value === "not specified") {
-    return 35;
+    return 25;
   }
 
-  const hasDegree = EDUCATION_TERMS.some((term) => value.includes(term));
+  let score = 40;
 
-  if (hasDegree) {
-    return 85;
+  const experiences = resume.experience;
+
+  const completeEntries = experiences.filter(
+    (item) => Boolean(item.role) && Boolean(item.company),
+  ).length;
+
+  if (completeEntries === experiences.length) {
+    score += 12;
+  } else if (completeEntries > 0) {
+    score += 6;
   }
 
-  return 65;
-}
-
-function calculateContentScore(text: string, projectCount: number): number {
-  const normalized = text.trim();
-
-  if (!normalized) {
-    return 0;
+  if (experiences.length >= 2) {
+    score += 8;
   }
 
-  let score = 50;
-
-  const words = normalized.split(/\s+/).filter(Boolean);
-
-  if (words.length >= 250) {
-    score += 10;
-  }
-
-  if (words.length >= 500) {
-    score += 10;
-  }
-
-  if (words.length >= 900) {
+  if (experiences.length >= 4) {
     score += 5;
   }
 
-  const metrics = normalized.match(METRIC_PATTERN)?.length ?? 0;
+  const statements = experiences
+    .flatMap((item) => [item.description, ...item.achievements])
+    .filter(Boolean);
 
-  score += Math.min(metrics * 3, 12);
+  if (statements.length >= 3) {
+    score += 8;
+  }
 
-  const actionVerbs = ACTION_VERBS.filter((verb) =>
-    new RegExp(`\\b${escapeRegex(verb)}\\b`, "i").test(normalized),
+  if (statements.length >= 6) {
+    score += 5;
+  }
+
+  const quantifiedCount = statements.filter(containsMetric).length;
+
+  if (quantifiedCount >= 3) {
+    score += 10;
+  } else if (quantifiedCount >= 1) {
+    score += 5;
+  }
+
+  const actionStatementCount = statements.filter(containsActionVerb).length;
+
+  if (actionStatementCount >= 5) {
+    score += 8;
+  } else if (actionStatementCount >= 2) {
+    score += 4;
+  }
+
+  const datedEntries = experiences.filter(
+    (item) => Boolean(item.startDate) || Boolean(item.endDate),
   ).length;
 
-  score += Math.min(actionVerbs * 1.5, 10);
+  if (datedEntries === experiences.length) {
+    score += 4;
+  }
 
-  score += Math.min(projectCount * 2, 6);
+  return clamp(score);
+}
 
-  const weakPhraseCount = CONTENT_WEAK_PHRASES.filter((phrase) =>
-    normalized.toLowerCase().includes(phrase),
+function calculateEducationScore(resume: ResumeData): number {
+  if (resume.education.length === 0) {
+    return 30;
+  }
+
+  let score = 55;
+
+  const entries = resume.education;
+
+  const completeEntries = entries.filter(
+    (item) => Boolean(item.degree) && Boolean(item.institution),
   ).length;
+
+  if (completeEntries === entries.length) {
+    score += 15;
+  } else if (completeEntries > 0) {
+    score += 8;
+  }
+
+  const hasField = entries.some((item) => Boolean(item.field));
+
+  if (hasField) {
+    score += 8;
+  }
+
+  const hasDates = entries.some(
+    (item) => Boolean(item.startDate) || Boolean(item.endDate),
+  );
+
+  if (hasDates) {
+    score += 7;
+  }
+
+  const hasRecognizedDegree = entries.some((item) =>
+    DEGREE_PATTERN.test([item.degree, item.field].filter(Boolean).join(" ")),
+  );
+
+  if (hasRecognizedDegree) {
+    score += 5;
+  }
+
+  return clamp(score);
+}
+
+function calculateProjectsScore(resume: ResumeData): number {
+  const projects = resume.projects;
+
+  if (projects.length === 0) {
+    return resume.experience.length > 0 ? 55 : 25;
+  }
+
+  let score = 45;
+
+  if (projects.length >= 1) {
+    score += 10;
+  }
+
+  if (projects.length >= 2) {
+    score += 10;
+  }
+
+  if (projects.length >= 4) {
+    score += 8;
+  }
+
+  const documentedProjects = projects.filter((project) =>
+    Boolean(project.description),
+  ).length;
+
+  if (documentedProjects === projects.length) {
+    score += 8;
+  } else if (documentedProjects > 0) {
+    score += 4;
+  }
+
+  const technologyProjects = projects.filter(
+    (project) => project.technologies.length > 0,
+  ).length;
+
+  if (technologyProjects >= 2) {
+    score += 7;
+  } else if (technologyProjects === 1) {
+    score += 4;
+  }
+
+  const linkedProjects = projects.filter((project) =>
+    Boolean(project.url),
+  ).length;
+
+  if (linkedProjects > 0) {
+    score += 4;
+  }
+
+  const quantifiedProjects = projects.filter((project) =>
+    containsMetric(project.description),
+  ).length;
+
+  if (quantifiedProjects > 0) {
+    score += 4;
+  }
+
+  return clamp(score);
+}
+
+function calculateContentScore(resume: ResumeData): number {
+  const text = resume.cleanText.trim();
+
+  if (!text) {
+    return 0;
+  }
+
+  let score = 40;
+
+  const words = text.split(/\s+/).filter(Boolean);
+
+  if (words.length >= 250) {
+    score += 8;
+  }
+
+  if (words.length >= 500) {
+    score += 8;
+  }
+
+  if (words.length >= 800) {
+    score += 6;
+  }
+
+  const actionVerbCount = countActionVerbs(resume);
+
+  if (actionVerbCount >= 6) {
+    score += 10;
+  } else if (actionVerbCount >= 3) {
+    score += 6;
+  } else if (actionVerbCount >= 1) {
+    score += 3;
+  }
+
+  const metricCount = countMetrics(resume);
+
+  if (metricCount >= 4) {
+    score += 10;
+  } else if (metricCount >= 2) {
+    score += 6;
+  } else if (metricCount === 1) {
+    score += 3;
+  }
+
+  if (resume.summary.length >= 80) {
+    score += 5;
+  }
+
+  if (resume.achievements.length > 0) {
+    score += 4;
+  }
+
+  const weakPhraseCount = countWeakPhrases(text);
 
   score -= Math.min(weakPhraseCount * 5, 20);
 
   return clamp(score);
 }
 
-function getEducationText(education: any): string {
-  if (!Array.isArray(education) || education.length === 0) {
-    return "";
+function skillAppearsInExperience(resume: ResumeData, skill: string): boolean {
+  const target = normalizeForSearch(skill);
+
+  if (!target) {
+    return false;
   }
 
-  return education
-    .map((item) =>
-      [item?.degree, item?.field, item?.institution].filter(Boolean).join(" "),
+  return resume.experience.some((item) => {
+    const content = [
+      item.role,
+      item.company,
+      item.description,
+      ...item.achievements,
+      ...item.technologies,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return normalizeForSearch(content).includes(target);
+  });
+}
+
+function skillAppearsInProjects(resume: ResumeData, skill: string): boolean {
+  const target = normalizeForSearch(skill);
+
+  if (!target) {
+    return false;
+  }
+
+  return resume.projects.some((project) => {
+    const content = [project.name, project.description, ...project.technologies]
+      .filter(Boolean)
+      .join(" ");
+
+    return normalizeForSearch(content).includes(target);
+  });
+}
+
+function countActionVerbs(resume: ResumeData): number {
+  const statements = resume.experience.flatMap((item) => [
+    item.description,
+    ...item.achievements,
+  ]);
+
+  return statements.filter(containsActionVerb).length;
+}
+
+function containsActionVerb(text: string): boolean {
+  const lower = text.toLowerCase();
+
+  return ACTION_VERBS.some((verb) =>
+    new RegExp(`\\b${escapeRegex(verb)}\\b`, "i").test(lower),
+  );
+}
+
+function countMetrics(resume: ResumeData): number {
+  const statements = [
+    ...resume.experience.flatMap((item) => [
+      item.description,
+      ...item.achievements,
+    ]),
+    ...resume.projects.map((project) => project.description),
+  ].filter(Boolean);
+
+  return statements.filter(containsMetric).length;
+}
+
+function containsMetric(text: string): boolean {
+  METRIC_PATTERN.lastIndex = 0;
+
+  return (
+    METRIC_PATTERN.test(text) ||
+    /\b(?:increased|reduced|improved|grew|saved|generated|processed|served|managed)\b[\s\S]{0,80}\b\d+/i.test(
+      text,
     )
-    .join(" ");
+  );
+}
+
+function countWeakPhrases(text: string): number {
+  const lower = text.toLowerCase();
+
+  return WEAK_PHRASES.filter((phrase) => lower.includes(phrase)).length;
+}
+
+function normalizeForSearch(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}+#./-]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function escapeRegex(value: string): string {
