@@ -1,11 +1,12 @@
 import { clamp } from "./normalize";
 
 type ScoreInput = {
-  text: string;
-  skills: string[];
-  experienceCount: number;
-  projectCount: number;
-  educationText: string;
+  resume?: any;
+  text?: string;
+  skills?: string[];
+  experienceCount?: number;
+  projectCount?: number;
+  educationText?: string;
   atsScore: number;
 };
 
@@ -15,6 +16,7 @@ type Scores = {
   experience: number;
   educationMatch: number;
   contentQuality: number;
+  overallScore: number;
 };
 
 const ACTION_VERBS = [
@@ -72,18 +74,42 @@ const CONTENT_WEAK_PHRASES = [
 ];
 
 export function calculateScores(input: ScoreInput): Scores {
-  const skillsStrength = calculateSkillsScore(input.skills.length);
+  const resume = input.resume;
 
-  const experience = calculateExperienceScore(
-    input.experienceCount,
-    input.text,
-  );
+  const text = input.text || resume?.cleanText || resume?.text || "";
 
-  const educationMatch = calculateEducationScore(input.educationText);
+  const skills = Array.isArray(input.skills)
+    ? input.skills
+    : Array.isArray(resume?.skills)
+      ? resume.skills
+      : [];
 
-  const contentQuality = calculateContentScore(input.text, input.projectCount);
+  const experienceCount =
+    typeof input.experienceCount === "number"
+      ? input.experienceCount
+      : Array.isArray(resume?.experienceDetails)
+        ? resume.experienceDetails.length
+        : 0;
+
+  const projectCount =
+    typeof input.projectCount === "number"
+      ? input.projectCount
+      : Array.isArray(resume?.projects)
+        ? resume.projects.length
+        : 0;
+
+  const educationText =
+    input.educationText || getEducationText(resume?.education);
 
   const atsCompatibility = clamp(input.atsScore);
+
+  const skillsStrength = calculateSkillsScore(skills.length);
+
+  const experience = calculateExperienceScore(experienceCount, text);
+
+  const educationMatch = calculateEducationScore(educationText);
+
+  const contentQuality = calculateContentScore(text, projectCount);
 
   const overallScore = clamp(
     atsCompatibility * 0.25 +
@@ -100,8 +126,6 @@ export function calculateScores(input: ScoreInput): Scores {
     educationMatch,
     contentQuality,
     overallScore,
-  } as Scores & {
-    overallScore: number;
   };
 }
 
@@ -226,6 +250,18 @@ function calculateContentScore(text: string, projectCount: number): number {
   score -= Math.min(weakPhraseCount * 5, 20);
 
   return clamp(score);
+}
+
+function getEducationText(education: any): string {
+  if (!Array.isArray(education) || education.length === 0) {
+    return "";
+  }
+
+  return education
+    .map((item) =>
+      [item?.degree, item?.field, item?.institution].filter(Boolean).join(" "),
+    )
+    .join(" ");
 }
 
 function escapeRegex(value: string): string {

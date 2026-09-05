@@ -7,6 +7,7 @@ import { analyzeResume } from "@/lib/analyzer";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Safely converts unknown errors into readable messages.
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -27,10 +28,6 @@ export async function POST(request: NextRequest) {
   let analysisId: string | null = null;
 
   try {
-    // --------------------------------------------------------
-    // AUTHENTICATION
-    // --------------------------------------------------------
-
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -42,10 +39,6 @@ export async function POST(request: NextRequest) {
         { status: 401 },
       );
     }
-
-    // --------------------------------------------------------
-    // REQUEST BODY
-    // --------------------------------------------------------
 
     let body: unknown;
 
@@ -79,10 +72,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // --------------------------------------------------------
-    // FIND RESUME
-    // --------------------------------------------------------
-
     const resume = await prisma.resume.findFirst({
       where: {
         id: resumeId,
@@ -99,10 +88,6 @@ export async function POST(request: NextRequest) {
         { status: 404 },
       );
     }
-
-    // --------------------------------------------------------
-    // EXTRACTED TEXT
-    // --------------------------------------------------------
 
     const resumeText = resume.extractedText?.trim();
 
@@ -126,10 +111,6 @@ export async function POST(request: NextRequest) {
     console.log("Extracted text length:", resumeText.length);
     console.log("==========================================");
 
-    // --------------------------------------------------------
-    // CREATE ANALYSIS
-    // --------------------------------------------------------
-
     const analysis = await prisma.resumeAnalysis.create({
       data: {
         userId: session.user.id,
@@ -140,81 +121,47 @@ export async function POST(request: NextRequest) {
 
     analysisId = analysis.id;
 
-    // --------------------------------------------------------
-    // REVIO ANALYZER ENGINE
-    // --------------------------------------------------------
-
     console.log("[Revio] Running local analysis engine...");
 
-    const result = analyzeResume(resumeText);
+    const result = await analyzeResume(resumeText);
 
     console.log("[Revio] Local analysis completed.");
-
-    // --------------------------------------------------------
-    // SAVE ANALYSIS
-    // --------------------------------------------------------
 
     const updatedAnalysis = await prisma.resumeAnalysis.update({
       where: {
         id: analysis.id,
       },
-
       data: {
         status: "COMPLETED",
-
         overallScore: result.overallScore,
-
         atsScore: result.scores.atsCompatibility,
-
         contentScore: result.scores.contentQuality,
-
         skillsScore: result.scores.skillsStrength,
-
         experienceScore: result.scores.experience,
-
         strengths: result.strengths,
-
         weaknesses: result.weaknesses,
-
         suggestions: result.suggestions,
-
         skills: result.skills,
-
         rawResult: result as any,
       },
     });
-
-    // --------------------------------------------------------
-    // UPDATE RESUME ATS SCORE
-    // --------------------------------------------------------
 
     await prisma.resume.update({
       where: {
         id: resume.id,
       },
-
       data: {
         atsScore: result.scores.atsCompatibility,
       },
     });
 
-    // --------------------------------------------------------
-    // RESPONSE
-    // --------------------------------------------------------
-
     const responseResult = {
       id: updatedAnalysis.id,
-
       ...result,
-
       educationScore: result.scores.educationMatch,
-
       atsScore: result.scores.atsCompatibility,
-
       contentScore: result.scores.contentQuality,
-
       skillsScore: result.scores.skillsStrength,
-
       experienceScore: result.scores.experience,
     };
 
@@ -229,10 +176,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-
       result: responseResult,
-
-      // Keep this for compatibility with older frontend code.
       analysis: responseResult,
     });
   } catch (error) {
@@ -242,20 +186,14 @@ export async function POST(request: NextRequest) {
     console.error(error);
     console.error("==========================================");
 
-    // --------------------------------------------------------
-    // MARK ANALYSIS FAILED
-    // --------------------------------------------------------
-
     if (analysisId) {
       try {
         await prisma.resumeAnalysis.update({
           where: {
             id: analysisId,
           },
-
           data: {
             status: "FAILED",
-
             rawResult: {
               error: getErrorMessage(error),
             },
@@ -271,9 +209,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-
         error: "Unable to analyze the resume.",
-
         details: process.env.NODE_ENV === "development" ? message : undefined,
       },
       { status: 500 },
