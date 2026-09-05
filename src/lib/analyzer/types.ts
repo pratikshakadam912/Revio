@@ -1,105 +1,126 @@
-export type ProfileItemData = {
-  label: string;
-  value: string;
-  detail?: string;
+export type ResumeFragment = {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fontSize?: number;
+  fontName?: string;
+  page: number;
 };
 
-export type RoleData = {
-  rank?: string;
+export type ResumeLine = {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  page: number;
+  fragments: ResumeFragment[];
+};
+
+export type ResumeColumn = {
+  x: number;
+  width: number;
+  lines: ResumeLine[];
+};
+
+export type ResumePage = {
+  page: number;
+  width: number;
+  height: number;
+  fragments: ResumeFragment[];
+  lines: ResumeLine[];
+  columns: ResumeColumn[];
+};
+
+export type ResumeSectionName =
+  | "header"
+  | "summary"
+  | "experience"
+  | "education"
+  | "projects"
+  | "skills"
+  | "certifications"
+  | "languages"
+  | "achievements"
+  | "unknown";
+
+export type ResumeSection = {
+  name: ResumeSectionName;
+  heading: string;
+  lines: string[];
+};
+
+export type EducationItem = {
+  institution: string;
+  degree: string;
+  field?: string;
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  details?: string[];
+};
+
+export type ExperienceItem = {
+  company: string;
   role: string;
-  match: number;
-  description?: string;
-  skills?: string[];
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  duration?: string;
+  responsibilities: string[];
+  achievements: string[];
 };
 
-export type SkillGapData = {
-  name: string;
-  level: number;
-  reason?: string;
-};
-
-export type ProjectData = {
+export type ProjectItem = {
   name: string;
   description: string;
   contribution?: string;
-  technologies?: string[];
+  technologies: string[];
   impact?: string;
+  github?: string;
+  liveDemo?: string;
+  startDate?: string;
+  endDate?: string;
 };
 
-export type CandidateData = {
+export type CandidateInfo = {
   name?: string;
   headline?: string;
+  email?: string;
+  phone?: string;
   location?: string;
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
 };
 
-export type ExperienceData = {
-  company: string;
-  role: string;
-  duration: string;
-  description: string;
-  responsibilities?: string[];
-  achievements?: string[];
-};
+export type ParsedResume = {
+  candidate: CandidateInfo;
 
-export type AnalysisResult = {
-  candidate?: CandidateData;
+  summary: string;
 
-  overallScore: number;
+  education: EducationItem[];
 
-  summary?: string;
+  experienceDetails: ExperienceItem[];
 
-  profile?: {
-    education?: ProfileItemData;
-    experience?: ProfileItemData;
-    careerFocus?: ProfileItemData;
-  };
+  projects: ProjectItem[];
 
   skills: string[];
 
-  projects: ProjectData[];
+  certifications: string[];
 
-  experienceDetails: ExperienceData[];
+  languages: string[];
 
-  atsAnalysis: {
-    keywordOptimization: string;
-    formatting: string;
-    sectionStructure: string;
-    readability: string;
-    issues: string[];
-  };
+  sections: ResumeSection[];
 
-  strengths: string[];
+  rawText: string;
+  cleanText: string;
+};
 
-  weaknesses: string[];
-
-  suggestions: string[];
-
-  scores: {
-    atsCompatibility: number;
-    skillsStrength: number;
-    experience: number;
-    educationMatch: number;
-    contentQuality: number;
-  };
-
-  recommendedRoles: RoleData[];
-
-  jobs: {
-    role: string;
-    company: string;
-    location: string;
-    match: number;
-  }[];
-
-  skillGaps: SkillGapData[];
-
-  nextCareerMove: {
-    title: string;
-    description: string;
-  };
-
-  aiCredits?: {
-    used: number;
-    total: number;
-  };
+export type ResumeDocument = {
+  pages: ResumePage[];
+  text: string;
+  lines: ResumeLine[];
 };
