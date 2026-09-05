@@ -1,103 +1,139 @@
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import PDFParser from "pdf2json";
 import type { PdfFragment, PdfPageLayout } from "./types";
 
-type PdfTextItem = {
-  str: string;
-  transform: number[];
-  width: number;
-  height: number;
-  fontName?: string;
+type PdfJsonTextRun = {
+  T?: string;
 };
 
-function getFontSize(item: PdfTextItem): number {
-  const transform = item.transform;
+type PdfJsonText = {
+  x?: number;
+  y?: number;
+  w?: number;
+  R?: PdfJsonTextRun[];
+};
 
-  if (!transform || transform.length < 6) {
-    return item.height || 10;
+type PdfJsonPage = {
+  Width?: number;
+  Height?: number;
+  Texts?: PdfJsonText[];
+};
+
+type PdfJsonData = {
+  Pages?: PdfJsonPage[];
+};
+
+function decodePdfText(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
   }
-
-  const a = Math.abs(transform[0] ?? 0);
-  const b = Math.abs(transform[1] ?? 0);
-
-  const size = Math.sqrt(a * a + b * b);
-
-  return size || item.height || 10;
 }
 
-function getPosition(item: PdfTextItem, pageHeight: number) {
-  const transform = item.transform;
+function cleanExtractedFragment(value: string): string {
+  return value
+    .replace(/\u00a0/g, " ")
+    .replace(/\r/g, "")
+    .replace(/\n/g, " ")
+    .trim();
+}
 
-  const x = transform[4] ?? 0;
-  const pdfY = transform[5] ?? 0;
+function extractRuns(item: PdfJsonText): string {
+  if (!item.R?.length) {
+    return "";
+  }
 
-  const fontSize = getFontSize(item);
+  return item.R.map((run) => decodePdfText(run.T ?? "")).join("");
+}
 
+function convertPage(page: PdfJsonPage, pageNumber: number): PdfPageLayout {
   /*
-   * PDF coordinates start from bottom-left.
-   * We convert them to top-left coordinates.
+   * pdf2json coordinates are normally expressed
+   * using PDF units. We preserve the coordinates
+   * instead of immediately flattening everything.
    */
-  const y = pageHeight - pdfY - fontSize;
+
+  const fragments: PdfFragment[] = [];
+
+  for (const item of page.Texts ?? []) {
+    const text = cleanExtractedFragment(extractRuns(item));
+
+    if (!text) {
+      continue;
+    }
+
+    const x = typeof item.x === "number" ? item.x : 0;
+
+    const y = typeof item.y === "number" ? item.y : 0;
+
+    const width =
+      typeof item.w === "number" ? item.w : Math.max(text.length * 4, 4);
+
+    /*
+     * pdf2json does not always provide a reliable
+     * font height. Use a conservative estimate.
+     */
+    const height = 10;
+
+    fragments.push({
+      text,
+      x,
+      y,
+      width,
+      height,
+      fontSize: height,
+      page: pageNumber,
+    });
+  }
 
   return {
-    x,
-    y,
+    page: pageNumber,
+    width: typeof page.Width === "number" ? page.Width : 595,
+
+    height: typeof page.Height === "number" ? page.Height : 842,
+
+    fragments,
+    lines: [],
+    columns: [],
   };
 }
 
 export async function extractPdfLayout(
   buffer: Buffer,
 ): Promise<PdfPageLayout[]> {
-  const loadingTask = pdfjsLib.getDocument({
-    data: new Uint8Array(buffer),
-    disableWorker: true,
-    useSystemFonts: true,
-  });
+  return new Promise((resolve, reject) => {
+    const parser = new PDFParser();
 
-  const pdf = await loadingTask.promise;
+    parser.on("pdfParser_dataError", (error: unknown) => {
+      console.error("[Revio] PDF extraction error:", error);
 
-  const pages: PdfPageLayout[] = [];
-
-  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-    const page = await pdf.getPage(pageNumber);
-
-    const viewport = page.getViewport({
-      scale: 1,
+      reject(error);
     });
 
-    const content = await page.getTextContent();
+    parser.on("pdfParser_dataReady", (data: PdfJsonData) => {
+      try {
+        const pages = (data.Pages ?? []).map((page, index) =>
+          convertPage(page, index + 1),
+        );
 
-    const fragments: PdfFragment[] = [];
+        console.log(`[Revio] Extracted ${pages.length} PDF page(s)`);
 
-    for (const rawItem of content.items) {
-      const item = rawItem as unknown as PdfTextItem;
+        pages.forEach((page) => {
+          console.log(
+            `[Revio] Page ${page.page}: ${page.fragments.length} text fragments`,
+          );
+        });
 
-      if (!item.str || !item.str.trim()) {
-        continue;
+        resolve(pages);
+      } catch (error) {
+        reject(error);
       }
-
-      const { x, y } = getPosition(item, viewport.height);
-
-      fragments.push({
-        text: item.str,
-        x,
-        y,
-        width: item.width || 0,
-        height: item.height || getFontSize(item),
-        fontSize: getFontSize(item),
-        fontName: item.fontName,
-        page: pageNumber,
-      });
-    }
-
-    pages.push({
-      page: pageNumber,
-      width: viewport.width,
-      height: viewport.height,
-      fragments,
-      lines: [],
-      columns: [],
     });
-  }
 
-  return pages;
+    try {
+      parser.parseBuffer(buffer);
+    } catch (error) {
+      reject(error);
+    }
+  });
 }
