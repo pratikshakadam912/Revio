@@ -7,7 +7,6 @@ import { analyzeResume } from "@/lib/analyzer";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Safely gets an error message.
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -24,29 +23,22 @@ function getErrorMessage(error: unknown): string {
   }
 }
 
-// Downloads the resume PDF.
-async function downloadResume(fileUrl: string): Promise<Buffer> {
-  const response = await fetch(fileUrl);
-
-  if (!response.ok) {
-    throw new Error(
-      `Unable to download resume file. Status: ${response.status}`,
-    );
+function isValidPdf(buffer: Buffer): boolean {
+  if (!buffer || buffer.length < 5) {
+    return false;
   }
 
-  const arrayBuffer = await response.arrayBuffer();
-
-  if (!arrayBuffer.byteLength) {
-    throw new Error("The resume file is empty.");
-  }
-
-  return Buffer.from(arrayBuffer);
+  return buffer.subarray(0, 5).toString("ascii") === "%PDF-";
 }
 
 export async function POST(request: NextRequest) {
   let analysisId: string | null = null;
 
   try {
+    /* =====================================================
+       AUTHENTICATION
+    ===================================================== */
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -58,6 +50,10 @@ export async function POST(request: NextRequest) {
         { status: 401 },
       );
     }
+
+    /* =====================================================
+       REQUEST BODY
+    ===================================================== */
 
     let body: unknown;
 
@@ -73,13 +69,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (typeof body !== "object" || body === null || !("resumeId" in body)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "resumeId is required.",
+        },
+        { status: 400 },
+      );
+    }
+
     const resumeId =
-      typeof body === "object" &&
-      body !== null &&
-      "resumeId" in body &&
       typeof (body as { resumeId?: unknown }).resumeId === "string"
-        ? (body as { resumeId: string }).resumeId
-        : null;
+        ? (body as { resumeId: string }).resumeId.trim()
+        : "";
 
     if (!resumeId) {
       return NextResponse.json(
@@ -90,6 +93,11 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    /* =====================================================
+       FIND RESUME
+       User can only analyze their own resume.
+    ===================================================== */
 
     const resume = await prisma.resume.findFirst({
       where: {
@@ -112,30 +120,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Resume file URL is missing.",
+          error:
+            "The uploaded resume file could not be found. Please upload the resume again.",
         },
         { status: 400 },
       );
     }
 
-    if (resume.fileType && !resume.fileType.toLowerCase().includes("pdf")) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Only PDF resumes are currently supported.",
-        },
-        { status: 400 },
-      );
-    }
-
-    console.log("==========================================");
-    console.log("REVIO RESUME ANALYSIS");
-    console.log("==========================================");
-    console.log("Resume:", resume.fileName);
-    console.log("Resume ID:", resume.id);
-    console.log("Engine: Revio TypeScript Analyzer");
-    console.log("File type:", resume.fileType);
-    console.log("==========================================");
+    /* =====================================================
+       CREATE PROCESSING RECORD
+    ===================================================== */
 
     const analysis = await prisma.resumeAnalysis.create({
       data: {
@@ -147,17 +141,74 @@ export async function POST(request: NextRequest) {
 
     analysisId = analysis.id;
 
-    console.log("[Revio] Downloading resume...");
+    /* =====================================================
+       DOWNLOAD PDF
+    ===================================================== */
 
-    const pdfBuffer = await downloadResume(resume.fileUrl);
+    let pdfResponse: Response;
 
-    console.log("[Revio] Resume downloaded:", pdfBuffer.length, "bytes");
+    try {
+      pdfResponse = await fetch(resume.fileUrl, {
+        method: "GET",
+        cache: "no-store",
+      });
+    } catch (error) {
+      throw new Error(
+        `Unable to download the uploaded resume. ${
+          error instanceof Error ? error.message : "Storage request failed."
+        }`,
+      );
+    }
 
-    console.log("[Revio] Running local analysis engine...");
+    if (!pdfResponse.ok) {
+      throw new Error(
+        `Unable to download the uploaded resume. Storage returned ${pdfResponse.status}.`,
+      );
+    }
+
+    const arrayBuffer = await pdfResponse.arrayBuffer();
+
+    const pdfBuffer = Buffer.from(arrayBuffer);
+
+    /* =====================================================
+       VALIDATE PDF
+    ===================================================== */
+
+    if (!pdfBuffer.length) {
+      throw new Error("The uploaded resume file is empty.");
+    }
+
+    if (!isValidPdf(pdfBuffer)) {
+      throw new Error("The uploaded file is not a valid PDF.");
+    }
+
+    /* =====================================================
+       ANALYZE RESUME
+    ===================================================== */
+
+    console.log(`[Revio] Starting resume analysis: ${resume.id}`);
 
     const result = await analyzeResume(pdfBuffer);
 
-    console.log("[Revio] Local analysis completed.");
+    /* =====================================================
+       VALIDATE ANALYSIS RESULT
+    ===================================================== */
+
+    if (!result) {
+      throw new Error("Resume analysis returned no result.");
+    }
+
+    if (!result.resume) {
+      throw new Error("Resume analysis did not return resume data.");
+    }
+
+    if (!result.scores) {
+      throw new Error("Resume analysis did not return scores.");
+    }
+
+    /* =====================================================
+       SAVE COMPLETED ANALYSIS
+    ===================================================== */
 
     const updatedAnalysis = await prisma.resumeAnalysis.update({
       where: {
@@ -165,18 +216,32 @@ export async function POST(request: NextRequest) {
       },
       data: {
         status: "COMPLETED",
+
         overallScore: result.scores.overall,
+
         atsScore: result.scores.ats,
+
         contentScore: result.scores.content,
+
         skillsScore: result.scores.skills,
+
         experienceScore: result.scores.experience,
+
         strengths: result.strengths,
+
         weaknesses: result.weaknesses,
+
         suggestions: result.suggestions,
+
         skills: result.resume.skills,
+
         rawResult: result as any,
       },
     });
+
+    /* =====================================================
+       UPDATE RESUME ATS SCORE
+    ===================================================== */
 
     await prisma.resume.update({
       where: {
@@ -184,49 +249,90 @@ export async function POST(request: NextRequest) {
       },
       data: {
         atsScore: result.scores.ats,
-        extractedText: result.resume.cleanText,
       },
     });
 
+    /* =====================================================
+       FRONTEND RESPONSE
+    ===================================================== */
+
     const responseResult = {
       id: updatedAnalysis.id,
+
       ...result,
 
+      /*
+       * Keep these top-level values because the analyzer
+       * page can consume them directly.
+       */
       overallScore: result.scores.overall,
 
       atsScore: result.scores.ats,
+
       contentScore: result.scores.content,
+
       skillsScore: result.scores.skills,
+
       experienceScore: result.scores.experience,
+
       educationScore: result.scores.education,
-      projectsScore: result.scores.projects,
+
+      /*
+       * Explicit structured data for the frontend.
+       */
+      candidate: result.resume.candidate,
+
+      education: result.resume.education,
+
+      experience: result.resume.experience,
+
+      projects: result.resume.projects,
 
       skills: result.resume.skills,
-      projects: result.resume.projects,
-      education: result.resume.education,
-      experience: result.resume.experience,
+
+      skillCategories: result.resume.skillCategories,
+
+      summary: result.resume.summary,
+
+      recommendedRoles: result.roles,
+
+      skillGaps: result.skillGaps,
+
+      nextCareerMove: result.careerMove,
     };
 
-    console.log("==========================================");
-    console.log("[Revio] ANALYSIS COMPLETED");
-    console.log("[Revio] Overall:", result.scores.overall);
-    console.log("[Revio] ATS:", result.scores.ats);
-    console.log("[Revio] Skills:", result.scores.skills);
-    console.log("[Revio] Experience:", result.scores.experience);
-    console.log("[Revio] Projects:", result.resume.projects.length);
-    console.log("==========================================");
+    console.log(`[Revio] Resume analysis completed: ${resume.id}`);
 
-    return NextResponse.json({
-      success: true,
-      result: responseResult,
-      analysis: responseResult,
-    });
+    console.log(`[Revio] Sections: ${result.resume.sections.length}`);
+
+    console.log(`[Revio] Education: ${result.resume.education.length}`);
+
+    console.log(`[Revio] Experience: ${result.resume.experience.length}`);
+
+    console.log(`[Revio] Projects: ${result.resume.projects.length}`);
+
+    console.log(`[Revio] Recommended roles: ${result.roles.length}`);
+
+    /* =====================================================
+       RETURN
+    ===================================================== */
+
+    return NextResponse.json(
+      {
+        success: true,
+        result: responseResult,
+        analysis: responseResult,
+      },
+      {
+        status: 200,
+      },
+    );
   } catch (error) {
-    console.error("==========================================");
-    console.error("REVIO ANALYSIS ERROR");
-    console.error("==========================================");
-    console.error(error);
-    console.error("==========================================");
+    console.error("[Revio] Resume analysis failed:", error);
+
+    /* =====================================================
+       MARK ANALYSIS AS FAILED
+    ===================================================== */
 
     if (analysisId) {
       try {
@@ -236,6 +342,7 @@ export async function POST(request: NextRequest) {
           },
           data: {
             status: "FAILED",
+
             rawResult: {
               error: getErrorMessage(error),
             },
@@ -251,10 +358,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
+
         error: "Unable to analyze the resume.",
+
         details: process.env.NODE_ENV === "development" ? message : undefined,
       },
-      { status: 500 },
+      {
+        status: 500,
+      },
     );
   }
 }
