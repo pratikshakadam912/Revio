@@ -52,6 +52,7 @@ model User {
   analyses      ResumeAnalysis[]
   subscriptions Subscription[]
   usage         Usage[]
+  drafts        ResumeDraft[]
 }
 
 model Resume {
@@ -73,6 +74,7 @@ model Resume {
 
   user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   analyses ResumeAnalysis[]
+  drafts   ResumeDraft[]
 
   @@index([userId])
 }
@@ -143,4 +145,23 @@ model Usage {
 
   @@unique([userId, periodStart, periodEnd])
   @@index([userId])
+}
+
+model ResumeDraft {
+  id       String @id @default(cuid())
+  userId   String
+  resumeId String
+
+  name String
+  data Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resumeId])
+  @@unique([userId, resumeId])
 }
