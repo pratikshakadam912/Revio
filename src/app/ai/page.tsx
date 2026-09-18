@@ -1,169 +1,372 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
-  ArrowRight,
   Check,
   ChevronDown,
   CircleAlert,
+  Download,
   FileText,
-  Lightbulb,
+  GraduationCap,
+  History,
   Loader2,
   Plus,
-  RefreshCw,
+  Redo2,
+  Save,
   Sparkles,
   Target,
+  Trash2,
+  Undo2,
+  UserRound,
   WandSparkles,
   X,
-  Zap,
 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-type ProjectData = {
+type Candidate = {
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  linkedin: string;
+  github: string;
+  portfolio: string;
+  headline: string;
+};
+
+type Experience = {
+  company: string;
+  role: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+  achievements: string[];
+  technologies: string[];
+};
+
+type Education = {
+  degree: string;
+  field: string;
+  institution: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+};
+
+type Project = {
   name: string;
   description: string;
-  contribution?: string;
-  technologies?: string[];
-  impact?: string;
+  technologies: string[];
+  url: string;
+  startDate: string;
+  endDate: string;
 };
 
-type RoleData = {
-  rank?: string;
-  role: string;
-  match: number;
-  description?: string;
-  skills?: string[];
+type Certification = {
+  name: string;
+  issuer: string;
+  date: string;
+  url: string;
 };
 
-type AnalysisResult = {
-  candidate?: {
-    name?: string;
-    headline?: string;
-    location?: string;
-  };
-
-  overallScore?: number;
-
-  summary?: string;
-
-  skills?: string[];
-
-  projects?: ProjectData[];
-
-  strengths?: string[];
-
-  weaknesses?: string[];
-
-  suggestions?: string[];
-
-  scores?: {
-    atsCompatibility?: number;
-    skillsStrength?: number;
-    experience?: number;
-    educationMatch?: number;
-    contentQuality?: number;
-  };
-
-  recommendedRoles?: RoleData[];
-
-  skillGaps?: {
-    name: string;
-    level: number;
-  }[];
-
-  nextCareerMove?: {
-    title?: string;
-    description?: string;
-  };
+type Language = {
+  name: string;
+  proficiency: string;
 };
 
-type RewriteResponse = {
+type ResumeData = {
+  candidate: Candidate;
+  summary: string;
+  experience: Experience[];
+  education: Education[];
+  projects: Project[];
+  skills: string[];
+  certifications: Certification[];
+  languages: Language[];
+  achievements: string[];
+};
+
+type AnalysisResponse = {
   success: boolean;
-  result?: {
-    improved?: string;
-    explanation?: string;
-    keywords?: string[];
-    atsScore?: number;
-    original?: string;
+  analysis?: {
+    id?: string;
+    overallScore?: number;
+    rawResult?: unknown;
+  };
+  resume?: {
+    id?: string;
+    fileName?: string;
+    extractedText?: string;
   };
   error?: string;
 };
 
+type DraftResponse = {
+  success: boolean;
+  draft?: {
+    id: string;
+    name: string;
+    data: ResumeData;
+    updatedAt: string;
+  } | null;
+  error?: string;
+};
+
+type HistoryItem = {
+  id: string;
+  data: ResumeData;
+};
+
+const EMPTY_RESUME: ResumeData = {
+  candidate: {
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+    linkedin: "",
+    github: "",
+    portfolio: "",
+    headline: "",
+  },
+  summary: "",
+  experience: [],
+  education: [],
+  projects: [],
+  skills: [],
+  certifications: [],
+  languages: [],
+  achievements: [],
+};
+
 export default function AIPage() {
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [resumeId, setResumeId] = useState("");
+  const [resume, setResume] = useState<ResumeData>(EMPTY_RESUME);
+  const [resumeName, setResumeName] = useState("My Resume");
 
-  const [selectedProject, setSelectedProject] = useState("");
-  const [selectedSkill, setSelectedSkill] = useState("");
-
-  const [activeTool, setActiveTool] = useState<
-    "rewrite" | "summary" | "skills" | "project"
-  >("rewrite");
-
-  const [inputText, setInputText] = useState("");
   const [targetRole, setTargetRole] = useState("");
 
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [result, setResult] = useState<RewriteResponse["result"] | null>(null);
+
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const loadAnalysis = async () => {
+  const [exportOpen, setExportOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
+
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const updateResume = useCallback(
+    (updater: (current: ResumeData) => ResumeData) => {
+      setResume((current) => {
+        const next = updater(current);
+
+        setHistory((items) => {
+          const nextItems = items.slice(0, historyIndex + 1);
+
+          nextItems.push({
+            id: `${Date.now()}`,
+            data: cloneResume(next),
+          });
+
+          return nextItems.slice(-30);
+        });
+
+        setHistoryIndex((index) => Math.min(index + 1, 29));
+
+        return next;
+      });
+    },
+    [historyIndex],
+  );
+
+  const updateCandidate = (field: keyof Candidate, value: string) => {
+    updateResume((current) => ({
+      ...current,
+      candidate: {
+        ...current.candidate,
+        [field]: value,
+      },
+    }));
+  };
+
+  const saveDraft = useCallback(
+    async (silent = false) => {
+      if (!resumeId) return;
+
+      if (!silent) {
+        setSaving(true);
+      }
+
       try {
-        const response = await fetch("/api/resume/latest-analysis");
+        const response = await fetch("/api/resume/draft", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            resumeId,
+            name: resumeName || "My Resume",
+            data: resume,
+          }),
+        });
 
-        if (!response.ok) {
-          return;
+        const data: DraftResponse = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Failed to save your resume.");
         }
 
-        const data = await response.json();
+        setSavedAt(new Date());
+      } catch (err) {
+        console.error("Draft save error:", err);
 
-        if (data?.result) {
-          setAnalysis(data.result);
-
-          if (data.result.recommendedRoles?.[0]?.role) {
-            setTargetRole(data.result.recommendedRoles[0].role);
-          }
+        if (!silent) {
+          setError(
+            err instanceof Error ? err.message : "Failed to save your resume.",
+          );
         }
-      } catch (error) {
-        console.error("Failed to load latest analysis:", error);
+      } finally {
+        if (!silent) {
+          setSaving(false);
+        }
+      }
+    },
+    [resume, resumeId, resumeName],
+  );
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch("/api/resume/latest-analysis", {
+          cache: "no-store",
+        });
+
+        const data: AnalysisResponse = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "No analyzed resume was found.");
+        }
+
+        const id = data.resume?.id;
+
+        if (!id) {
+          throw new Error("The analyzed resume has no ID.");
+        }
+
+        setResumeId(id);
+
+        const structured = normalizeResume(
+          data.analysis?.rawResult,
+          data.resume?.extractedText ?? "",
+        );
+
+        const draftResponse = await fetch(
+          `/api/resume/draft?resumeId=${encodeURIComponent(id)}`,
+          {
+            cache: "no-store",
+          },
+        );
+
+        const draftData: DraftResponse = await draftResponse.json();
+
+        if (draftResponse.ok && draftData.success && draftData.draft?.data) {
+          setResume(normalizeResumeData(draftData.draft.data));
+
+          setResumeName(draftData.draft.name || "My Resume");
+        } else {
+          setResume(structured);
+
+          setResumeName(cleanResumeName(data.resume?.fileName));
+        }
+
+        const firstRole = getRecommendedRole(data.analysis?.rawResult);
+
+        if (firstRole) {
+          setTargetRole(firstRole);
+        }
+
+        const initial = draftData.draft?.data
+          ? normalizeResumeData(draftData.draft.data)
+          : structured;
+
+        setHistory([
+          {
+            id: "initial",
+            data: cloneResume(initial),
+          },
+        ]);
+
+        setHistoryIndex(0);
+      } catch (err) {
+        console.error("Resume studio load error:", err);
+
+        setError(
+          err instanceof Error ? err.message : "Unable to load your resume.",
+        );
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadAnalysis();
+    load();
   }, []);
 
   useEffect(() => {
-    if (!analysis?.projects?.length) return;
+    if (!resumeId || loading) return;
 
-    const project = analysis.projects[0];
-
-    if (!selectedProject) {
-      setSelectedProject(project.name);
-
-      setInputText(buildProjectText(project));
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
     }
-  }, [analysis, selectedProject]);
 
-  const handleProjectChange = (name: string) => {
-    setSelectedProject(name);
+    saveTimer.current = setTimeout(() => {
+      saveDraft(true);
+    }, 900);
 
-    const project = analysis?.projects?.find((item) => item.name === name);
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+      }
+    };
+  }, [resume, resumeName, resumeId, loading, saveDraft]);
 
-    if (project) {
-      setInputText(buildProjectText(project));
-    }
+  const undo = () => {
+    if (historyIndex <= 0) return;
+
+    const previousIndex = historyIndex - 1;
+    const previous = history[previousIndex];
+
+    if (!previous) return;
+
+    setHistoryIndex(previousIndex);
+    setResume(cloneResume(previous.data));
   };
 
-  const generate = async () => {
-    if (!inputText.trim()) {
-      setError("Add some resume content before generating.");
-      return;
-    }
+  const redo = () => {
+    if (historyIndex >= history.length - 1) return;
 
-    setError("");
-    setResult(null);
+    const nextIndex = historyIndex + 1;
+    const next = history[nextIndex];
+
+    if (!next) return;
+
+    setHistoryIndex(nextIndex);
+    setResume(cloneResume(next.data));
+  };
+
+  const improveResume = async () => {
     setIsGenerating(true);
+    setError("");
 
     try {
       const response = await fetch("/api/ai/rewrite", {
@@ -172,584 +375,1464 @@ export default function AIPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          type: activeTool,
-          text: inputText,
+          type: "full",
           targetRole,
-          candidateName: analysis?.candidate?.name,
-          skills: analysis?.skills ?? [],
-          projects: analysis?.projects ?? [],
-          analysis,
+          resume,
         }),
       });
 
-      const data: RewriteResponse = await response.json();
+      const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data?.error || "Unable to generate AI suggestions.");
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Unable to improve your resume.");
       }
 
       if (!data.result) {
-        throw new Error("No AI result was returned.");
+        throw new Error("No improved resume was returned.");
       }
 
-      setResult(data.result);
+      updateResume(() => normalizeResumeData(data.result));
+
+      setMobileView("preview");
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      await saveDraft(false);
     } catch (err) {
-      console.error("AI generation error:", err);
+      console.error("Resume improvement error:", err);
 
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong while generating.",
+          : "Something went wrong while improving the resume.",
       );
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const reset = () => {
-    setResult(null);
-    setError("");
+  const printResume = () => {
+    setExportOpen(false);
 
-    if (activeTool === "project" && analysis?.projects?.length) {
-      const project = analysis.projects.find(
-        (item) => item.name === selectedProject,
-      );
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  };
 
-      if (project) {
-        setInputText(buildProjectText(project));
+  const addExperience = () => {
+    updateResume((current) => ({
+      ...current,
+      experience: [
+        ...current.experience,
+        {
+          company: "",
+          role: "",
+          location: "",
+          startDate: "",
+          endDate: "",
+          description: "",
+          achievements: [""],
+          technologies: [],
+        },
+      ],
+    }));
+  };
+
+  const addEducation = () => {
+    updateResume((current) => ({
+      ...current,
+      education: [
+        ...current.education,
+        {
+          degree: "",
+          field: "",
+          institution: "",
+          location: "",
+          startDate: "",
+          endDate: "",
+          description: "",
+        },
+      ],
+    }));
+  };
+
+  const addProject = () => {
+    updateResume((current) => ({
+      ...current,
+      projects: [
+        ...current.projects,
+        {
+          name: "",
+          description: "",
+          technologies: [],
+          url: "",
+          startDate: "",
+          endDate: "",
+        },
+      ],
+    }));
+  };
+
+  const addSkill = () => {
+    updateResume((current) => ({
+      ...current,
+      skills: [...current.skills, ""],
+    }));
+  };
+
+  const removeExperience = (index: number) => {
+    updateResume((current) => ({
+      ...current,
+      experience: current.experience.filter(
+        (_, itemIndex) => itemIndex !== index,
+      ),
+    }));
+  };
+
+  const removeEducation = (index: number) => {
+    updateResume((current) => ({
+      ...current,
+      education: current.education.filter(
+        (_, itemIndex) => itemIndex !== index,
+      ),
+    }));
+  };
+
+  const removeProject = (index: number) => {
+    updateResume((current) => ({
+      ...current,
+      projects: current.projects.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  };
+
+  const score = useMemo(() => {
+    let completed = 0;
+    let total = 0;
+
+    const check = (value: string) => {
+      total += 1;
+
+      if (value.trim()) {
+        completed += 1;
       }
+    };
 
-      return;
-    }
+    check(resume.candidate.name);
+    check(resume.candidate.email);
+    check(resume.candidate.headline);
+    check(resume.summary);
 
-    setInputText("");
-  };
+    resume.experience.forEach((item) => {
+      check(item.company);
+      check(item.role);
+      check(item.achievements.join(" "));
+    });
 
-  const changeTool = (tool: "rewrite" | "summary" | "skills" | "project") => {
-    setActiveTool(tool);
-    setResult(null);
-    setError("");
+    resume.education.forEach((item) => {
+      check(item.institution);
+      check(item.degree);
+    });
 
-    if (tool === "project" && analysis?.projects?.length) {
-      const project = analysis.projects[0];
+    resume.skills.forEach(check);
 
-      setSelectedProject(project.name);
-      setInputText(buildProjectText(project));
-      return;
-    }
+    return total ? Math.round((completed / total) * 100) : 0;
+  }, [resume]);
 
-    setInputText("");
-  };
+  if (loading) {
+    return <LoadingScreen />;
+  }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#080B12] text-slate-100">
+    <main className="min-h-screen bg-[#070A10] text-slate-100">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-[220px] -top-[250px] h-[650px] w-[650px] rounded-full bg-indigo-600/20 blur-[150px]" />
-
-        <div className="absolute -right-[220px] top-[10%] h-[650px] w-[650px] rounded-full bg-cyan-500/10 blur-[150px]" />
-
-        <div className="absolute left-1/2 top-[55%] h-[700px] w-[900px] -translate-x-1/2 rounded-full bg-indigo-950/30 blur-[180px]" />
-
-        <div
-          className="absolute inset-0 opacity-[0.035]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)",
-            backgroundSize: "36px 36px",
-          }}
-        />
+        <div className="absolute -left-48 -top-48 h-[650px] w-[650px] rounded-full bg-indigo-600/15 blur-[150px]" />
+        <div className="absolute -right-48 top-[15%] h-[600px] w-[600px] rounded-full bg-cyan-500/10 blur-[150px]" />
       </div>
 
-      <div className="relative mx-auto flex min-h-screen max-w-[1600px]">
-        {/* ======================================================
-            SIDEBAR
-        ====================================================== */}
-
-        <aside className="hidden w-[260px] shrink-0 border-r border-white/[0.08] bg-slate-950/60 px-5 py-6 backdrop-blur-2xl lg:flex lg:flex-col">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 px-2 text-lg font-black tracking-tight"
-          >
-            <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 shadow-[0_0_22px_rgba(99,102,241,0.35)]">
-              <Sparkles className="relative z-10 h-4 w-4 text-white" />
+      <div className="relative flex min-h-screen">
+        <aside className="hidden w-[245px] shrink-0 border-r border-white/[0.08] bg-slate-950/70 px-5 py-6 backdrop-blur-2xl lg:flex lg:flex-col print:hidden">
+          <Link href="/dashboard" className="flex items-center gap-3 px-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 shadow-[0_0_25px_rgba(99,102,241,0.3)]">
+              <Sparkles className="h-4 w-4 text-white" />
             </span>
 
-            <span>
+            <span className="text-lg font-black tracking-tight">
               Revio<span className="text-cyan-400">.</span>
             </span>
           </Link>
 
-          <div className="mt-9 px-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          <div className="mt-10">
+            <p className="px-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">
               Workspace
             </p>
+
+            <nav className="mt-3 space-y-1">
+              <SidebarItem href="/dashboard" label="Dashboard" />
+
+              <SidebarItem href="/resume" label="My Resumes" />
+
+              <SidebarItem href="/templates" label="Templates" />
+
+              <SidebarItem href="/analyzer" label="Resume Analyzer" />
+            </nav>
           </div>
 
-          <nav className="mt-3 space-y-1">
-            <SidebarItem href="/dashboard" label="Dashboard" />
-
-            <SidebarItem href="/resume" label="My Resumes" />
-
-            <SidebarItem href="/templates" label="Templates" />
-
-            <SidebarItem href="/analyzer" label="Resume Analyzer" />
-          </nav>
-
-          <div className="mt-8 px-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              Intelligence Tools
+          <div className="mt-8">
+            <p className="px-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">
+              Resume Intelligence
             </p>
+
+            <nav className="mt-3 space-y-1">
+              <SidebarItem href="/ai" label="Rewrite Resume" active />
+
+              <SidebarItem href="/settings" label="Settings" />
+            </nav>
           </div>
 
-          <nav className="mt-3 space-y-1">
-            <SidebarItem href="/ai" label="STAR Bullet Rewriter" active />
-
-            <SidebarItem href="/settings" label="Settings" />
-          </nav>
-
-          <div className="mt-auto">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 p-4">
-              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-indigo-600/20 blur-[40px]" />
-
-              <div className="relative">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-cyan-300">
-                  <WandSparkles className="h-4 w-4" />
-                </div>
-
-                <p className="mt-3 text-xs font-bold text-white">
-                  AI Resume Intelligence
-                </p>
-
-                <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
-                  Turn your existing experience into stronger, ATS-friendly
-                  resume content.
-                </p>
-              </div>
+          <div className="mt-auto rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.06] p-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/10">
+              <WandSparkles className="h-4 w-4 text-cyan-300" />
             </div>
+
+            <p className="mt-3 text-xs font-bold text-white">Resume Studio</p>
+
+            <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+              Edit your resume while watching the final document update in real
+              time.
+            </p>
           </div>
         </aside>
 
-        {/* ======================================================
-            MAIN
-        ====================================================== */}
+        <section className="min-w-0 flex-1">
+          <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#080B12]/90 backdrop-blur-2xl print:hidden">
+            <div className="flex min-h-[72px] items-center justify-between gap-4 px-4 sm:px-6 xl:px-8">
+              <div className="flex min-w-0 items-center gap-3">
+                <Link
+                  href="/analyzer"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-slate-400 hover:text-white"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
 
-        <section className="min-w-0 flex-1 px-5 py-6 sm:px-8 lg:px-10 xl:px-12">
-          {/* ====================================================
-              TOP BAR
-          ==================================================== */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={resumeName}
+                      onChange={(event) => setResumeName(event.target.value)}
+                      className="max-w-[180px] truncate bg-transparent text-sm font-black text-white outline-none sm:max-w-[300px]"
+                    />
 
-          <header className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/analyzer"
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-slate-400 transition hover:border-white/20 hover:text-white"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
+                    {saving ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-500" />
+                    ) : (
+                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                    )}
+                  </div>
 
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                  Intelligence Tools
-                </p>
-
-                <p className="mt-0.5 text-sm font-bold text-white">
-                  AI Resume Studio
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {analysis?.overallScore !== undefined && (
-                <div className="hidden items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-950/40 px-3 py-1.5 sm:flex">
-                  <Target className="h-3.5 w-3.5 text-cyan-400" />
-
-                  <span className="text-[10px] text-slate-500">
-                    Resume Score
-                  </span>
-
-                  <span className="font-mono text-xs font-bold text-cyan-300">
-                    {analysis.overallScore}/100
-                  </span>
+                  <p className="mt-0.5 text-[9px] uppercase tracking-widest text-slate-600">
+                    {saving
+                      ? "Saving changes"
+                      : savedAt
+                        ? `Saved ${formatTime(savedAt)}`
+                        : "Resume Studio"}
+                  </p>
                 </div>
-              )}
+              </div>
 
-              <Link
-                href="/settings"
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-slate-400 transition hover:text-white"
-              >
-                <Zap className="h-4 w-4" />
-              </Link>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={undo}
+                  disabled={historyIndex <= 0}
+                  className="hidden h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-slate-400 transition hover:text-white disabled:opacity-30 sm:flex"
+                  title="Undo"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </button>
+
+                <button
+                  onClick={redo}
+                  disabled={historyIndex >= history.length - 1}
+                  className="hidden h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-slate-400 transition hover:text-white disabled:opacity-30 sm:flex"
+                  title="Redo"
+                >
+                  <Redo2 className="h-4 w-4" />
+                </button>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setExportOpen((value) => !value)}
+                    className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-slate-950 shadow-lg transition hover:scale-[1.02]"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Export</span>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+
+                  {exportOpen && (
+                    <div className="absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-2xl border border-white/10 bg-slate-950 p-2 shadow-2xl">
+                      <p className="px-3 py-2 text-[9px] font-bold uppercase tracking-widest text-slate-600">
+                        Export resume
+                      </p>
+
+                      <button
+                        onClick={printResume}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-white/[0.05]"
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-cyan-300">
+                          <FileText className="h-4 w-4" />
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold text-white">PDF</p>
+
+                          <p className="mt-0.5 text-[10px] text-slate-600">
+                            Print or save as PDF
+                          </p>
+                        </div>
+                      </button>
+
+                      <div className="flex items-center gap-3 rounded-xl px-3 py-3 opacity-45">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04]">
+                          <FileText className="h-4 w-4" />
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold text-white">DOCX</p>
+
+                          <p className="mt-0.5 text-[10px] text-slate-600">
+                            Word export coming next
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 rounded-xl px-3 py-3 opacity-45">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04]">
+                          <Download className="h-4 w-4" />
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold text-white">PNG</p>
+
+                          <p className="mt-0.5 text-[10px] text-slate-600">
+                            Image export coming next
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </header>
 
-          {/* ====================================================
-              INTRO
-          ==================================================== */}
-
-          <section className="mx-auto mt-12 max-w-5xl">
-            <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-950/40 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-widest text-indigo-300">
-                  <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
-                  Revio Intelligence
-                </div>
-
-                <h1 className="mt-5 text-4xl font-black tracking-tight text-white sm:text-5xl">
-                  Make your experience
-                  <span className="block bg-gradient-to-r from-indigo-400 via-cyan-300 to-sky-400 bg-clip-text text-transparent">
-                    sound as strong as it really is.
-                  </span>
-                </h1>
-
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">
-                  Revio uses the information already found in your resume to
-                  rewrite weak content, strengthen project descriptions, improve
-                  ATS keywords and make your achievements clearer.
-                </p>
-              </div>
-
-              {analysis?.candidate?.name && (
-                <div className="rounded-2xl border border-white/10 bg-slate-900/60 px-5 py-4">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
-                    Candidate
-                  </p>
-
-                  <p className="mt-1 text-sm font-bold text-white">
-                    {analysis.candidate.name}
-                  </p>
-
-                  {analysis.candidate.headline && (
-                    <p className="mt-1 max-w-[240px] text-[10px] text-slate-500">
-                      {analysis.candidate.headline}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* ====================================================
-              TOOL NAVIGATION
-          ==================================================== */}
-
-          <section className="mx-auto mt-10 max-w-5xl">
-            <div className="grid gap-2 sm:grid-cols-4">
-              <ToolTab
-                active={activeTool === "rewrite"}
-                icon={<WandSparkles />}
-                title="STAR Rewrite"
-                description="Strengthen bullet points"
-                onClick={() => changeTool("rewrite")}
-              />
-
-              <ToolTab
-                active={activeTool === "project"}
-                icon={<FileText />}
-                title="Project Builder"
-                description="Describe projects better"
-                onClick={() => changeTool("project")}
-              />
-
-              <ToolTab
-                active={activeTool === "summary"}
-                icon={<Sparkles />}
-                title="Professional Summary"
-                description="Create a stronger profile"
-                onClick={() => changeTool("summary")}
-              />
-
-              <ToolTab
-                active={activeTool === "skills"}
-                icon={<Target />}
-                title="Skills Optimizer"
-                description="Improve ATS keywords"
-                onClick={() => changeTool("skills")}
-              />
-            </div>
-          </section>
-
-          {/* ====================================================
-              ERROR
-          ==================================================== */}
-
           {error && (
-            <div className="mx-auto mt-5 flex max-w-5xl items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/[0.06] p-4">
+            <div className="mx-4 mt-4 flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/[0.06] p-4 sm:mx-6 xl:mx-8 print:hidden">
               <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
 
               <div className="flex-1">
                 <p className="text-xs font-bold text-red-300">
-                  Generation failed
+                  Something needs attention
                 </p>
 
-                <p className="mt-1 text-[11px] text-red-200/60">{error}</p>
+                <p className="mt-1 text-[11px] leading-5 text-red-200/60">
+                  {error}
+                </p>
               </div>
 
-              <button onClick={() => setError("")}>
-                <X className="h-4 w-4 text-red-300/60" />
+              <button
+                onClick={() => setError("")}
+                className="text-red-300/60 hover:text-white"
+              >
+                <X className="h-4 w-4" />
               </button>
             </div>
           )}
 
-          {/* ====================================================
-              WORKSPACE
-          ==================================================== */}
+          <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 xl:px-8">
+            <div className="mb-5 flex items-center justify-between gap-4 print:hidden">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400">
+                  Resume Rewrite Studio
+                </p>
 
-          <section className="mx-auto mt-6 max-w-5xl">
-            <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-              {/* =================================================
-                  INPUT
-              ================================================= */}
+                <h1 className="mt-1 text-xl font-black tracking-tight text-white sm:text-2xl">
+                  Edit your resume. See the result instantly.
+                </h1>
 
-              <div className="rounded-[28px] border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      {getToolLabel(activeTool)}
-                    </p>
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
+                  Your existing analyzed resume is loaded here. Change anything
+                  on the left and Revio updates the resume preview
+                  automatically.
+                </p>
+              </div>
 
-                    <h2 className="mt-1 text-lg font-black text-white">
-                      {getToolTitle(activeTool)}
-                    </h2>
+              <div className="hidden items-center gap-2 rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 md:flex">
+                <Target className="h-3.5 w-3.5 text-cyan-400" />
+
+                <span className="text-[10px] text-slate-500">Completion</span>
+
+                <span className="font-mono text-xs font-bold text-white">
+                  {score}%
+                </span>
+              </div>
+            </div>
+
+            <div className="mb-4 flex rounded-xl border border-white/10 bg-slate-900/60 p-1 lg:hidden print:hidden">
+              <button
+                onClick={() => setMobileView("edit")}
+                className={`flex-1 rounded-lg py-2 text-[10px] font-bold ${
+                  mobileView === "edit"
+                    ? "bg-white text-slate-950"
+                    : "text-slate-500"
+                }`}
+              >
+                Edit Resume
+              </button>
+
+              <button
+                onClick={() => setMobileView("preview")}
+                className={`flex-1 rounded-lg py-2 text-[10px] font-bold ${
+                  mobileView === "preview"
+                    ? "bg-white text-slate-950"
+                    : "text-slate-500"
+                }`}
+              >
+                Preview
+              </button>
+            </div>
+
+            <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(500px,1.1fr)]">
+              <div
+                className={`space-y-4 ${
+                  mobileView === "preview" ? "hidden lg:block" : "block"
+                } print:hidden`}
+              >
+                <EditorSection
+                  icon={<UserRound className="h-4 w-4" />}
+                  title="Personal Information"
+                  description="The information employers see first."
+                >
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <EditorInput
+                      label="Full name"
+                      value={resume.candidate.name}
+                      onChange={(value) => updateCandidate("name", value)}
+                    />
+
+                    <EditorInput
+                      label="Headline"
+                      value={resume.candidate.headline}
+                      onChange={(value) => updateCandidate("headline", value)}
+                    />
+
+                    <EditorInput
+                      label="Email"
+                      value={resume.candidate.email}
+                      onChange={(value) => updateCandidate("email", value)}
+                    />
+
+                    <EditorInput
+                      label="Phone"
+                      value={resume.candidate.phone}
+                      onChange={(value) => updateCandidate("phone", value)}
+                    />
+
+                    <EditorInput
+                      label="Location"
+                      value={resume.candidate.location}
+                      onChange={(value) => updateCandidate("location", value)}
+                    />
+
+                    <EditorInput
+                      label="LinkedIn"
+                      value={resume.candidate.linkedin}
+                      onChange={(value) => updateCandidate("linkedin", value)}
+                    />
+
+                    <EditorInput
+                      label="GitHub"
+                      value={resume.candidate.github}
+                      onChange={(value) => updateCandidate("github", value)}
+                    />
+
+                    <EditorInput
+                      label="Portfolio"
+                      value={resume.candidate.portfolio}
+                      onChange={(value) => updateCandidate("portfolio", value)}
+                    />
                   </div>
+                </EditorSection>
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-cyan-300">
-                    <WandSparkles className="h-4 w-4" />
-                  </div>
-                </div>
+                <EditorSection
+                  icon={<Sparkles className="h-4 w-4" />}
+                  title="Professional Summary"
+                  description="A concise introduction tailored to your target role."
+                  action={
+                    <button
+                      onClick={() =>
+                        improveSingleSection(
+                          "summary",
+                          resume,
+                          targetRole,
+                          setIsGenerating,
+                          setError,
+                          (value) =>
+                            updateResume((current) => ({
+                              ...current,
+                              summary: value,
+                            })),
+                        )
+                      }
+                      disabled={isGenerating}
+                      className="flex items-center gap-1.5 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1.5 text-[9px] font-bold text-cyan-300 hover:bg-cyan-500/15 disabled:opacity-40"
+                    >
+                      <WandSparkles className="h-3 w-3" />
+                      Improve
+                    </button>
+                  }
+                >
+                  <EditorTextarea
+                    label="Summary"
+                    value={resume.summary}
+                    onChange={(value) =>
+                      updateResume((current) => ({
+                        ...current,
+                        summary: value,
+                      }))
+                    }
+                    rows={6}
+                    placeholder="Write a concise professional summary..."
+                  />
+                </EditorSection>
 
-                {/* PROJECT SELECTOR */}
-
-                {activeTool === "project" &&
-                  analysis?.projects &&
-                  analysis.projects.length > 0 && (
-                    <div className="mt-6">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                        Select project
-                      </label>
-
-                      <div className="relative mt-2">
-                        <select
-                          value={selectedProject}
-                          onChange={(e) => handleProjectChange(e.target.value)}
-                          className="w-full appearance-none rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 pr-10 text-xs font-semibold text-slate-200 outline-none transition focus:border-indigo-500/50"
-                        >
-                          {analysis.projects.map((project) => (
-                            <option
-                              key={project.name}
-                              value={project.name}
-                              className="bg-slate-950"
-                            >
-                              {project.name}
-                            </option>
-                          ))}
-                        </select>
-
-                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                      </div>
-                    </div>
-                  )}
-
-                {/* TARGET ROLE */}
-
-                <div className="mt-6">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    Target role
-                  </label>
-
-                  <input
+                <EditorSection
+                  icon={<Target className="h-4 w-4" />}
+                  title="Target Role"
+                  description="Used to guide Revio's rewriting suggestions."
+                >
+                  <EditorInput
+                    label="Target role"
                     value={targetRole}
-                    onChange={(e) => setTargetRole(e.target.value)}
-                    placeholder="e.g. Software Engineer"
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-xs text-slate-200 outline-none placeholder:text-slate-600 focus:border-indigo-500/50"
+                    onChange={setTargetRole}
+                    placeholder="e.g. Full Stack Developer"
                   />
-                </div>
+                </EditorSection>
 
-                {/* INPUT TEXT */}
+                <EditorSection
+                  icon={<FileText className="h-4 w-4" />}
+                  title="Experience"
+                  description="Your professional history and achievements."
+                  action={
+                    <AddButton label="Add experience" onClick={addExperience} />
+                  }
+                >
+                  <div className="space-y-4">
+                    {resume.experience.map((item, index) => (
+                      <ExperienceEditor
+                        key={index}
+                        item={item}
+                        index={index}
+                        onChange={(next) =>
+                          updateResume((current) => ({
+                            ...current,
+                            experience: current.experience.map(
+                              (experience, itemIndex) =>
+                                itemIndex === index ? next : experience,
+                            ),
+                          }))
+                        }
+                        onRemove={() => removeExperience(index)}
+                      />
+                    ))}
 
-                <div className="mt-6">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      Resume content
-                    </label>
-
-                    <span className="font-mono text-[9px] text-slate-600">
-                      {inputText.length} characters
-                    </span>
+                    {!resume.experience.length && (
+                      <EmptyEditorMessage text="No experience entries yet." />
+                    )}
                   </div>
+                </EditorSection>
 
-                  <textarea
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    placeholder={getPlaceholder(activeTool)}
-                    className="mt-2 min-h-[250px] w-full resize-none rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-xs leading-6 text-slate-300 outline-none placeholder:text-slate-600 focus:border-indigo-500/50"
-                  />
-                </div>
+                <EditorSection
+                  icon={<GraduationCap className="h-4 w-4" />}
+                  title="Education"
+                  description="Degrees and academic background."
+                  action={
+                    <AddButton label="Add education" onClick={addEducation} />
+                  }
+                >
+                  <div className="space-y-4">
+                    {resume.education.map((item, index) => (
+                      <EducationEditor
+                        key={index}
+                        item={item}
+                        index={index}
+                        onChange={(next) =>
+                          updateResume((current) => ({
+                            ...current,
+                            education: current.education.map(
+                              (education, itemIndex) =>
+                                itemIndex === index ? next : education,
+                            ),
+                          }))
+                        }
+                        onRemove={() => removeEducation(index)}
+                      />
+                    ))}
 
-                {/* GENERATE */}
+                    {!resume.education.length && (
+                      <EmptyEditorMessage text="No education entries yet." />
+                    )}
+                  </div>
+                </EditorSection>
+
+                <EditorSection
+                  icon={<Target className="h-4 w-4" />}
+                  title="Skills"
+                  description="Keep your strongest relevant skills visible."
+                  action={<AddButton label="Add skill" onClick={addSkill} />}
+                >
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {resume.skills.map((skill, index) => (
+                      <div key={index} className="flex gap-2">
+                        <input
+                          value={skill}
+                          onChange={(event) =>
+                            updateResume((current) => ({
+                              ...current,
+                              skills: current.skills.map((item, itemIndex) =>
+                                itemIndex === index ? event.target.value : item,
+                              ),
+                            }))
+                          }
+                          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500/50"
+                          placeholder="e.g. React"
+                        />
+
+                        <button
+                          onClick={() =>
+                            updateResume((current) => ({
+                              ...current,
+                              skills: current.skills.filter(
+                                (_, itemIndex) => itemIndex !== index,
+                              ),
+                            }))
+                          }
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 text-slate-600 hover:border-red-500/20 hover:text-red-400"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </EditorSection>
+
+                <EditorSection
+                  icon={<FileText className="h-4 w-4" />}
+                  title="Projects"
+                  description="Show what you built and the technologies behind it."
+                  action={
+                    <AddButton label="Add project" onClick={addProject} />
+                  }
+                >
+                  <div className="space-y-4">
+                    {resume.projects.map((item, index) => (
+                      <ProjectEditor
+                        key={index}
+                        item={item}
+                        index={index}
+                        onChange={(next) =>
+                          updateResume((current) => ({
+                            ...current,
+                            projects: current.projects.map(
+                              (project, itemIndex) =>
+                                itemIndex === index ? next : project,
+                            ),
+                          }))
+                        }
+                        onRemove={() => removeProject(index)}
+                      />
+                    ))}
+
+                    {!resume.projects.length && (
+                      <EmptyEditorMessage text="No projects found in the analyzed resume." />
+                    )}
+                  </div>
+                </EditorSection>
 
                 <button
-                  onClick={generate}
-                  disabled={isGenerating || !inputText.trim()}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 px-5 py-3.5 text-xs font-bold text-white shadow-[0_0_30px_rgba(79,70,229,0.25)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={improveResume}
+                  disabled={isGenerating}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 px-5 py-4 text-xs font-black text-white shadow-[0_0_35px_rgba(79,70,229,0.22)] transition hover:scale-[1.005] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isGenerating ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Revio is improving it...
+                      Revio is improving your resume...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="h-4 w-4" />
-                      Improve with Revio
-                      <ArrowRight className="h-3.5 w-3.5" />
+                      <WandSparkles className="h-4 w-4" />
+                      Improve Entire Resume
                     </>
                   )}
                 </button>
-
-                {inputText && (
-                  <button
-                    onClick={reset}
-                    className="mx-auto mt-3 flex items-center gap-1.5 text-[10px] text-slate-500 transition hover:text-white"
-                  >
-                    <RefreshCw className="h-3 w-3" />
-                    Reset
-                  </button>
-                )}
               </div>
 
-              {/* =================================================
-                  RESULT
-              ================================================= */}
-
-              <div className="rounded-[28px] border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl">
-                <div className="flex items-start justify-between">
+              <div
+                className={`lg:sticky lg:top-[92px] ${
+                  mobileView === "edit" ? "hidden lg:block" : "block"
+                }`}
+              >
+                <div className="mb-3 flex items-center justify-between print:hidden">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      AI Output
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-600">
+                      Live document
                     </p>
 
-                    <h2 className="mt-1 text-lg font-black text-white">
-                      {result ? "Improved version" : "Your improved content"}
-                    </h2>
+                    <p className="mt-1 text-sm font-black text-white">
+                      Resume Preview
+                    </p>
                   </div>
 
-                  {result?.atsScore !== undefined && (
-                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-right">
-                      <p className="text-[9px] uppercase tracking-wider text-slate-500">
-                        ATS quality
-                      </p>
+                  <div className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
 
-                      <p className="text-lg font-black text-emerald-400">
-                        {result.atsScore}
-                      </p>
-                    </div>
-                  )}
+                    <span className="text-[9px] font-bold text-emerald-300">
+                      Live
+                    </span>
+                  </div>
                 </div>
 
-                {!result && !isGenerating && (
-                  <EmptyResult activeTool={activeTool} />
-                )}
-
-                {isGenerating && (
-                  <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/10 text-cyan-300">
-                      <Sparkles className="h-6 w-6 animate-pulse" />
-                    </div>
-
-                    <p className="mt-5 text-sm font-bold text-white">
-                      Revio is analyzing your wording
-                    </p>
-
-                    <p className="mt-2 max-w-sm text-xs leading-relaxed text-slate-500">
-                      Checking clarity, impact, keywords and relevance to your
-                      target role.
-                    </p>
-                  </div>
-                )}
-
-                {result && !isGenerating && <GeneratedResult result={result} />}
-              </div>
-            </div>
-          </section>
-
-          {/* ====================================================
-              INSIGHTS
-          ==================================================== */}
-
-          {analysis && (
-            <section className="mx-auto mt-8 max-w-5xl">
-              <div className="grid gap-4 md:grid-cols-3">
-                <InsightCard
-                  icon={<Check />}
-                  title="Resume strength"
-                  value={`${analysis.overallScore ?? 0}/100`}
-                  description="Based on your overall resume analysis."
-                />
-
-                <InsightCard
-                  icon={<Target />}
-                  title="Detected skills"
-                  value={`${analysis.skills?.length ?? 0}`}
-                  description="Skills Revio identified from your resume."
-                />
-
-                <InsightCard
-                  icon={<FileText />}
-                  title="Projects analyzed"
-                  value={`${analysis.projects?.length ?? 0}`}
-                  description="Projects available for deeper rewriting."
-                />
-              </div>
-            </section>
-          )}
-
-          {/* ====================================================
-              FOOTER CTA
-          ==================================================== */}
-
-          <section className="mx-auto mt-10 mb-10 max-w-5xl">
-            <div className="relative overflow-hidden rounded-[28px] border border-indigo-500/20 bg-gradient-to-br from-indigo-950/60 via-slate-950/80 to-slate-950 p-7">
-              <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-cyan-500/10 blur-[80px]" />
-
-              <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4 text-cyan-400" />
-
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      Next step
-                    </p>
-                  </div>
-
-                  <h3 className="mt-2 text-lg font-black text-white">
-                    Turn these improvements into a complete resume.
-                  </h3>
-
-                  <p className="mt-2 max-w-xl text-xs leading-relaxed text-slate-500">
-                    Use your improved content inside Revio's resume builder and
-                    optimize the complete document before applying.
-                  </p>
-                </div>
-
-                <Link
-                  href="/resume/new"
-                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-xs font-bold text-slate-950 transition hover:scale-[1.02]"
+                <div
+                  id="resume-print-area"
+                  className="mx-auto w-full max-w-[850px] overflow-hidden rounded-xl bg-white shadow-[0_30px_100px_rgba(0,0,0,0.45)] print:max-w-none print:rounded-none print:shadow-none"
                 >
-                  Open Resume Builder
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
+                  <ResumePreview resume={resume} />
+                </div>
               </div>
             </div>
-          </section>
+          </div>
         </section>
       </div>
+
+      <style jsx global>{`
+        @media print {
+          body {
+            background: white !important;
+          }
+
+          #resume-print-area {
+            width: 100% !important;
+          }
+
+          @page {
+            size: A4;
+            margin: 0;
+          }
+        }
+      `}</style>
     </main>
   );
 }
 
-/* =============================================================
-   SIDEBAR ITEM
-============================================================= */
+/* ============================================================
+   EDITOR COMPONENTS
+============================================================ */
+
+function EditorSection({
+  icon,
+  title,
+  description,
+  action,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-[22px] border border-white/[0.08] bg-slate-900/65 p-5 backdrop-blur-xl">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-cyan-300">
+            {icon}
+          </div>
+
+          <div>
+            <h2 className="text-sm font-black text-white">{title}</h2>
+
+            <p className="mt-1 text-[10px] leading-5 text-slate-600">
+              {description}
+            </p>
+          </div>
+        </div>
+
+        {action}
+      </div>
+
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
+function EditorInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">
+        {label}
+      </span>
+
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="mt-1.5 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3.5 py-2.5 text-xs text-slate-200 outline-none placeholder:text-slate-700 focus:border-indigo-500/50"
+      />
+    </label>
+  );
+}
+
+function EditorTextarea({
+  label,
+  value,
+  onChange,
+  rows = 5,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  rows?: number;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">
+        {label}
+      </span>
+
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={rows}
+        placeholder={placeholder}
+        className="mt-1.5 w-full resize-y rounded-xl border border-white/10 bg-slate-950/70 px-3.5 py-3 text-xs leading-6 text-slate-300 outline-none placeholder:text-slate-700 focus:border-indigo-500/50"
+      />
+    </label>
+  );
+}
+
+function ExperienceEditor({
+  item,
+  index,
+  onChange,
+  onRemove,
+}: {
+  item: Experience;
+  index: number;
+  onChange: (value: Experience) => void;
+  onRemove: () => void;
+}) {
+  const update = <K extends keyof Experience>(
+    field: K,
+    value: Experience[K],
+  ) => {
+    onChange({
+      ...item,
+      [field]: value,
+    });
+  };
+
+  const updateAchievement = (achievementIndex: number, value: string) => {
+    onChange({
+      ...item,
+      achievements: item.achievements.map((achievement, itemIndex) =>
+        itemIndex === achievementIndex ? value : achievement,
+      ),
+    });
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/[0.07] bg-slate-950/50 p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600">
+          Experience {index + 1}
+        </p>
+
+        <button
+          onClick={onRemove}
+          className="text-slate-600 hover:text-red-400"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <EditorInput
+          label="Company"
+          value={item.company}
+          onChange={(value) => update("company", value)}
+        />
+
+        <EditorInput
+          label="Role"
+          value={item.role}
+          onChange={(value) => update("role", value)}
+        />
+
+        <EditorInput
+          label="Location"
+          value={item.location}
+          onChange={(value) => update("location", value)}
+        />
+
+        <div className="grid grid-cols-2 gap-2">
+          <EditorInput
+            label="Start"
+            value={item.startDate}
+            onChange={(value) => update("startDate", value)}
+          />
+
+          <EditorInput
+            label="End"
+            value={item.endDate}
+            onChange={(value) => update("endDate", value)}
+          />
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <EditorTextarea
+          label="Description"
+          value={item.description}
+          onChange={(value) => update("description", value)}
+          rows={3}
+        />
+      </div>
+
+      <div className="mt-4">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">
+          Achievements
+        </span>
+
+        <div className="mt-2 space-y-2">
+          {item.achievements.map((achievement, achievementIndex) => (
+            <div key={achievementIndex} className="flex gap-2">
+              <textarea
+                value={achievement}
+                onChange={(event) =>
+                  updateAchievement(achievementIndex, event.target.value)
+                }
+                rows={2}
+                className="min-w-0 flex-1 resize-y rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-xs leading-5 text-slate-300 outline-none focus:border-indigo-500/50"
+                placeholder="Describe an achievement..."
+              />
+
+              <button
+                onClick={() =>
+                  onChange({
+                    ...item,
+                    achievements: item.achievements.filter(
+                      (_, itemIndex) => itemIndex !== achievementIndex,
+                    ),
+                  })
+                }
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:text-red-400"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+
+          <button
+            onClick={() =>
+              onChange({
+                ...item,
+                achievements: [...item.achievements, ""],
+              })
+            }
+            className="flex items-center gap-1.5 text-[10px] font-bold text-cyan-400"
+          >
+            <Plus className="h-3 w-3" />
+            Add achievement
+          </button>
+        </div>
+      </div>
+
+      {item.technologies.length > 0 && (
+        <div className="mt-4">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-slate-600">
+            Technologies
+          </span>
+
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {item.technologies.map((technology, technologyIndex) => (
+              <span
+                key={technologyIndex}
+                className="rounded-lg border border-indigo-500/15 bg-indigo-500/[0.07] px-2 py-1 text-[9px] text-indigo-300"
+              >
+                {technology}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EducationEditor({
+  item,
+  index,
+  onChange,
+  onRemove,
+}: {
+  item: Education;
+  index: number;
+  onChange: (value: Education) => void;
+  onRemove: () => void;
+}) {
+  const update = <K extends keyof Education>(field: K, value: Education[K]) => {
+    onChange({
+      ...item,
+      [field]: value,
+    });
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/[0.07] bg-slate-950/50 p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600">
+          Education {index + 1}
+        </p>
+
+        <button
+          onClick={onRemove}
+          className="text-slate-600 hover:text-red-400"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <EditorInput
+          label="Institution"
+          value={item.institution}
+          onChange={(value) => update("institution", value)}
+        />
+
+        <EditorInput
+          label="Degree"
+          value={item.degree}
+          onChange={(value) => update("degree", value)}
+        />
+
+        <EditorInput
+          label="Field"
+          value={item.field}
+          onChange={(value) => update("field", value)}
+        />
+
+        <EditorInput
+          label="Location"
+          value={item.location}
+          onChange={(value) => update("location", value)}
+        />
+
+        <EditorInput
+          label="Start"
+          value={item.startDate}
+          onChange={(value) => update("startDate", value)}
+        />
+
+        <EditorInput
+          label="End"
+          value={item.endDate}
+          onChange={(value) => update("endDate", value)}
+        />
+      </div>
+
+      <div className="mt-4">
+        <EditorTextarea
+          label="Description"
+          value={item.description}
+          onChange={(value) => update("description", value)}
+          rows={3}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProjectEditor({
+  item,
+  index,
+  onChange,
+  onRemove,
+}: {
+  item: Project;
+  index: number;
+  onChange: (value: Project) => void;
+  onRemove: () => void;
+}) {
+  const update = <K extends keyof Project>(field: K, value: Project[K]) => {
+    onChange({
+      ...item,
+      [field]: value,
+    });
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/[0.07] bg-slate-950/50 p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600">
+          Project {index + 1}
+        </p>
+
+        <button
+          onClick={onRemove}
+          className="text-slate-600 hover:text-red-400"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <EditorInput
+          label="Project name"
+          value={item.name}
+          onChange={(value) => update("name", value)}
+        />
+
+        <EditorInput
+          label="Project URL"
+          value={item.url}
+          onChange={(value) => update("url", value)}
+        />
+
+        <EditorInput
+          label="Start"
+          value={item.startDate}
+          onChange={(value) => update("startDate", value)}
+        />
+
+        <EditorInput
+          label="End"
+          value={item.endDate}
+          onChange={(value) => update("endDate", value)}
+        />
+      </div>
+
+      <div className="mt-4">
+        <EditorTextarea
+          label="Description"
+          value={item.description}
+          onChange={(value) => update("description", value)}
+          rows={4}
+        />
+      </div>
+
+      <div className="mt-4">
+        <EditorInput
+          label="Technologies"
+          value={item.technologies.join(", ")}
+          onChange={(value) =>
+            update(
+              "technologies",
+              value
+                .split(",")
+                .map((technology) => technology.trim())
+                .filter(Boolean),
+            )
+          }
+          placeholder="React, TypeScript, PostgreSQL"
+        />
+      </div>
+    </div>
+  );
+}
+
+function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[9px] font-bold text-slate-400 transition hover:border-cyan-500/20 hover:text-cyan-300"
+    >
+      <Plus className="h-3 w-3" />
+      {label}
+    </button>
+  );
+}
+
+function EmptyEditorMessage({ text }: { text: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-white/10 px-4 py-8 text-center">
+      <p className="text-[10px] text-slate-600">{text}</p>
+    </div>
+  );
+}
+
+/* ============================================================
+   RESUME PREVIEW
+============================================================ */
+
+function ResumePreview({ resume }: { resume: ResumeData }) {
+  const candidate = resume.candidate;
+
+  return (
+    <article className="min-h-[1120px] bg-white px-[8%] py-[7%] font-sans text-[#172033]">
+      <header className="border-b-[2px] border-[#172033] pb-5">
+        <h1 className="text-[30px] font-black tracking-tight">
+          {candidate.name || "Your Name"}
+        </h1>
+
+        {candidate.headline && (
+          <p className="mt-1.5 text-[12px] font-semibold uppercase tracking-[0.12em] text-[#46516a]">
+            {candidate.headline}
+          </p>
+        )}
+
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[9px] text-[#5d6677]">
+          {candidate.email && <span>{candidate.email}</span>}
+
+          {candidate.phone && <span>{candidate.phone}</span>}
+
+          {candidate.location && <span>{candidate.location}</span>}
+
+          {candidate.linkedin && <span>{candidate.linkedin}</span>}
+
+          {candidate.github && <span>{candidate.github}</span>}
+
+          {candidate.portfolio && <span>{candidate.portfolio}</span>}
+        </div>
+      </header>
+
+      {resume.summary && (
+        <PreviewSection title="Professional Summary">
+          <p className="text-[10px] leading-[1.65] text-[#414b5e]">
+            {resume.summary}
+          </p>
+        </PreviewSection>
+      )}
+
+      {resume.experience.length > 0 && (
+        <PreviewSection title="Experience">
+          <div className="space-y-4">
+            {resume.experience.map((item, index) => (
+              <div key={index}>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-[11px] font-black text-[#172033]">
+                      {item.role || "Role"}
+                    </h3>
+
+                    <p className="mt-0.5 text-[10px] font-semibold text-[#46516a]">
+                      {item.company}
+                      {item.location ? ` · ${item.location}` : ""}
+                    </p>
+                  </div>
+
+                  <p className="shrink-0 text-[9px] text-[#697386]">
+                    {formatDateRange(item.startDate, item.endDate)}
+                  </p>
+                </div>
+
+                {item.description && (
+                  <p className="mt-1.5 text-[9.5px] leading-[1.55] text-[#515b6c]">
+                    {item.description}
+                  </p>
+                )}
+
+                {item.achievements.filter(Boolean).length > 0 && (
+                  <ul className="mt-1.5 space-y-1 pl-3.5">
+                    {item.achievements
+                      .filter(Boolean)
+                      .map((achievement, bulletIndex) => (
+                        <li
+                          key={bulletIndex}
+                          className="list-disc text-[9.5px] leading-[1.5] text-[#414b5e]"
+                        >
+                          {achievement}
+                        </li>
+                      ))}
+                  </ul>
+                )}
+
+                {item.technologies.length > 0 && (
+                  <p className="mt-1.5 text-[8.5px] text-[#697386]">
+                    <span className="font-bold">Technologies:</span>{" "}
+                    {item.technologies.join(", ")}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </PreviewSection>
+      )}
+
+      {resume.projects.length > 0 && (
+        <PreviewSection title="Projects">
+          <div className="space-y-3.5">
+            {resume.projects.map((project, index) => (
+              <div key={index}>
+                <div className="flex items-start justify-between gap-4">
+                  <h3 className="text-[10.5px] font-black">
+                    {project.name || "Project"}
+                  </h3>
+
+                  {(project.startDate || project.endDate) && (
+                    <span className="shrink-0 text-[8.5px] text-[#697386]">
+                      {formatDateRange(project.startDate, project.endDate)}
+                    </span>
+                  )}
+                </div>
+
+                {project.description && (
+                  <p className="mt-1 text-[9.5px] leading-[1.55] text-[#515b6c]">
+                    {project.description}
+                  </p>
+                )}
+
+                {project.technologies.length > 0 && (
+                  <p className="mt-1 text-[8.5px] text-[#697386]">
+                    <span className="font-bold">Technologies:</span>{" "}
+                    {project.technologies.join(", ")}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </PreviewSection>
+      )}
+
+      {resume.education.length > 0 && (
+        <PreviewSection title="Education">
+          <div className="space-y-3">
+            {resume.education.map((item, index) => (
+              <div
+                key={index}
+                className="flex items-start justify-between gap-4"
+              >
+                <div>
+                  <h3 className="text-[10.5px] font-black">
+                    {item.degree}
+                    {item.field ? ` in ${item.field}` : ""}
+                  </h3>
+
+                  <p className="mt-0.5 text-[9.5px] font-semibold text-[#46516a]">
+                    {item.institution}
+                    {item.location ? ` · ${item.location}` : ""}
+                  </p>
+
+                  {item.description && (
+                    <p className="mt-1 text-[9px] leading-[1.5] text-[#596274]">
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+
+                <span className="shrink-0 text-[8.5px] text-[#697386]">
+                  {formatDateRange(item.startDate, item.endDate)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </PreviewSection>
+      )}
+
+      {resume.skills.filter(Boolean).length > 0 && (
+        <PreviewSection title="Skills">
+          <div className="flex flex-wrap gap-x-2 gap-y-1.5">
+            {resume.skills.filter(Boolean).map((skill, index) => (
+              <span key={index} className="text-[9.5px] text-[#414b5e]">
+                {skill}
+                {index < resume.skills.filter(Boolean).length - 1 ? " ·" : ""}
+              </span>
+            ))}
+          </div>
+        </PreviewSection>
+      )}
+
+      {resume.certifications.length > 0 && (
+        <PreviewSection title="Certifications">
+          <div className="space-y-2">
+            {resume.certifications.map((item, index) => (
+              <div key={index}>
+                <p className="text-[10px] font-bold">{item.name}</p>
+
+                <p className="text-[9px] text-[#596274]">
+                  {item.issuer}
+                  {item.date ? ` · ${item.date}` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        </PreviewSection>
+      )}
+
+      {resume.languages.length > 0 && (
+        <PreviewSection title="Languages">
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {resume.languages.map((language, index) => (
+              <span key={index} className="text-[9px] text-[#414b5e]">
+                <strong>{language.name}</strong>
+                {language.proficiency ? ` — ${language.proficiency}` : ""}
+              </span>
+            ))}
+          </div>
+        </PreviewSection>
+      )}
+
+      {resume.achievements.filter(Boolean).length > 0 && (
+        <PreviewSection title="Achievements">
+          <ul className="space-y-1 pl-3.5">
+            {resume.achievements.filter(Boolean).map((achievement, index) => (
+              <li
+                key={index}
+                className="list-disc text-[9.5px] leading-[1.5] text-[#414b5e]"
+              >
+                {achievement}
+              </li>
+            ))}
+          </ul>
+        </PreviewSection>
+      )}
+    </article>
+  );
+}
+
+function PreviewSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-5">
+      <h2 className="mb-2.5 border-b border-[#dce1e8] pb-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#172033]">
+        {title}
+      </h2>
+
+      {children}
+    </section>
+  );
+}
+
+/* ============================================================
+   SIDEBAR
+============================================================ */
 
 function SidebarItem({
   href,
@@ -780,267 +1863,296 @@ function SidebarItem({
   );
 }
 
-/* =============================================================
-   TOOL TAB
-============================================================= */
-
-function ToolTab({
-  active,
-  icon,
-  title,
-  description,
-  onClick,
-}: {
-  active: boolean;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-2xl border p-4 text-left transition ${
-        active
-          ? "border-indigo-500/40 bg-indigo-500/[0.10] shadow-[0_0_25px_rgba(79,70,229,0.08)]"
-          : "border-white/[0.07] bg-slate-900/40 hover:border-white/15 hover:bg-slate-900/70"
-      }`}
-    >
-      <div
-        className={`flex h-9 w-9 items-center justify-center rounded-xl ${
-          active
-            ? "border border-cyan-500/20 bg-cyan-500/10 text-cyan-300"
-            : "border border-white/10 bg-slate-950/60 text-slate-500"
-        }`}
-      >
-        <span className="h-4 w-4">{icon}</span>
-      </div>
-
-      <p className="mt-3 text-xs font-bold text-white">{title}</p>
-
-      <p className="mt-1 text-[10px] text-slate-500">{description}</p>
-    </button>
-  );
-}
-
-/* =============================================================
-   EMPTY RESULT
-============================================================= */
-
-function EmptyResult({ activeTool }: { activeTool: string }) {
-  return (
-    <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-indigo-500/20 bg-indigo-500/10 text-cyan-300">
-        <WandSparkles className="h-7 w-7" />
-      </div>
-
-      <h3 className="mt-6 text-base font-bold text-white">
-        Your improved version will appear here
-      </h3>
-
-      <p className="mt-2 max-w-sm text-xs leading-6 text-slate-500">
-        {activeTool === "project"
-          ? "Revio will turn your project into a clear, impact-focused resume description."
-          : activeTool === "summary"
-            ? "Revio will create a professional summary based only on your actual experience."
-            : activeTool === "skills"
-              ? "Revio will identify stronger ATS-friendly ways to present your existing skills."
-              : "Paste a resume bullet or experience description and Revio will rewrite it using stronger impact-oriented language."}
-      </p>
-
-      <div className="mt-6 flex items-center gap-2 text-[10px] text-slate-600">
-        <ShieldIcon />
-        Based on your actual resume
-      </div>
-    </div>
-  );
-}
-
-/* =============================================================
-   GENERATED RESULT
-============================================================= */
-
-function GeneratedResult({
-  result,
-}: {
-  result: NonNullable<RewriteResponse["result"]>;
-}) {
-  return (
-    <div className="mt-6">
-      {result.improved && (
-        <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[9px] font-bold uppercase tracking-widest text-cyan-400">
-              Recommended version
-            </p>
-
-            <Check className="h-4 w-4 text-emerald-400" />
-          </div>
-
-          <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-200">
-            {result.improved}
-          </p>
-        </div>
-      )}
-
-      {result.explanation && (
-        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-slate-950/50 p-5">
-          <div className="flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-amber-400" />
-
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              Why this is stronger
-            </p>
-          </div>
-
-          <p className="mt-3 text-xs leading-6 text-slate-400">
-            {result.explanation}
-          </p>
-        </div>
-      )}
-
-      {result.keywords && result.keywords.length > 0 && (
-        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-slate-950/50 p-5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Relevant keywords
-          </p>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            {result.keywords.map((keyword, index) => (
-              <span
-                key={`${keyword}-${index}`}
-                className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-1.5 text-[10px] font-medium text-indigo-300"
-              >
-                {keyword}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {result.original && (
-        <div className="mt-4 rounded-2xl border border-white/[0.06] bg-slate-950/30 p-5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
-            Original
-          </p>
-
-          <p className="mt-3 text-xs leading-6 text-slate-600">
-            {result.original}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* =============================================================
-   INSIGHT CARD
-============================================================= */
-
-function InsightCard({
-  icon,
-  title,
-  value,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-slate-900/50 p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/20 bg-indigo-500/10 text-cyan-300">
-          {icon}
-        </div>
-
-        <Plus className="h-3.5 w-3.5 text-slate-700" />
-      </div>
-
-      <p className="mt-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-        {title}
-      </p>
-
-      <p className="mt-1 text-2xl font-black text-white">{value}</p>
-
-      <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-        {description}
-      </p>
-    </div>
-  );
-}
-
-/* =============================================================
+/* ============================================================
    HELPERS
-============================================================= */
+============================================================ */
 
-function buildProjectText(project: ProjectData) {
-  const parts = [
-    `Project: ${project.name}`,
-    project.description ? `Description: ${project.description}` : "",
-    project.contribution ? `Contribution: ${project.contribution}` : "",
-    project.technologies?.length
-      ? `Technologies: ${project.technologies.join(", ")}`
-      : "",
-    project.impact ? `Impact: ${project.impact}` : "",
-  ];
+function normalizeResume(
+  rawResult: unknown,
+  extractedText: string,
+): ResumeData {
+  if (rawResult && typeof rawResult === "object" && !Array.isArray(rawResult)) {
+    const value = rawResult as Record<string, unknown>;
 
-  return parts.filter(Boolean).join("\n");
-}
+    if (value.resume && typeof value.resume === "object") {
+      return normalizeResumeData(value.resume as Partial<ResumeData>);
+    }
 
-function getToolLabel(tool: "rewrite" | "summary" | "skills" | "project") {
-  switch (tool) {
-    case "project":
-      return "Project Intelligence";
-
-    case "summary":
-      return "Profile Intelligence";
-
-    case "skills":
-      return "ATS Intelligence";
-
-    default:
-      return "Experience Intelligence";
+    return normalizeResumeData(value as Partial<ResumeData>);
   }
+
+  return parseResumeText(extractedText);
 }
 
-function getToolTitle(tool: "rewrite" | "summary" | "skills" | "project") {
-  switch (tool) {
-    case "project":
-      return "Build a stronger project";
+function normalizeResumeData(value: Partial<ResumeData> | unknown): ResumeData {
+  const source =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
 
-    case "summary":
-      return "Strengthen your professional summary";
+  const candidateSource =
+    source.candidate && typeof source.candidate === "object"
+      ? (source.candidate as Record<string, unknown>)
+      : {};
 
-    case "skills":
-      return "Optimize your skills";
+  return {
+    candidate: {
+      name: stringValue(candidateSource.name),
+      email: stringValue(candidateSource.email),
+      phone: stringValue(candidateSource.phone),
+      location: stringValue(candidateSource.location),
+      linkedin: stringValue(candidateSource.linkedin),
+      github: stringValue(candidateSource.github),
+      portfolio: stringValue(candidateSource.portfolio),
+      headline: stringValue(candidateSource.headline),
+    },
 
-    default:
-      return "Rewrite a resume bullet";
+    summary: stringValue(source.summary),
+
+    experience: arrayValue(source.experience).map((item) => {
+      const value =
+        item && typeof item === "object"
+          ? (item as Record<string, unknown>)
+          : {};
+
+      return {
+        company: stringValue(value.company),
+        role: stringValue(value.role),
+        location: stringValue(value.location),
+        startDate: stringValue(value.startDate),
+        endDate: stringValue(value.endDate),
+        description: stringValue(value.description),
+        achievements: stringArray(value.achievements),
+        technologies: stringArray(value.technologies),
+      };
+    }),
+
+    education: arrayValue(source.education).map((item) => {
+      const value =
+        item && typeof item === "object"
+          ? (item as Record<string, unknown>)
+          : {};
+
+      return {
+        degree: stringValue(value.degree),
+        field: stringValue(value.field),
+        institution: stringValue(value.institution),
+        location: stringValue(value.location),
+        startDate: stringValue(value.startDate),
+        endDate: stringValue(value.endDate),
+        description: stringValue(value.description),
+      };
+    }),
+
+    projects: arrayValue(source.projects).map((item) => {
+      const value =
+        item && typeof item === "object"
+          ? (item as Record<string, unknown>)
+          : {};
+
+      return {
+        name: stringValue(value.name),
+        description: stringValue(value.description),
+        technologies: stringArray(value.technologies),
+        url: stringValue(value.url),
+        startDate: stringValue(value.startDate),
+        endDate: stringValue(value.endDate),
+      };
+    }),
+
+    skills: stringArray(source.skills),
+
+    certifications: arrayValue(source.certifications).map((item) => {
+      const value =
+        item && typeof item === "object"
+          ? (item as Record<string, unknown>)
+          : {};
+
+      return {
+        name: stringValue(value.name),
+        issuer: stringValue(value.issuer),
+        date: stringValue(value.date),
+        url: stringValue(value.url),
+      };
+    }),
+
+    languages: arrayValue(source.languages).map((item) => {
+      const value =
+        item && typeof item === "object"
+          ? (item as Record<string, unknown>)
+          : {};
+
+      return {
+        name: stringValue(value.name),
+        proficiency: stringValue(value.proficiency),
+      };
+    }),
+
+    achievements: stringArray(source.achievements),
+  };
+}
+
+function parseResumeText(text: string): ResumeData {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return {
+    ...EMPTY_RESUME,
+    candidate: {
+      ...EMPTY_RESUME.candidate,
+      name: lines[0] ?? "",
+      email: lines.find((line) => /\S+@\S+\.\S+/.test(line)) ?? "",
+    },
+    summary: "",
+    experience: [],
+    education: [],
+    projects: [],
+    skills: [],
+    certifications: [],
+    languages: [],
+    achievements: [],
+  };
+}
+
+function stringValue(value: unknown) {
+  if (typeof value === "string") return value;
+
+  if (typeof value === "number") {
+    return String(value);
   }
+
+  return "";
 }
 
-function getPlaceholder(tool: "rewrite" | "summary" | "skills" | "project") {
-  switch (tool) {
-    case "project":
-      return "Describe what you built, what you worked on, the technologies you used and what the project achieved...";
+function stringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
 
-    case "summary":
-      return "Paste your current professional summary or describe your experience...";
-
-    case "skills":
-      return "Enter your current skills, tools, technologies or skills section...";
-
-    default:
-      return "Example: Developed a website for the company and worked on frontend features...";
-  }
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean);
 }
 
-function ShieldIcon() {
+function arrayValue(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function cloneResume(value: ResumeData): ResumeData {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function cleanResumeName(fileName?: string) {
+  if (!fileName) return "My Resume";
+
   return (
-    <span className="flex h-4 w-4 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
-      <Check className="h-2.5 w-2.5" />
-    </span>
+    fileName
+      .replace(/\.pdf$/i, "")
+      .replace(/[_-]+/g, " ")
+      .trim() || "My Resume"
+  );
+}
+
+function getRecommendedRole(rawResult: unknown) {
+  if (!rawResult || typeof rawResult !== "object" || Array.isArray(rawResult)) {
+    return "";
+  }
+
+  const value = rawResult as Record<string, unknown>;
+
+  const roles = Array.isArray(value.roles)
+    ? value.roles
+    : Array.isArray(value.recommendedRoles)
+      ? value.recommendedRoles
+      : [];
+
+  const first = roles[0];
+
+  if (first && typeof first === "object" && !Array.isArray(first)) {
+    const role = (first as Record<string, unknown>).role;
+
+    return typeof role === "string" ? role : "";
+  }
+
+  return "";
+}
+
+function formatDateRange(start: string, end: string) {
+  if (!start && !end) return "";
+
+  if (start && end) {
+    return `${start} — ${end}`;
+  }
+
+  return start || end;
+}
+
+function formatTime(date: Date) {
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+async function improveSingleSection(
+  type: "summary",
+  resume: ResumeData,
+  targetRole: string,
+  setGenerating: (value: boolean) => void,
+  setError: (value: string) => void,
+  apply: (value: string) => void,
+) {
+  setGenerating(true);
+  setError("");
+
+  try {
+    const response = await fetch("/api/ai/rewrite", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type,
+        text: resume.summary,
+        targetRole,
+        resume,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || "Unable to improve this section.");
+    }
+
+    if (data.result?.improved) {
+      apply(data.result.improved);
+    }
+  } catch (error) {
+    setError(
+      error instanceof Error
+        ? error.message
+        : "Unable to improve this section.",
+    );
+  } finally {
+    setGenerating(false);
+  }
+}
+
+function LoadingScreen() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#070A10]">
+      <div className="text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/10">
+          <Sparkles className="h-6 w-6 animate-pulse text-cyan-300" />
+        </div>
+
+        <p className="mt-5 text-sm font-bold text-white">Loading your resume</p>
+
+        <p className="mt-2 text-xs text-slate-600">
+          Preparing your editable workspace...
+        </p>
+      </div>
+    </main>
   );
 }
