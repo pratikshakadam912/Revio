@@ -7,6 +7,103 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id            String           @id @default(cuid())
+  name          String?
+  email         String           @unique
+  passwordHash  String?
+  role          UserRole         @default(USER)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  resumes       Resume[]
+  analyses      ResumeAnalysis[]
+  subscriptions Subscription[]
+  usage         Usage[]
+  drafts ResumeDraft[]
+}
+
+model Resume {
+  id            String           @id @default(cuid())
+  userId        String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  atsScore      Int?
+  cloudinaryId  String
+  extractedText String?
+  fileName      String
+  fileSize      Int?
+  fileType      String
+  fileUrl       String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analyses      ResumeAnalysis[]
+  drafts ResumeDraft[]
+
+  @@index([userId])
+}
+
+model ResumeAnalysis {
+  id              String         @id @default(cuid())
+  userId          String
+  resumeId        String
+  status          AnalysisStatus @default(PENDING)
+  overallScore    Int?
+  atsScore        Int?
+  contentScore    Int?
+  skillsScore     Int?
+  experienceScore Int?
+  strengths       Json?
+  weaknesses      Json?
+  suggestions     Json?
+  skills          Json?
+  rawResult       Json?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  resume          Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resumeId])
+  @@index([userId, createdAt])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String
+  plan                 SubscriptionPlan   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Usage {
+  id             String   @id @default(cuid())
+  userId         String
+  periodStart    DateTime
+  periodEnd      DateTime
+  resumeAnalyses Int      @default(0)
+  aiGenerations  Int      @default(0)
+  resumeExports  Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodStart, periodEnd])
+  @@index([userId])
+}
+
+model playing_with_neon {
+  id    Int    @id @default(autoincrement())
+  name  String
+  value Float? @db.Real
+}
+
 enum UserRole {
   USER
   ADMIN
@@ -36,115 +133,6 @@ enum SubscriptionStatus {
   CANCELED
   PAST_DUE
   EXPIRED
-}
-
-model User {
-  id           String   @id @default(cuid())
-  name         String?
-  email        String   @unique
-  passwordHash String?
-  role         UserRole @default(USER)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  resumes       Resume[]
-  analyses      ResumeAnalysis[]
-  subscriptions Subscription[]
-  usage         Usage[]
-  drafts        ResumeDraft[]
-}
-
-model Resume {
-  id String @id @default(cuid())
-
-  userId String
-
-  fileName     String
-  fileUrl      String
-  cloudinaryId String
-  fileType     String
-  fileSize     Int?
-
-  extractedText String?
-  atsScore      Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  analyses ResumeAnalysis[]
-  drafts   ResumeDraft[]
-
-  @@index([userId])
-}
-
-model ResumeAnalysis {
-  id       String         @id @default(cuid())
-  userId   String
-  resumeId String
-  status   AnalysisStatus @default(PENDING)
-
-  overallScore    Int?
-  atsScore        Int?
-  contentScore    Int?
-  skillsScore     Int?
-  experienceScore Int?
-
-  strengths   Json?
-  weaknesses  Json?
-  suggestions Json?
-  skills      Json?
-  rawResult   Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([resumeId])
-  @@index([userId, createdAt])
-}
-
-model Subscription {
-  id     String             @id @default(cuid())
-  userId String
-  plan   SubscriptionPlan   @default(FREE)
-  status SubscriptionStatus @default(ACTIVE)
-
-  stripeCustomerId     String? @unique
-  stripeSubscriptionId String? @unique
-
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model Usage {
-  id          String   @id @default(cuid())
-  userId      String
-  periodStart DateTime
-  periodEnd   DateTime
-
-  resumeAnalyses Int @default(0)
-  aiGenerations  Int @default(0)
-  resumeExports  Int @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, periodStart, periodEnd])
-  @@index([userId])
 }
 
 model ResumeDraft {
