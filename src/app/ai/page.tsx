@@ -524,87 +524,150 @@ export default function AIRewritePage() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const firstLoad = useRef(true);
 
-  /* =======================================================
-     LOAD LATEST ANALYSIS / DRAFT
-  ======================================================= */
+  /* =========================================================
+   LOAD ORIGINAL UPLOADED RESUME / DRAFT
+========================================================= */
 
   const loadResume = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch("/api/resume/latest-analysis", {
-        method: "GET",
-        cache: "no-store",
-      });
+      /*
+       * The rewrite page gets the resume ID from the URL.
+       *
+       * Example:
+       * /ai?resumeId=clxxxxxxxx
+       *
+       * There is deliberately NO request to:
+       * /api/resume/latest-analysis
+       */
 
-      const data = await response.json();
+      const params = new URLSearchParams(window.location.search);
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Unable to load your analyzed resume.");
-      }
-
-      const extractedText =
-        typeof data.resume?.extractedText === "string"
-          ? data.resume.extractedText
-          : "";
-
-      let initialResume = normalizeResumeData(
-        data.analysis?.rawResult?.resume ?? data.analysis?.rawResult ?? {},
-      );
+      let selectedResumeId = params.get("resumeId") ?? "";
 
       /*
-       * If the analysis doesn't contain structured resume data,
-       * preserve a useful fallback from the extracted resume.
+       * If no resumeId was supplied, ask the resumes endpoint for the
+       * user's uploaded resumes.
        */
-      if (!initialResume.candidate.name && extractedText) {
-        initialResume = parseResumeText(extractedText);
-      }
+      if (!selectedResumeId) {
+        const resumesResponse = await fetch("/api/resume", {
+          method: "GET",
+          cache: "no-store",
+        });
 
-      const resumeId =
-        typeof data.resume?.id === "string" ? data.resume.id : "";
+        if (resumesResponse.ok) {
+          const resumesData = await resumesResponse.json();
 
-      if (resumeId) {
-        const draftResponse = await fetch(
-          `/api/resume/draft?resumeId=${encodeURIComponent(resumeId)}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          },
-        );
+          const resumes = Array.isArray(resumesData.resumes)
+            ? resumesData.resumes
+            : Array.isArray(resumesData.data)
+              ? resumesData.data
+              : [];
 
-        if (draftResponse.ok) {
-          const draftData = (await draftResponse.json()) as DraftResponse;
+          const firstResume = resumes[0];
 
-          if (draftData.success && draftData.draft?.data) {
-            initialResume = normalizeResumeData(draftData.draft.data);
-
-            if (draftData.draft.name) {
-              setResumeName(draftData.draft.name);
-            }
+          if (firstResume?.id) {
+            selectedResumeId = String(firstResume.id);
           }
         }
       }
 
+      if (!selectedResumeId) {
+        throw new Error(
+          "No uploaded resume was selected. Please choose a resume first.",
+        );
+      }
+
+      setResumeId(selectedResumeId);
+
+      /*
+       * IMPORTANT:
+       *
+       * This endpoint reads the ORIGINAL uploaded file.
+       *
+       * It does not read ResumeAnalysis.
+       */
+
+      const sourceResponse = await fetch(
+        `/api/resume/rewrite-source?resumeId=${encodeURIComponent(
+          selectedResumeId,
+        )}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        },
+      );
+
+      const sourceData = await sourceResponse.json();
+
+      if (!sourceResponse.ok || !sourceData.success) {
+        throw new Error(
+          sourceData.error || "Unable to load the original resume.",
+        );
+      }
+
+      let initialResume = normalizeResumeData(sourceData.resume);
+
+      /*
+       * Now check whether this user already has a Rewrite Studio draft.
+       *
+       * The draft belongs to the original Resume ID.
+       *
+       * If it exists, resume from that draft.
+       * Otherwise, use the original uploaded file.
+       */
+
+      const draftResponse = await fetch(
+        `/api/resume/draft?resumeId=${encodeURIComponent(selectedResumeId)}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        },
+      );
+
+      if (draftResponse.ok) {
+        const draftData = (await draftResponse.json()) as DraftResponse;
+
+        if (draftData.success && draftData.draft?.data) {
+          initialResume = normalizeResumeData(draftData.draft.data);
+
+          if (draftData.draft.name) {
+            setResumeName(draftData.draft.name);
+          }
+        }
+      }
+
+      /*
+       * The original uploaded filename is used as the initial
+       * Rewrite Studio name.
+       */
+
+      if (sourceData.source?.fileName && !resumeName) {
+        setResumeName(
+          String(sourceData.source.fileName).replace(/\.[^/.]+$/, ""),
+        );
+      }
+
       setResume(initialResume);
+
       setHistory([deepClone(initialResume)]);
       setHistoryIndex(0);
+
       firstLoad.current = false;
     } catch (loadError) {
+      console.error("Rewrite resume loading error:", loadError);
+
       setError(
         loadError instanceof Error
           ? loadError.message
-          : "Unable to load your resume.",
+          : "Unable to load your original resume.",
       );
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    loadResume();
-  }, [loadResume]);
-
+  }, [resumeName]);
   /* =======================================================
      RESUME ID
   ======================================================= */
