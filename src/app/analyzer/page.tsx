@@ -25,7 +25,6 @@ import {
   Search,
   Settings,
   ShieldCheck,
-  Sparkles,
   Target,
   TrendingUp,
   Upload,
@@ -810,10 +809,6 @@ export default function AnalyzerPage() {
 
       /* =================================================
          STEP 5 — SHOW RESULT
-
-         IMPORTANT:
-         This block is intentionally outside the
-         normalizeAnalysisResult function.
       ================================================= */
 
       setResult(normalized);
@@ -1071,16 +1066,6 @@ export default function AnalyzerPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                {result ? (
-                  <Link
-                    href="/ai"
-                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-indigo-400 to-violet-500 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-lg shadow-indigo-500/10 transition hover:scale-[1.01]"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Rewrite Resume with AI
-                  </Link>
-                ) : null}
-
                 {result ? (
                   <button
                     type="button"
@@ -1750,50 +1735,9 @@ export default function AnalyzerPage() {
                           </p>
                         ) : null}
                       </div>
-
-                      <Link
-                        href="/ai"
-                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
-                      >
-                        <Sparkles className="h-4 w-4 text-cyan-300" />
-                        Continue with AI
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
                     </div>
                   </section>
                 ) : null}
-
-                {/* AI REWRITE CTA */}
-
-                <section className="rounded-3xl border border-cyan-400/15 bg-gradient-to-r from-cyan-400/[0.06] via-indigo-400/[0.06] to-violet-500/[0.06] p-6 sm:p-8">
-                  <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-300/15 to-indigo-400/15">
-                        <Sparkles className="h-5 w-5 text-cyan-300" />
-                      </div>
-
-                      <div>
-                        <h2 className="font-bold text-white">
-                          Want to improve this resume?
-                        </h2>
-
-                        <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-                          Use Revio AI to rewrite weak sections, improve bullet
-                          points, strengthen your summary, and make your resume
-                          more competitive.
-                        </p>
-                      </div>
-                    </div>
-
-                    <Link
-                      href="/ai"
-                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-indigo-400 to-violet-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:scale-[1.01]"
-                    >
-                      Rewrite Resume
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-                </section>
 
                 {/* BOTTOM ACTION */}
 
