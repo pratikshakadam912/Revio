@@ -1,252 +1,258 @@
-import {
-  ArrowUpRight,
-  Check,
-  Sparkles,
-  WandSparkles,
-  ShieldCheck,
-} from "lucide-react";
+"use client";
+
+import { ArrowUpRight, Check, Sparkles, WandSparkles } from "lucide-react";
 
 import { MinimalTemplate } from "@/components/resume/templates";
+
+import type { ResumeTemplateData } from "@/components/resume/templates/MinimalTemplate";
+
 import { demoResume } from "@/data/demoResume";
 
-const templates = [
+type TemplateItem = {
+  name: string;
+  description: string;
+  component: typeof MinimalTemplate;
+  tag: string;
+  slug: string;
+};
+
+/*
+ * Convert demoResume into the exact type
+ * expected by the resume templates.
+ */
+const previewResume = demoResume as unknown as ResumeTemplateData;
+
+const templates: TemplateItem[] = [
   {
     name: "Minimal",
     description:
-      "Clean, focused, and built to let your quantifiable metrics speak for themselves.",
+      "Clean, focused, and designed to keep your experience and achievements easy to scan.",
     component: MinimalTemplate,
-    tag: "MOST POPULAR",
+    tag: "MINIMAL",
+    slug: "minimal",
   },
   {
     name: "Professional",
     description:
-      "Structured and polished for engineering, product, and enterprise tech roles.",
+      "Structured and polished for engineering, product, and enterprise technology roles.",
     component: MinimalTemplate,
-    tag: "ATS OPTIMIZED",
+    tag: "PROFESSIONAL",
+    slug: "professional",
   },
   {
     name: "Executive",
     description:
-      "A high-signal layout designed for tech leads, staff engineers, and directors.",
+      "A high-signal layout designed for senior engineers, technology leaders, and directors.",
     component: MinimalTemplate,
-    tag: "HIGH IMPACT",
+    tag: "EXECUTIVE",
+    slug: "executive",
   },
 ];
 
 export function Templates() {
+  const handleUseTemplate = (template: TemplateItem) => {
+    console.log("Selected template:", template.slug);
+  };
+
   return (
     <section
       id="templates"
-      className="relative overflow-hidden bg-[#0A0D14] px-5 py-24 text-slate-100 sm:px-8 sm:py-28 lg:px-12 lg:py-36 selection:bg-indigo-500 selection:text-white"
+      className="relative overflow-hidden bg-[#0A0D14] px-5 py-24 text-slate-100 sm:px-8 sm:py-28 lg:px-12 lg:py-36"
     >
-      {/* ============================================================
-          DYNAMIC BACKGROUND ATMOSPHERE
-      ============================================================ */}
-
+      {/* Background */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* Electric Indigo Glow — Left */}
-        <div className="absolute -left-[260px] top-[80px] h-[650px] w-[650px] rounded-full bg-gradient-to-br from-indigo-600/25 via-sky-500/10 to-transparent blur-[140px]" />
+        <div className="absolute left-1/2 top-[-180px] h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-indigo-500/10 blur-[120px]" />
 
-        {/* Cyan Glow — Right */}
-        <div className="absolute -right-[280px] bottom-[100px] h-[650px] w-[650px] rounded-full bg-gradient-to-bl from-cyan-500/20 via-indigo-600/10 to-transparent blur-[140px]" />
+        <div className="absolute bottom-[-200px] right-[-100px] h-[400px] w-[400px] rounded-full bg-violet-500/10 blur-[120px]" />
 
-        {/* Center Ambient Glow */}
-        <div className="absolute left-1/2 top-[42%] h-[500px] w-[850px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-950/30 blur-[160px]" />
-
-        {/* Precise Radial Matrix Grid */}
-        <div
-          className="absolute inset-0 opacity-[0.045]"
-          style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)`,
-            backgroundSize: "36px 36px",
-          }}
-        />
-
-        {/* Micro Neon Particles */}
-        <div className="absolute left-[9%] top-[22%] h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.9)]" />
-        <div className="absolute left-[18%] bottom-[18%] h-1 w-1 rounded-full bg-indigo-400" />
-        <div className="absolute right-[12%] top-[30%] h-1.5 w-1.5 rounded-full bg-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.8)]" />
-        <div className="absolute right-[23%] bottom-[24%] h-1 w-1 rounded-full bg-cyan-400" />
+        <div className="absolute left-[-180px] top-1/2 h-[350px] w-[350px] rounded-full bg-blue-500/5 blur-[100px]" />
       </div>
 
-      <div className="relative mx-auto max-w-7xl">
-        {/* ============================================================
-            HEADER
-        ============================================================ */}
-
-        <div className="flex flex-col justify-between gap-10 lg:flex-row lg:items-end">
-          <div className="max-w-3xl">
-            {/* Eyebrow Badge */}
-            <div className="inline-flex items-center gap-2.5 rounded-full border border-indigo-500/30 bg-indigo-950/40 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.2)] backdrop-blur-md">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
-              <span>Resume Templates</span>
-              <span className="h-1 w-1 rounded-full bg-indigo-400" />
-              <span className="text-slate-400 font-normal">
-                ATS-Audited Layouts
-              </span>
-            </div>
-
-            {/* Heading */}
-            <h2 className="mt-7 text-balance text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Start with a resume
-              <br />
-              <span className="bg-gradient-to-r from-indigo-400 via-cyan-300 to-sky-400 bg-clip-text text-transparent">
-                engineered to pass screens.
-              </span>
-            </h2>
-
-            {/* Description */}
-            <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg">
-              Choose an algorithmic-safe typographic foundation, load your
-              structured experience nodes, and export clean, recruiter-approved
-              documents instantly.
-            </p>
+      <div className="relative z-10 mx-auto max-w-7xl">
+        {/* HEADER */}
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-medium text-slate-300">
+            <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+            Resume Templates
           </div>
 
-          {/* Explore Button */}
-          <button className="group flex w-fit shrink-0 items-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-6 py-3.5 text-sm font-semibold text-slate-300 backdrop-blur-xl transition-all duration-300 hover:border-indigo-500/40 hover:bg-slate-800/80 hover:text-white">
-            <span>Explore all templates</span>
-            <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-cyan-300" />
+          <h2 className="text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">
+            Build a resume that
+            <span className="block bg-gradient-to-r from-indigo-400 via-violet-400 to-blue-400 bg-clip-text text-transparent">
+              looks as good as your story.
+            </span>
+          </h2>
+
+          <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
+            Choose a visual foundation for your resume and customize it with
+            your experience, skills, projects, and achievements.
+          </p>
+        </div>
+
+        {/* EXPLORE */}
+        <div className="mt-10 flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById("template-grid")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }}
+            className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-5 py-2.5 text-sm font-medium text-slate-200 transition hover:border-indigo-400/30 hover:bg-white/[0.08]"
+          >
+            Explore all templates
+            <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
           </button>
         </div>
 
-        {/* ============================================================
-            TEMPLATE GRID
-        ============================================================ */}
+        {/* FEATURED TEMPLATE */}
+        <div className="mt-20">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-indigo-400">
+                Featured
+              </p>
 
-        <div className="mt-16 grid gap-6 lg:grid-cols-3">
-          {templates.map((template, index) => {
-            const Template = template.component;
-
-            return (
-              <div key={template.name} className="group">
-                {/* ====================================================
-                    TEMPLATE CARD
-                ==================================================== */}
-
-                <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-slate-900/60 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.4)] backdrop-blur-2xl transition-all duration-500 group-hover:-translate-y-2 group-hover:border-indigo-500/40 group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.6)]">
-                  {/* Card Glow */}
-                  <div
-                    className={`pointer-events-none absolute -top-32 h-[300px] w-[300px] rounded-full blur-[90px] transition-opacity duration-500 ${
-                      index === 2
-                        ? "-right-20 bg-indigo-600/15"
-                        : "-left-20 bg-cyan-500/15"
-                    }`}
-                  />
-
-                  {/* Badge */}
-                  <div className="absolute left-6 top-6 z-20">
-                    <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950/90 px-3 py-1.5 text-[10px] font-mono font-bold tracking-wider text-slate-200 shadow-xl backdrop-blur-xl">
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          index === 2
-                            ? "bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)]"
-                            : "bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]"
-                        }`}
-                      />
-                      {template.tag}
-                    </span>
-                  </div>
-
-                  {/* Preview Container */}
-                  <div className="relative aspect-[3/4] overflow-hidden rounded-[24px] border border-white/[0.08] bg-slate-950/80">
-                    {/* Preview Ambient Glow */}
-                    <div
-                      className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-[60%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-25 blur-[80px]"
-                      style={{
-                        background:
-                          index === 2
-                            ? "rgba(99, 102, 241, 0.25)"
-                            : "rgba(6, 182, 212, 0.25)",
-                      }}
-                    />
-
-                    {/* Scaled Preview Component */}
-                    <div className="origin-top-left w-[210%] scale-[0.46] transition-transform duration-700 group-hover:scale-[0.475]">
-                      <Template resume={demoResume} />
-                    </div>
-
-                    {/* Preview Gradient Overlay */}
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-                  </div>
-
-                  {/* Hover Border Glow */}
-                  <div className="pointer-events-none absolute inset-2 rounded-[24px] border border-transparent transition-all duration-500 group-hover:border-indigo-500/20" />
-                </div>
-
-                {/* ====================================================
-                    TEMPLATE DETAILS
-                ==================================================== */}
-
-                <div className="mt-5 flex items-start justify-between gap-5 px-1">
-                  <div>
-                    <div className="flex items-center gap-2.5">
-                      <h3 className="text-lg font-bold text-white tracking-tight">
-                        {template.name}
-                      </h3>
-
-                      <span className="inline-flex rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[9px] font-mono font-bold text-cyan-300">
-                        ATS 99% PASS
-                      </span>
-                    </div>
-
-                    <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-slate-400">
-                      {template.description}
-                    </p>
-                  </div>
-
-                  {/* Select Check Indicator */}
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-900/60 text-slate-500 transition-all duration-300 group-hover:border-indigo-500/40 group-hover:bg-indigo-600/20 group-hover:text-cyan-300">
-                    <Check className="h-4 w-4" />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ============================================================
-            BOTTOM SIGNAL STRIP
-        ============================================================ */}
-
-        <div className="mt-12 rounded-2xl border border-white/[0.08] bg-slate-900/40 px-6 py-5 backdrop-blur-xl sm:px-8">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            {/* Left Info */}
-            <div className="flex items-center gap-3.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-950/50 text-cyan-300">
-                <WandSparkles className="h-4 w-4" />
-              </div>
-
-              <div>
-                <p className="text-sm font-bold text-slate-200">
-                  Every template passes standard scanner parsing tests.
-                </p>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  Clean hierarchy, single-column fallback safety, and zero
-                  unreadable vector elements.
-                </p>
-              </div>
+              <h3 className="mt-2 text-xl font-semibold text-white">Minimal</h3>
             </div>
 
-            {/* Right Meta Badges */}
-            <div className="flex flex-wrap items-center gap-5 text-[11px] font-bold uppercase tracking-widest text-slate-500">
-              <span className="flex items-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                ATS Verified
-              </span>
-              <span>Modern Layouts</span>
-              <span>1-Click LaTeX / PDF</span>
+            <div className="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
+              <WandSparkles className="h-4 w-4" />
+              Live preview
+            </div>
+          </div>
+
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#11151f] p-3 shadow-2xl sm:p-5">
+            <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
+              <div className="origin-top scale-[0.55] sm:scale-[0.7] lg:scale-[0.82]">
+                <MinimalTemplate resume={previewResume} />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ============================================================
-            SMALL CTA SIGNAL
-        ============================================================ */}
+        {/* GRID */}
+        <div id="template-grid" className="mt-24 scroll-mt-20">
+          <div className="mb-8">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-indigo-400">
+              Choose your layout
+            </p>
 
-        <div className="mt-8 flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-          Choose a layout. Sync your experiences. Let Revio engineer the impact.
+            <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              Templates for every career stage
+            </h3>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {templates.map((template) => {
+              const Template = template.component;
+
+              return (
+                <div
+                  key={template.slug}
+                  className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.05]"
+                >
+                  {/* PREVIEW */}
+                  <div className="relative h-[430px] overflow-hidden bg-[#11151f] p-4">
+                    <div className="absolute left-4 top-4 z-20 rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[10px] font-semibold tracking-[0.12em] text-slate-300">
+                      {template.tag}
+                    </div>
+
+                    <div className="absolute inset-4 overflow-hidden rounded-xl bg-white shadow-xl">
+                      <div className="origin-top-left scale-[0.46]">
+                        <Template resume={previewResume} />
+                      </div>
+                    </div>
+
+                    {/* HOVER BUTTON */}
+                    <div className="absolute inset-0 flex items-end bg-gradient-to-t from-[#0A0D14]/90 via-transparent to-transparent p-5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => handleUseTemplate(template)}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-[#0A0D14] transition hover:bg-slate-100"
+                      >
+                        <Check className="h-4 w-4" />
+                        Use this template
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* INFO */}
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h4 className="text-base font-semibold text-white">
+                          {template.name}
+                        </h4>
+
+                        <p className="mt-2 text-sm leading-6 text-slate-400">
+                          {template.description}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleUseTemplate(template)}
+                        aria-label={`Use ${template.name} template`}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-indigo-400/30 hover:bg-indigo-500/10 hover:text-white"
+                      >
+                        <ArrowUpRight className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] text-slate-400">
+                        Clean Hierarchy
+                      </span>
+
+                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] text-slate-400">
+                        Modern Layout
+                      </span>
+
+                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] text-slate-400">
+                        Editable
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* BOTTOM CTA */}
+        <div className="mt-24 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] p-8 sm:p-12">
+          <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-indigo-400">
+                Ready to build?
+              </p>
+
+              <h3 className="mt-3 max-w-2xl text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                Build your resume around the content that matters.
+              </h3>
+
+              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">
+                Choose a layout, add your experience, and customize your resume
+                with Revio.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                document.getElementById("template-grid")?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+              }}
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-[#0A0D14] transition hover:bg-slate-100"
+            >
+              Choose a template
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     </section>
