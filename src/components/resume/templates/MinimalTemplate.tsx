@@ -1,450 +1,378 @@
-import React from "react";
+import type { ResumeBuilderData } from "../types";
+import type { ResumeTemplateProps } from "./templateTypes";
 
-export type ResumeTemplateData = {
-  name?: string;
-  fullName?: string;
-  title?: string;
-  headline?: string;
-  summary?: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  city?: string;
-  linkedin?: string;
-  github?: string;
-  website?: string;
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section style={{ marginTop: 22 }}>
+      <h2
+        style={{
+          fontSize: 12,
+          fontWeight: 700,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          borderBottom: "1px solid #d1d5db",
+          paddingBottom: 5,
+          marginBottom: 10,
+          color: "#111827",
+        }}
+      >
+        {title}
+      </h2>
 
-  skills?: Array<
-    | string
-    | {
-        name?: string;
-        label?: string;
-      }
-  >;
-
-  technologies?: Array<
-    | string
-    | {
-        name?: string;
-        label?: string;
-      }
-  >;
-
-  experience?: Array<{
-    company?: string;
-    employer?: string;
-    position?: string;
-    role?: string;
-    title?: string;
-    location?: string;
-
-    startDate?: string;
-    endDate?: string;
-    start?: string;
-    end?: string;
-
-    // Supports both your ResumeData and template data
-    description?: string | string[];
-
-    bullets?: string[];
-    achievements?: string[];
-  }>;
-
-  education?: Array<{
-    institution?: string;
-    school?: string;
-    degree?: string;
-    field?: string;
-    location?: string;
-    startDate?: string;
-    endDate?: string;
-    year?: string;
-    description?: string | string[];
-  }>;
-
-  projects?: Array<{
-    name?: string;
-    title?: string;
-    description?: string | string[];
-    bullets?: string[];
-    technologies?: string[];
-    techStack?: string[];
-    url?: string;
-    github?: string;
-  }>;
-
-  certifications?: Array<{
-    name?: string;
-    issuer?: string;
-    date?: string;
-  }>;
-
-  achievements?: string[];
-
-  [key: string]: unknown;
-};
-
-type Props = {
-  resume: ResumeTemplateData;
-};
-function text(value: unknown): string {
-  if (typeof value === "string") {
-    return value.trim();
-  }
-
-  if (typeof value === "number") {
-    return String(value);
-  }
-
-  return "";
+      {children}
+    </section>
+  );
 }
 
-function listValue(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item) => {
-      if (typeof item === "string") {
-        return item.trim();
-      }
-
-      if (item && typeof item === "object") {
-        const object = item as Record<string, unknown>;
-
-        return text(
-          object.name ?? object.label ?? object.title ?? object.value,
-        );
-      }
-
-      return "";
-    })
-    .filter(Boolean);
+function Empty({ value }: { value?: string }) {
+  return value?.trim() ? value : null;
 }
 
-function getName(resume: ResumeTemplateData): string {
-  return text(resume.name) || text(resume.fullName) || "Your Name";
-}
-
-function getTitle(resume: ResumeTemplateData): string {
-  return text(resume.title) || text(resume.headline) || "Professional";
-}
-
-function getSkills(resume: ResumeTemplateData): string[] {
-  const skills = listValue(resume.skills);
-
-  if (skills.length > 0) {
-    return skills;
-  }
-
-  return listValue(resume.technologies);
-}
-
-function getBullets(item: Record<string, unknown>): string[] {
-  const bullets = [...listValue(item.bullets), ...listValue(item.achievements)];
-
-  if (bullets.length > 0) {
-    return bullets;
-  }
-
-  const description = text(item.description);
-
-  return description ? [description] : [];
-}
-
-export function MinimalTemplate({ resume }: Props) {
-  const experience = Array.isArray(resume.experience) ? resume.experience : [];
-
-  const education = Array.isArray(resume.education) ? resume.education : [];
-
-  const projects = Array.isArray(resume.projects) ? resume.projects : [];
-
-  const certifications = Array.isArray(resume.certifications)
-    ? resume.certifications
-    : [];
-
-  const skills = getSkills(resume);
-
-  const achievements = listValue(resume.achievements);
-
-  const contact = [
-    text(resume.email),
-    text(resume.phone),
-    text(resume.location) || text(resume.city),
-    text(resume.linkedin),
-    text(resume.github),
-    text(resume.website),
-  ].filter(Boolean);
+export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
+  const data: ResumeBuilderData = resume;
 
   return (
-    <article
-      className="mx-auto min-h-[1123px] w-[794px] bg-white px-[58px] py-[52px] text-[#171717]"
+    <div
       style={{
+        width: "100%",
+        minHeight: "100%",
+        background: "#fff",
+        color: "#111827",
         fontFamily: "Arial, Helvetica, sans-serif",
+        padding: "42px 48px",
+        boxSizing: "border-box",
+        lineHeight: 1.45,
       }}
     >
-      {/* HEADER */}
-      <header className="border-b-2 border-[#171717] pb-5">
-        <h1 className="text-[32px] font-bold leading-tight tracking-[-0.03em]">
-          {getName(resume)}
+      {/* Header */}
+      <header
+        style={{
+          borderBottom: "2px solid #111827",
+          paddingBottom: 16,
+        }}
+      >
+        <h1
+          style={{
+            margin: 0,
+            fontSize: 30,
+            lineHeight: 1.1,
+            fontWeight: 700,
+          }}
+        >
+          {data.name || "Your Name"}
         </h1>
 
-        <p className="mt-1 text-[15px] font-medium uppercase tracking-[0.12em] text-[#555]">
-          {getTitle(resume)}
-        </p>
+        <Empty value={data.title} />
 
-        {contact.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[10.5px] text-[#444]">
-            {contact.map((item, index) => (
-              <span key={`${item}-${index}`}>{item}</span>
-            ))}
+        {data.title && (
+          <div
+            style={{
+              marginTop: 6,
+              fontSize: 14,
+              color: "#4b5563",
+            }}
+          >
+            {data.title}
           </div>
         )}
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "4px 14px",
+            marginTop: 12,
+            fontSize: 10.5,
+            color: "#4b5563",
+          }}
+        >
+          {data.email && <span>{data.email}</span>}
+          {data.phone && <span>{data.phone}</span>}
+          {data.location && <span>{data.location}</span>}
+          {data.linkedin && <span>{data.linkedin}</span>}
+          {data.github && <span>{data.github}</span>}
+          {data.website && <span>{data.website}</span>}
+        </div>
       </header>
 
-      {/* SUMMARY */}
-      {text(resume.summary) && (
-        <section className="mt-6">
-          <SectionTitle title="Professional Summary" />
-
-          <p className="mt-2 text-[11px] leading-[1.65] text-[#333]">
-            {text(resume.summary)}
+      {/* Summary */}
+      {data.summary && (
+        <Section title="Professional Summary">
+          <p
+            style={{
+              margin: 0,
+              fontSize: 11.5,
+              color: "#374151",
+            }}
+          >
+            {data.summary}
           </p>
-        </section>
+        </Section>
       )}
 
-      {/* EXPERIENCE */}
-      {experience.length > 0 && (
-        <section className="mt-6">
-          <SectionTitle title="Experience" />
-
-          <div className="mt-3 space-y-5">
-            {experience.map((item, index) => {
-              const data = item as Record<string, unknown>;
-
-              const role =
-                text(data.position) || text(data.role) || text(data.title);
-
-              const company = text(data.company) || text(data.employer);
-
-              const start = text(data.startDate) || text(data.start);
-
-              const end = text(data.endDate) || text(data.end) || "Present";
-
-              const bullets = getBullets(data);
-
-              return (
-                <div key={`${company}-${index}`}>
-                  <div className="flex items-start justify-between gap-5">
-                    <div>
-                      <h3 className="text-[12px] font-bold">
-                        {role || "Position"}
-                      </h3>
-
-                      <p className="mt-0.5 text-[11px] font-medium text-[#555]">
-                        {company}
-
-                        {text(data.location) ? ` · ${text(data.location)}` : ""}
-                      </p>
-                    </div>
-
-                    <span className="whitespace-nowrap text-[10px] text-[#555]">
-                      {start}
-
-                      {start || end ? " – " : ""}
-
-                      {end}
-                    </span>
+      {/* Experience */}
+      {data.experience.length > 0 && (
+        <Section title="Experience">
+          {data.experience.map((item) => (
+            <article
+              key={item.id}
+              style={{
+                marginBottom: 16,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 16,
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {item.position}
                   </div>
 
-                  {bullets.length > 0 && (
-                    <ul className="mt-2 space-y-1 pl-4 text-[10.5px] leading-[1.55] text-[#333]">
-                      {bullets.map((bullet, bulletIndex) => (
-                        <li
-                          key={`${bulletIndex}-${bullet}`}
-                          className="list-disc"
-                        >
-                          {bullet}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* PROJECTS */}
-      {projects.length > 0 && (
-        <section className="mt-6">
-          <SectionTitle title="Projects" />
-
-          <div className="mt-3 space-y-4">
-            {projects.map((item, index) => {
-              const data = item as Record<string, unknown>;
-
-              const name = text(data.name) || text(data.title) || "Project";
-
-              const bullets = getBullets(data);
-
-              const technologies =
-                listValue(data.technologies).length > 0
-                  ? listValue(data.technologies)
-                  : listValue(data.techStack);
-
-              return (
-                <div key={`${name}-${index}`}>
-                  <div className="flex items-center justify-between gap-4">
-                    <h3 className="text-[11.5px] font-bold">{name}</h3>
-
-                    {text(data.url) && (
-                      <span className="text-[9px] text-[#666]">
-                        {text(data.url)}
-                      </span>
-                    )}
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "#4b5563",
+                      marginTop: 2,
+                    }}
+                  >
+                    {item.company}
+                    {item.location ? ` · ${item.location}` : ""}
                   </div>
-
-                  {technologies.length > 0 && (
-                    <p className="mt-0.5 text-[9.5px] font-medium text-[#666]">
-                      {technologies.join(" · ")}
-                    </p>
-                  )}
-
-                  {bullets.length > 0 && (
-                    <ul className="mt-1.5 space-y-1 pl-4 text-[10px] leading-[1.5] text-[#333]">
-                      {bullets.map((bullet, bulletIndex) => (
-                        <li
-                          key={`${bulletIndex}-${bullet}`}
-                          className="list-disc"
-                        >
-                          {bullet}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
 
-      {/* EDUCATION */}
-      {education.length > 0 && (
-        <section className="mt-6">
-          <SectionTitle title="Education" />
-
-          <div className="mt-3 space-y-3">
-            {education.map((item, index) => {
-              const data = item as Record<string, unknown>;
-
-              const institution = text(data.institution) || text(data.school);
-
-              const degree = text(data.degree);
-
-              const field = text(data.field);
-
-              const year =
-                text(data.year) ||
-                [text(data.startDate), text(data.endDate)]
-                  .filter(Boolean)
-                  .join(" – ");
-
-              return (
                 <div
-                  key={`${institution}-${index}`}
-                  className="flex items-start justify-between gap-5"
+                  style={{
+                    fontSize: 10,
+                    color: "#6b7280",
+                    whiteSpace: "nowrap",
+                  }}
                 >
-                  <div>
-                    <h3 className="text-[11.5px] font-bold">
-                      {degree}
+                  {item.startDate}
+                  {" — "}
+                  {item.current ? "Present" : item.endDate}
+                </div>
+              </div>
 
-                      {field ? `, ${field}` : ""}
-                    </h3>
+              {item.description.length > 0 && (
+                <ul
+                  style={{
+                    margin: "7px 0 0",
+                    paddingLeft: 18,
+                    fontSize: 10.5,
+                    color: "#374151",
+                  }}
+                >
+                  {item.description.map((bullet, index) => (
+                    <li
+                      key={`${item.id}-bullet-${index}`}
+                      style={{ marginBottom: 3 }}
+                    >
+                      {bullet}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          ))}
+        </Section>
+      )}
 
-                    <p className="mt-0.5 text-[10.5px] text-[#555]">
-                      {institution}
+      {/* Projects */}
+      {data.projects.length > 0 && (
+        <Section title="Projects">
+          {data.projects.map((project) => (
+            <article
+              key={project.id}
+              style={{
+                marginBottom: 12,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {project.name}
+              </div>
 
-                      {text(data.location) ? ` · ${text(data.location)}` : ""}
-                    </p>
+              {project.description && (
+                <p
+                  style={{
+                    margin: "4px 0",
+                    fontSize: 10.5,
+                    color: "#374151",
+                  }}
+                >
+                  {project.description}
+                </p>
+              )}
+
+              {project.technologies.length > 0 && (
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "#6b7280",
+                  }}
+                >
+                  {project.technologies.join(" · ")}
+                </div>
+              )}
+            </article>
+          ))}
+        </Section>
+      )}
+
+      {/* Education */}
+      {data.education.length > 0 && (
+        <Section title="Education">
+          {data.education.map((item) => (
+            <article
+              key={item.id}
+              style={{
+                marginBottom: 12,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 16,
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {item.degree}
+                    {item.field ? `, ${item.field}` : ""}
                   </div>
 
-                  {year && (
-                    <span className="whitespace-nowrap text-[10px] text-[#555]">
-                      {year}
-                    </span>
-                  )}
+                  <div
+                    style={{
+                      fontSize: 10.5,
+                      color: "#4b5563",
+                      marginTop: 2,
+                    }}
+                  >
+                    {item.institution}
+                    {item.location ? ` · ${item.location}` : ""}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
 
-      {/* SKILLS */}
-      {skills.length > 0 && (
-        <section className="mt-6">
-          <SectionTitle title="Skills" />
-
-          <p className="mt-2 text-[10.5px] leading-[1.6] text-[#333]">
-            {skills.join(" · ")}
-          </p>
-        </section>
-      )}
-
-      {/* CERTIFICATIONS */}
-      {certifications.length > 0 && (
-        <section className="mt-6">
-          <SectionTitle title="Certifications" />
-
-          <div className="mt-2 space-y-1.5">
-            {certifications.map((item, index) => {
-              const data = item as Record<string, unknown>;
-
-              return (
                 <div
-                  key={`${text(data.name)}-${index}`}
-                  className="text-[10.5px] text-[#333]"
+                  style={{
+                    fontSize: 10,
+                    color: "#6b7280",
+                    whiteSpace: "nowrap",
+                  }}
                 >
-                  <span className="font-semibold">{text(data.name)}</span>
-
-                  {text(data.issuer) && <span> · {text(data.issuer)}</span>}
-
-                  {text(data.date) && <span> · {text(data.date)}</span>}
+                  {item.startDate}
+                  {item.endDate ? ` — ${item.endDate}` : ""}
                 </div>
-              );
-            })}
-          </div>
-        </section>
+              </div>
+
+              {item.description && (
+                <p
+                  style={{
+                    margin: "5px 0 0",
+                    fontSize: 10.5,
+                    color: "#374151",
+                  }}
+                >
+                  {item.description}
+                </p>
+              )}
+            </article>
+          ))}
+        </Section>
       )}
 
-      {/* ACHIEVEMENTS */}
-      {achievements.length > 0 && (
-        <section className="mt-6">
-          <SectionTitle title="Achievements" />
+      {/* Skills */}
+      {data.skills.length > 0 && (
+        <Section title="Skills">
+          <div
+            style={{
+              fontSize: 10.5,
+              color: "#374151",
+            }}
+          >
+            {data.skills.join(" · ")}
+          </div>
+        </Section>
+      )}
 
-          <ul className="mt-2 space-y-1 pl-4 text-[10.5px] leading-[1.55] text-[#333]">
-            {achievements.map((achievement, index) => (
-              <li key={`${achievement}-${index}`} className="list-disc">
+      {/* Certifications */}
+      {data.certifications.length > 0 && (
+        <Section title="Certifications">
+          {data.certifications.map((item) => (
+            <div
+              key={item.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 16,
+                marginBottom: 7,
+                fontSize: 10.5,
+              }}
+            >
+              <div>
+                <strong>{item.name}</strong>
+                {item.issuer && ` · ${item.issuer}`}
+              </div>
+
+              {item.date && (
+                <span
+                  style={{
+                    color: "#6b7280",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {item.date}
+                </span>
+              )}
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Achievements */}
+      {data.achievements.length > 0 && (
+        <Section title="Achievements">
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: 18,
+              fontSize: 10.5,
+              color: "#374151",
+            }}
+          >
+            {data.achievements.map((achievement, index) => (
+              <li key={index} style={{ marginBottom: 3 }}>
                 {achievement}
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       )}
-    </article>
-  );
-}
-
-function SectionTitle({ title }: { title: string }) {
-  return (
-    <div className="border-b border-[#222] pb-1">
-      <h2 className="text-[11px] font-bold uppercase tracking-[0.16em]">
-        {title}
-      </h2>
     </div>
   );
 }
