@@ -17,30 +17,39 @@ model User {
   updatedAt     DateTime         @updatedAt
   resumes       Resume[]
   analyses      ResumeAnalysis[]
+  drafts        ResumeDraft[]
   subscriptions Subscription[]
   usage         Usage[]
-  drafts ResumeDraft[]
 }
 
 model Resume {
-  id            String           @id @default(cuid())
+  id            String       @id @default(cuid())
   userId        String
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  title         String       @default("Untitled Resume")
+  template      String       @default("minimal")
+  status        ResumeStatus @default(DRAFT)
+
+  data          Json?
+
   atsScore      Int?
-  cloudinaryId  String
+  cloudinaryId  String?
   extractedText String?
-  fileName      String
+  fileName      String?
   fileSize      Int?
-  fileType      String
-  fileUrl       String
-  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileType      String?
+  fileUrl       String?
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   analyses      ResumeAnalysis[]
-  drafts ResumeDraft[]
+  drafts        ResumeDraft[]
 
   @@index([userId])
+  @@index([userId, updatedAt])
 }
-
 model ResumeAnalysis {
   id              String         @id @default(cuid())
   userId          String
@@ -104,6 +113,22 @@ model playing_with_neon {
   value Float? @db.Real
 }
 
+model ResumeDraft {
+  id        String   @id @default(cuid())
+  userId    String
+  resumeId  String
+  name      String
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resumeId])
+  @@index([userId])
+  @@index([resumeId])
+}
+
 enum UserRole {
   USER
   ADMIN
@@ -133,23 +158,4 @@ enum SubscriptionStatus {
   CANCELED
   PAST_DUE
   EXPIRED
-}
-
-model ResumeDraft {
-  id       String @id @default(cuid())
-  userId   String
-  resumeId String
-
-  name String
-  data Json
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([resumeId])
-  @@unique([userId, resumeId])
 }
