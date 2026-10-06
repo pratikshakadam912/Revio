@@ -14,12 +14,17 @@ import {
   Zap,
 } from "lucide-react";
 
+import ResumeRenderer from "@/components/resume/ResumeRenderer";
+import type {
+  ResumeBuilderData,
+  ResumeTemplate,
+} from "@/components/resume/types";
+
 type Template = {
-  id: string;
+  id: ResumeTemplate;
   name: string;
   description: string;
   accent: string;
-  style: "minimal" | "modern" | "executive" | "professional" | "creative";
 };
 
 const templates: Template[] = [
@@ -28,39 +33,132 @@ const templates: Template[] = [
     name: "Minimal",
     description: "Clean, elegant and distraction-free.",
     accent: "bg-zinc-900",
-    style: "minimal",
   },
   {
     id: "modern",
     name: "Modern",
     description: "Contemporary layout with strong visual hierarchy.",
     accent: "bg-indigo-600",
-    style: "modern",
   },
   {
     id: "executive",
     name: "Executive",
     description: "Professional design for experienced candidates.",
     accent: "bg-slate-700",
-    style: "executive",
   },
   {
     id: "professional",
     name: "Professional",
     description: "Balanced structure for almost any career.",
     accent: "bg-blue-600",
-    style: "professional",
   },
   {
     id: "creative",
     name: "Creative",
     description: "A distinctive layout for creative careers.",
     accent: "bg-violet-600",
-    style: "creative",
   },
 ];
 
-function MiniResume({
+/*
+ * Temporary preview data.
+ *
+ * This is ONLY used to render the actual templates on this selection page.
+ * Once the user enters their information, the same ResumeRenderer will
+ * receive their real ResumeBuilderData.
+ */
+const templatePreviewResume: ResumeBuilderData = {
+  name: "Alex Morgan",
+  title: "Product Designer",
+  email: "alex@example.com",
+  phone: "+1 555 123 4567",
+  location: "San Francisco, CA",
+  linkedin: "linkedin.com/in/alexmorgan",
+  github: "github.com/alexmorgan",
+  website: "alexmorgan.com",
+
+  summary:
+    "Product designer with experience creating thoughtful digital products, improving user experiences, and working closely with cross-functional teams.",
+
+  experience: [
+    {
+      id: "preview-experience-1",
+      company: "Northstar Labs",
+      position: "Senior Product Designer",
+      location: "San Francisco, CA",
+      startDate: "2022",
+      endDate: "",
+      current: true,
+      description: [
+        "Led product design across web and mobile experiences.",
+        "Improved user engagement through research-driven design decisions.",
+      ],
+    },
+    {
+      id: "preview-experience-2",
+      company: "Orbit Studio",
+      position: "Product Designer",
+      location: "Remote",
+      startDate: "2019",
+      endDate: "2022",
+      current: false,
+      description: [
+        "Designed scalable interfaces and reusable design systems.",
+        "Partnered with engineers and product managers to ship new features.",
+      ],
+    },
+  ],
+
+  education: [
+    {
+      id: "preview-education-1",
+      institution: "California Institute of Design",
+      degree: "B.A.",
+      field: "Design",
+      location: "California",
+      startDate: "2015",
+      endDate: "2019",
+      description: "",
+    },
+  ],
+
+  skills: [
+    "Product Design",
+    "UX Research",
+    "Figma",
+    "Design Systems",
+    "Prototyping",
+    "User Testing",
+  ],
+
+  projects: [
+    {
+      id: "preview-project-1",
+      name: "Mobile Banking Experience",
+      description:
+        "Redesigned a mobile banking experience focused on clarity, accessibility, and user confidence.",
+      technologies: ["Figma", "Research", "Prototyping"],
+      url: "",
+      github: "",
+    },
+  ],
+
+  certifications: [
+    {
+      id: "preview-certification-1",
+      name: "Google UX Design",
+      issuer: "Google",
+      date: "2021",
+    },
+  ],
+
+  achievements: [
+    "Reduced onboarding friction by 32% through iterative product improvements.",
+    "Established a reusable design system adopted across multiple product teams.",
+  ],
+};
+
+function TemplatePreview({
   template,
   selected,
 }: {
@@ -75,229 +173,15 @@ function MiniResume({
           : "border-zinc-200 group-hover:border-zinc-300"
       }`}
     >
-      {template.style === "minimal" && (
-        <div className="h-full p-[8%] text-zinc-900">
-          <div className="border-b border-zinc-200 pb-3">
-            <div className="h-3 w-24 rounded bg-zinc-900" />
-            <div className="mt-2 h-1.5 w-20 rounded bg-zinc-300" />
-            <div className="mt-3 flex gap-2">
-              <div className="h-1 w-14 rounded bg-zinc-200" />
-              <div className="h-1 w-16 rounded bg-zinc-200" />
-            </div>
-          </div>
-
-          <div className="mt-5">
-            <div className="h-1.5 w-16 rounded bg-zinc-800" />
-            <div className="mt-3 space-y-1.5">
-              <div className="h-1 w-full rounded bg-zinc-200" />
-              <div className="h-1 w-[90%] rounded bg-zinc-200" />
-              <div className="h-1 w-[75%] rounded bg-zinc-200" />
-            </div>
-          </div>
-
-          <div className="mt-5">
-            <div className="h-1.5 w-20 rounded bg-zinc-800" />
-            <div className="mt-3 space-y-3">
-              <div>
-                <div className="h-1 w-[45%] rounded bg-zinc-300" />
-                <div className="mt-1.5 h-1 w-[90%] rounded bg-zinc-200" />
-                <div className="mt-1 h-1 w-[80%] rounded bg-zinc-200" />
-              </div>
-              <div>
-                <div className="h-1 w-[40%] rounded bg-zinc-300" />
-                <div className="mt-1.5 h-1 w-[90%] rounded bg-zinc-200" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {template.style === "modern" && (
-        <div className="flex h-full text-zinc-900">
-          <div className="w-[30%] bg-indigo-600 p-[7%]">
-            <div className="mx-auto h-10 w-10 rounded-full bg-white/90" />
-            <div className="mt-5 h-1.5 w-full rounded bg-white/80" />
-            <div className="mt-2 h-1 w-[80%] rounded bg-white/50" />
-
-            <div className="mt-8 space-y-2">
-              <div className="h-1 w-full rounded bg-white/50" />
-              <div className="h-1 w-[80%] rounded bg-white/40" />
-              <div className="h-1 w-[90%] rounded bg-white/40" />
-            </div>
-          </div>
-
-          <div className="flex-1 p-[7%]">
-            <div className="h-3 w-[75%] rounded bg-zinc-800" />
-            <div className="mt-2 h-1.5 w-[55%] rounded bg-indigo-400" />
-
-            <div className="mt-8">
-              <div className="h-1.5 w-20 rounded bg-zinc-700" />
-              <div className="mt-3 space-y-1.5">
-                <div className="h-1 w-full rounded bg-zinc-200" />
-                <div className="h-1 w-[85%] rounded bg-zinc-200" />
-                <div className="h-1 w-[70%] rounded bg-zinc-200" />
-              </div>
-            </div>
-
-            <div className="mt-7">
-              <div className="h-1.5 w-24 rounded bg-zinc-700" />
-              <div className="mt-3 space-y-3">
-                <div>
-                  <div className="h-1 w-[50%] rounded bg-zinc-300" />
-                  <div className="mt-1.5 h-1 w-[90%] rounded bg-zinc-200" />
-                </div>
-                <div>
-                  <div className="h-1 w-[45%] rounded bg-zinc-300" />
-                  <div className="mt-1.5 h-1 w-[85%] rounded bg-zinc-200" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {template.style === "executive" && (
-        <div className="h-full p-[8%] text-zinc-900">
-          <div className="text-center">
-            <div className="mx-auto h-3 w-28 rounded bg-slate-800" />
-            <div className="mx-auto mt-2 h-1 w-20 rounded bg-zinc-400" />
-          </div>
-
-          <div className="mt-5 border-y border-zinc-300 py-3">
-            <div className="flex justify-center gap-2">
-              <div className="h-1 w-12 rounded bg-zinc-200" />
-              <div className="h-1 w-16 rounded bg-zinc-200" />
-              <div className="h-1 w-12 rounded bg-zinc-200" />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <div className="h-1.5 w-20 rounded bg-slate-800" />
-            <div className="mt-3 space-y-1.5">
-              <div className="h-1 w-full rounded bg-zinc-200" />
-              <div className="h-1 w-[95%] rounded bg-zinc-200" />
-              <div className="h-1 w-[82%] rounded bg-zinc-200" />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <div className="h-1.5 w-24 rounded bg-slate-800" />
-            <div className="mt-3 space-y-3">
-              {[1, 2, 3].map((item) => (
-                <div key={item}>
-                  <div className="h-1 w-[45%] rounded bg-zinc-300" />
-                  <div className="mt-1.5 h-1 w-[92%] rounded bg-zinc-200" />
-                  <div className="mt-1 h-1 w-[78%] rounded bg-zinc-200" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {template.style === "professional" && (
-        <div className="h-full p-[8%] text-zinc-900">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="h-3 w-24 rounded bg-blue-600" />
-              <div className="mt-2 h-1.5 w-16 rounded bg-zinc-400" />
-            </div>
-            <div className="h-8 w-8 rounded bg-blue-50" />
-          </div>
-
-          <div className="mt-5 h-px bg-zinc-200" />
-
-          <div className="mt-5 grid grid-cols-[30%_1fr] gap-4">
-            <div>
-              <div className="h-1.5 w-12 rounded bg-zinc-700" />
-              <div className="mt-3 space-y-2">
-                <div className="h-1 w-full rounded bg-zinc-200" />
-                <div className="h-1 w-[80%] rounded bg-zinc-200" />
-                <div className="h-1 w-[90%] rounded bg-zinc-200" />
-              </div>
-
-              <div className="mt-6 h-1.5 w-14 rounded bg-zinc-700" />
-              <div className="mt-3 space-y-2">
-                <div className="h-1 w-full rounded bg-zinc-200" />
-                <div className="h-1 w-[85%] rounded bg-zinc-200" />
-              </div>
-            </div>
-
-            <div>
-              <div className="h-1.5 w-20 rounded bg-zinc-700" />
-              <div className="mt-3 space-y-1.5">
-                <div className="h-1 w-full rounded bg-zinc-200" />
-                <div className="h-1 w-[90%] rounded bg-zinc-200" />
-                <div className="h-1 w-[75%] rounded bg-zinc-200" />
-              </div>
-
-              <div className="mt-6 h-1.5 w-24 rounded bg-zinc-700" />
-              <div className="mt-3 space-y-3">
-                <div>
-                  <div className="h-1 w-[45%] rounded bg-zinc-300" />
-                  <div className="mt-1.5 h-1 w-full rounded bg-zinc-200" />
-                </div>
-                <div>
-                  <div className="h-1 w-[50%] rounded bg-zinc-300" />
-                  <div className="mt-1.5 h-1 w-[85%] rounded bg-zinc-200" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {template.style === "creative" && (
-        <div className="h-full p-[7%] text-zinc-900">
-          <div className="flex gap-4">
-            <div className="h-12 w-12 shrink-0 rounded-xl bg-violet-600" />
-            <div className="flex-1 pt-1">
-              <div className="h-3 w-28 rounded bg-zinc-900" />
-              <div className="mt-2 h-1.5 w-20 rounded bg-violet-400" />
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-[35%_1fr] gap-4">
-            <div>
-              <div className="rounded-lg bg-violet-50 p-3">
-                <div className="h-1.5 w-12 rounded bg-violet-600" />
-                <div className="mt-3 space-y-2">
-                  <div className="h-1 w-full rounded bg-violet-200" />
-                  <div className="h-1 w-[80%] rounded bg-violet-200" />
-                  <div className="h-1 w-[90%] rounded bg-violet-200" />
-                </div>
-              </div>
-
-              <div className="mt-4 h-1.5 w-14 rounded bg-zinc-700" />
-              <div className="mt-3 space-y-2">
-                <div className="h-1 w-full rounded bg-zinc-200" />
-                <div className="h-1 w-[80%] rounded bg-zinc-200" />
-              </div>
-            </div>
-
-            <div>
-              <div className="h-1.5 w-20 rounded bg-zinc-700" />
-              <div className="mt-3 space-y-1.5">
-                <div className="h-1 w-full rounded bg-zinc-200" />
-                <div className="h-1 w-[90%] rounded bg-zinc-200" />
-                <div className="h-1 w-[70%] rounded bg-zinc-200" />
-              </div>
-
-              <div className="mt-6 h-1.5 w-24 rounded bg-zinc-700" />
-              <div className="mt-3 space-y-3">
-                <div>
-                  <div className="h-1 w-[45%] rounded bg-zinc-300" />
-                  <div className="mt-1.5 h-1 w-full rounded bg-zinc-200" />
-                </div>
-                <div>
-                  <div className="h-1 w-[50%] rounded bg-zinc-300" />
-                  <div className="mt-1.5 h-1 w-[85%] rounded bg-zinc-200" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <div
+        className="absolute inset-0 origin-top-left"
+        style={{
+          width: "138.9%",
+          transform: "scale(0.72)",
+        }}
+      >
+        <ResumeRenderer resume={templatePreviewResume} template={template.id} />
+      </div>
 
       {selected && (
         <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg">
@@ -309,7 +193,9 @@ function MiniResume({
 }
 
 export default function NewResumePage() {
-  const [selectedTemplate, setSelectedTemplate] = useState("modern");
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<ResumeTemplate>("modern");
+
   const [creationMode, setCreationMode] = useState<"ai" | "import">("ai");
 
   const selected = templates.find(
@@ -321,7 +207,7 @@ export default function NewResumePage() {
       {/* Background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-[-280px] h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-indigo-600/10 blur-[130px]" />
-        <div className="absolute bottom-[-300px] right-[-150px] h-[500px] w-[500px] rounded-full bg-violet-600/5 blur-[120px]" />
+        <div className="absolute bottom-[-300px] right-[-150px] h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-violet-600/5 blur-[120px]" />
       </div>
 
       {/* Header */}
@@ -339,11 +225,13 @@ export default function NewResumePage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-xs font-black text-black">
               R
             </div>
+
             <span className="font-semibold tracking-tight">Revio</span>
           </div>
 
           <div className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5">
             <Zap className="h-3.5 w-3.5 text-amber-400" />
+
             <span className="text-xs font-medium text-zinc-300">
               10 free AI credits
             </span>
@@ -358,6 +246,7 @@ export default function NewResumePage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold">
               1
             </div>
+
             <span className="text-sm font-medium text-white">Template</span>
           </div>
 
@@ -367,6 +256,7 @@ export default function NewResumePage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 text-xs">
               2
             </div>
+
             <span className="hidden text-sm sm:block">Your information</span>
           </div>
 
@@ -376,6 +266,7 @@ export default function NewResumePage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 text-xs">
               3
             </div>
+
             <span className="hidden text-sm sm:block">Edit & preview</span>
           </div>
         </div>
@@ -477,6 +368,7 @@ export default function NewResumePage() {
               <h2 className="text-xl font-semibold tracking-tight">
                 Choose your design
               </h2>
+
               <p className="mt-1 text-sm text-zinc-500">
                 You can change your template later without losing your content.
               </p>
@@ -497,7 +389,7 @@ export default function NewResumePage() {
                   onClick={() => setSelectedTemplate(template.id)}
                   className="group text-left"
                 >
-                  <MiniResume template={template} selected={isSelected} />
+                  <TemplatePreview template={template} selected={isSelected} />
 
                   <div className="mt-3 flex items-start justify-between gap-3">
                     <div>
@@ -508,6 +400,7 @@ export default function NewResumePage() {
                       >
                         {template.name}
                       </h3>
+
                       <p className="mt-1 text-xs leading-4 text-zinc-600">
                         {template.description}
                       </p>
@@ -539,6 +432,7 @@ export default function NewResumePage() {
 
               <div>
                 <p className="text-xs text-zinc-500">Selected template</p>
+
                 <p className="mt-0.5 font-medium text-white">
                   {selected?.name}
                 </p>
@@ -547,10 +441,8 @@ export default function NewResumePage() {
 
             <button
               onClick={() => {
-                // Next phase:
-                // save selectedTemplate + creationMode
-                // and navigate to /resume/new/information
                 console.log("Selected template:", selectedTemplate);
+
                 console.log("Creation mode:", creationMode);
               }}
               className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200"

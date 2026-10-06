@@ -2,56 +2,161 @@
 
 import { ArrowUpRight, Check, Sparkles, WandSparkles } from "lucide-react";
 
-import { MinimalTemplate } from "@/components/resume/templates";
-
-import type { ResumeTemplateData } from "@/components/resume/templates/MinimalTemplate";
-
-import { demoResume } from "@/data/demoResume";
+import ResumeRenderer from "@/components/resume/ResumeRenderer";
+import type {
+  ResumeBuilderData,
+  ResumeTemplate,
+} from "@/components/resume/types";
 
 type TemplateItem = {
   name: string;
   description: string;
-  component: typeof MinimalTemplate;
   tag: string;
-  slug: string;
+  slug: ResumeTemplate;
 };
-
-/*
- * Convert demoResume into the exact type
- * expected by the resume templates.
- */
-const previewResume = demoResume as unknown as ResumeTemplateData;
 
 const templates: TemplateItem[] = [
   {
     name: "Minimal",
     description:
       "Clean, focused, and designed to keep your experience and achievements easy to scan.",
-    component: MinimalTemplate,
     tag: "MINIMAL",
     slug: "minimal",
   },
   {
-    name: "Professional",
+    name: "Modern",
     description:
-      "Structured and polished for engineering, product, and enterprise technology roles.",
-    component: MinimalTemplate,
-    tag: "PROFESSIONAL",
-    slug: "professional",
+      "Contemporary layout with strong visual hierarchy and a polished presentation.",
+    tag: "MODERN",
+    slug: "modern",
   },
   {
     name: "Executive",
     description:
       "A high-signal layout designed for senior engineers, technology leaders, and directors.",
-    component: MinimalTemplate,
     tag: "EXECUTIVE",
     slug: "executive",
   },
+  {
+    name: "Professional",
+    description:
+      "Structured and polished for engineering, product, and enterprise technology roles.",
+    tag: "PROFESSIONAL",
+    slug: "professional",
+  },
+  {
+    name: "Creative",
+    description:
+      "A distinctive layout for creative careers and candidates who want more personality.",
+    tag: "CREATIVE",
+    slug: "creative",
+  },
 ];
+
+/*
+ * Preview data used only for the public template showcase.
+ *
+ * The actual user's resume data will be passed to the same
+ * ResumeRenderer inside the authenticated resume builder.
+ */
+const previewResume: ResumeBuilderData = {
+  name: "Alex Morgan",
+  title: "Product Designer",
+  email: "alex@example.com",
+  phone: "+1 555 123 4567",
+  location: "San Francisco, CA",
+  linkedin: "linkedin.com/in/alexmorgan",
+  github: "github.com/alexmorgan",
+  website: "alexmorgan.com",
+
+  summary:
+    "Product designer with experience creating thoughtful digital products, improving user experiences, and working closely with cross-functional teams.",
+
+  experience: [
+    {
+      id: "preview-experience-1",
+      company: "Northstar Labs",
+      position: "Senior Product Designer",
+      location: "San Francisco, CA",
+      startDate: "2022",
+      endDate: "",
+      current: true,
+      description: [
+        "Led product design across web and mobile experiences.",
+        "Improved user engagement through research-driven design decisions.",
+      ],
+    },
+    {
+      id: "preview-experience-2",
+      company: "Orbit Studio",
+      position: "Product Designer",
+      location: "Remote",
+      startDate: "2019",
+      endDate: "2022",
+      current: false,
+      description: [
+        "Designed scalable interfaces and reusable design systems.",
+        "Partnered with engineers and product managers to ship new features.",
+      ],
+    },
+  ],
+
+  education: [
+    {
+      id: "preview-education-1",
+      institution: "California Institute of Design",
+      degree: "B.A.",
+      field: "Design",
+      location: "California",
+      startDate: "2015",
+      endDate: "2019",
+      description: "",
+    },
+  ],
+
+  skills: [
+    "Product Design",
+    "UX Research",
+    "Figma",
+    "Design Systems",
+    "Prototyping",
+    "User Testing",
+  ],
+
+  projects: [
+    {
+      id: "preview-project-1",
+      name: "Mobile Banking Experience",
+      description:
+        "Redesigned a mobile banking experience focused on clarity, accessibility, and user confidence.",
+      technologies: ["Figma", "Research", "Prototyping"],
+      url: "",
+      github: "",
+    },
+  ],
+
+  certifications: [
+    {
+      id: "preview-certification-1",
+      name: "Google UX Design",
+      issuer: "Google",
+      date: "2021",
+    },
+  ],
+
+  achievements: [
+    "Reduced onboarding friction by 32% through iterative product improvements.",
+    "Established a reusable design system adopted across multiple product teams.",
+  ],
+};
 
 export function Templates() {
   const handleUseTemplate = (template: TemplateItem) => {
-    console.log("Selected template:", template.slug);
+    /*
+     * Template selection will be connected to the authenticated
+     * resume creation flow next.
+     */
+    window.location.href = `/resume/new?template=${template.slug}`;
   };
 
   return (
@@ -125,8 +230,14 @@ export function Templates() {
 
           <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#11151f] p-3 shadow-2xl sm:p-5">
             <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
-              <div className="origin-top scale-[0.55] sm:scale-[0.7] lg:scale-[0.82]">
-                <MinimalTemplate resume={previewResume} />
+              <div
+                className="origin-top-left"
+                style={{
+                  width: "121.95%",
+                  transform: "scale(0.82)",
+                }}
+              >
+                <ResumeRenderer resume={previewResume} template="minimal" />
               </div>
             </div>
           </div>
@@ -146,8 +257,6 @@ export function Templates() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {templates.map((template) => {
-              const Template = template.component;
-
               return (
                 <div
                   key={template.slug}
@@ -160,8 +269,17 @@ export function Templates() {
                     </div>
 
                     <div className="absolute inset-4 overflow-hidden rounded-xl bg-white shadow-xl">
-                      <div className="origin-top-left scale-[0.46]">
-                        <Template resume={previewResume} />
+                      <div
+                        className="origin-top-left"
+                        style={{
+                          width: "217.39%",
+                          transform: "scale(0.46)",
+                        }}
+                      >
+                        <ResumeRenderer
+                          resume={previewResume}
+                          template={template.slug}
+                        />
                       </div>
                     </div>
 
