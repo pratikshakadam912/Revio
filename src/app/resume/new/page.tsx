@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -60,13 +61,6 @@ const templates: Template[] = [
   },
 ];
 
-/*
- * Temporary preview data.
- *
- * This is ONLY used to render the actual templates on this selection page.
- * Once the user enters their information, the same ResumeRenderer will
- * receive their real ResumeBuilderData.
- */
 const templatePreviewResume: ResumeBuilderData = {
   name: "Alex Morgan",
   title: "Product Designer",
@@ -76,10 +70,8 @@ const templatePreviewResume: ResumeBuilderData = {
   linkedin: "linkedin.com/in/alexmorgan",
   github: "github.com/alexmorgan",
   website: "alexmorgan.com",
-
   summary:
     "Product designer with experience creating thoughtful digital products, improving user experiences, and working closely with cross-functional teams.",
-
   experience: [
     {
       id: "preview-experience-1",
@@ -108,7 +100,6 @@ const templatePreviewResume: ResumeBuilderData = {
       ],
     },
   ],
-
   education: [
     {
       id: "preview-education-1",
@@ -121,7 +112,6 @@ const templatePreviewResume: ResumeBuilderData = {
       description: "",
     },
   ],
-
   skills: [
     "Product Design",
     "UX Research",
@@ -130,7 +120,6 @@ const templatePreviewResume: ResumeBuilderData = {
     "Prototyping",
     "User Testing",
   ],
-
   projects: [
     {
       id: "preview-project-1",
@@ -142,7 +131,6 @@ const templatePreviewResume: ResumeBuilderData = {
       github: "",
     },
   ],
-
   certifications: [
     {
       id: "preview-certification-1",
@@ -151,7 +139,6 @@ const templatePreviewResume: ResumeBuilderData = {
       date: "2021",
     },
   ],
-
   achievements: [
     "Reduced onboarding friction by 32% through iterative product improvements.",
     "Established a reusable design system adopted across multiple product teams.",
@@ -193,14 +180,89 @@ function TemplatePreview({
 }
 
 export default function NewResumePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const templateFromUrl = searchParams.get("template");
+
   const [selectedTemplate, setSelectedTemplate] =
     useState<ResumeTemplate>("modern");
 
   const [creationMode, setCreationMode] = useState<"ai" | "import">("ai");
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (
+      templateFromUrl &&
+      templates.some((template) => template.id === templateFromUrl)
+    ) {
+      setSelectedTemplate(templateFromUrl as ResumeTemplate);
+    }
+  }, [templateFromUrl]);
 
   const selected = templates.find(
     (template) => template.id === selectedTemplate,
   );
+
+  async function handleContinue() {
+    if (isCreating) return;
+
+    setIsCreating(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/resumes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: "Untitled Resume",
+          template: selectedTemplate,
+          creationMode,
+          data: null,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          router.push(
+            `/login?callbackUrl=${encodeURIComponent(
+              `/resume/new?template=${selectedTemplate}`,
+            )}`,
+          );
+          return;
+        }
+
+        throw new Error(
+          result?.error ||
+            result?.message ||
+            "Unable to create your resume. Please try again.",
+        );
+      }
+
+      if (!result?.id) {
+        throw new Error(
+          "The API did not return a resume ID. Check the POST /api/resumes response.",
+        );
+      }
+
+      router.push(
+        `/resume/${encodeURIComponent(result.id)}?mode=${creationMode}`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while creating your resume.",
+      );
+    } finally {
+      setIsCreating(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#08090d] text-white">
@@ -225,13 +287,11 @@ export default function NewResumePage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-xs font-black text-black">
               R
             </div>
-
             <span className="font-semibold tracking-tight">Revio</span>
           </div>
 
           <div className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5">
             <Zap className="h-3.5 w-3.5 text-amber-400" />
-
             <span className="text-xs font-medium text-zinc-300">
               10 free AI credits
             </span>
@@ -246,7 +306,6 @@ export default function NewResumePage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold">
               1
             </div>
-
             <span className="text-sm font-medium text-white">Template</span>
           </div>
 
@@ -256,7 +315,6 @@ export default function NewResumePage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 text-xs">
               2
             </div>
-
             <span className="hidden text-sm sm:block">Your information</span>
           </div>
 
@@ -266,7 +324,6 @@ export default function NewResumePage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 text-xs">
               3
             </div>
-
             <span className="hidden text-sm sm:block">Edit & preview</span>
           </div>
         </div>
@@ -297,6 +354,7 @@ export default function NewResumePage() {
         {/* Creation mode */}
         <div className="mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2">
           <button
+            type="button"
             onClick={() => setCreationMode("ai")}
             className={`group rounded-2xl border p-5 text-left transition-all duration-300 ${
               creationMode === "ai"
@@ -317,7 +375,6 @@ export default function NewResumePage() {
             </div>
 
             <h2 className="mt-4 font-semibold">Build with AI</h2>
-
             <p className="mt-1.5 text-sm leading-5 text-zinc-400">
               Tell Revio about yourself naturally and let AI create your resume.
             </p>
@@ -329,6 +386,7 @@ export default function NewResumePage() {
           </button>
 
           <button
+            type="button"
             onClick={() => setCreationMode("import")}
             className={`group rounded-2xl border p-5 text-left transition-all duration-300 ${
               creationMode === "import"
@@ -349,7 +407,6 @@ export default function NewResumePage() {
             </div>
 
             <h2 className="mt-4 font-semibold">Import an existing resume</h2>
-
             <p className="mt-1.5 text-sm leading-5 text-zinc-400">
               Upload your existing CV and turn it into an editable Revio resume.
             </p>
@@ -368,7 +425,6 @@ export default function NewResumePage() {
               <h2 className="text-xl font-semibold tracking-tight">
                 Choose your design
               </h2>
-
               <p className="mt-1 text-sm text-zinc-500">
                 You can change your template later without losing your content.
               </p>
@@ -385,9 +441,11 @@ export default function NewResumePage() {
 
               return (
                 <button
+                  type="button"
                   key={template.id}
                   onClick={() => setSelectedTemplate(template.id)}
                   className="group text-left"
+                  aria-pressed={isSelected}
                 >
                   <TemplatePreview template={template} selected={isSelected} />
 
@@ -400,7 +458,6 @@ export default function NewResumePage() {
                       >
                         {template.name}
                       </h3>
-
                       <p className="mt-1 text-xs leading-4 text-zinc-600">
                         {template.description}
                       </p>
@@ -432,7 +489,6 @@ export default function NewResumePage() {
 
               <div>
                 <p className="text-xs text-zinc-500">Selected template</p>
-
                 <p className="mt-0.5 font-medium text-white">
                   {selected?.name}
                 </p>
@@ -440,31 +496,41 @@ export default function NewResumePage() {
             </div>
 
             <button
-              onClick={() => {
-                console.log("Selected template:", selectedTemplate);
-
-                console.log("Creation mode:", creationMode);
-              }}
-              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200"
+              type="button"
+              disabled={isCreating}
+              onClick={handleContinue}
+              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Continue with {selected?.name}
-              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+              {isCreating
+                ? "Creating resume..."
+                : `Continue with ${selected?.name}`}
+
+              {!isCreating && (
+                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+              )}
             </button>
           </div>
+
+          {error && (
+            <p
+              role="alert"
+              className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+            >
+              {error}
+            </p>
+          )}
         </div>
 
-        {/* Trust / reassurance */}
+        {/* Trust */}
         <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-zinc-600">
           <span className="flex items-center gap-1.5">
             <Check className="h-3.5 w-3.5 text-emerald-500/70" />
             Autosaved while you work
           </span>
-
           <span className="flex items-center gap-1.5">
             <Check className="h-3.5 w-3.5 text-emerald-500/70" />
             Change templates anytime
           </span>
-
           <span className="flex items-center gap-1.5">
             <Check className="h-3.5 w-3.5 text-emerald-500/70" />
             Your information stays yours
