@@ -212,7 +212,7 @@ export default function NewResumePage() {
     setError("");
 
     try {
-      const response = await fetch("/api/resumes", {
+      const response = await fetch("/api/resume", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -237,27 +237,21 @@ export default function NewResumePage() {
           return;
         }
 
-        throw new Error(
-          result?.error ||
-            result?.message ||
-            "Unable to create your resume. Please try again.",
-        );
+        throw new Error(result?.error || "Failed to create resume.");
       }
 
-      if (!result?.id) {
-        throw new Error(
-          "The API did not return a resume ID. Check the POST /api/resumes response.",
-        );
+      if (!result?.success || !result?.id) {
+        throw new Error(result?.error || "Invalid response from server.");
       }
 
-      router.push(
-        `/resume/${encodeURIComponent(result.id)}?mode=${creationMode}`,
-      );
-    } catch (err) {
+      router.push(`/resume/${result.id}?mode=${creationMode}`);
+    } catch (error) {
+      console.error("Resume creation failed:", error);
+
       setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong while creating your resume.",
+        error instanceof Error
+          ? error.message
+          : "Failed to create resume. Please try again.",
       );
     } finally {
       setIsCreating(false);

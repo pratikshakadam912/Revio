@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import {
   ArrowRight,
@@ -13,12 +13,28 @@ import {
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function getSafeRedirectPath(): string {
+    const callbackUrl = searchParams.get("callbackUrl");
+
+    // Only allow local application paths.
+    if (
+      callbackUrl &&
+      callbackUrl.startsWith("/") &&
+      !callbackUrl.startsWith("//") &&
+      !callbackUrl.includes("\\")
+    ) {
+      return callbackUrl;
+    }
+
+    return "/dashboard";
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,7 +44,7 @@ export function LoginForm() {
 
     try {
       const result = await signIn("credentials", {
-        email,
+        email: email.trim().toLowerCase(),
         password,
         redirect: false,
       });
@@ -38,7 +54,7 @@ export function LoginForm() {
         return;
       }
 
-      router.push("/dashboard");
+      router.replace(getSafeRedirectPath());
       router.refresh();
     } catch {
       setError("Unable to sign in. Please try again.");
@@ -49,9 +65,6 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* =========================================================
-          EMAIL INPUT
-      ========================================================== */}
       <div>
         <label
           htmlFor="email"
@@ -78,9 +91,6 @@ export function LoginForm() {
         </div>
       </div>
 
-      {/* =========================================================
-          PASSWORD INPUT
-      ========================================================== */}
       <div>
         <div className="mb-2.5 flex items-center justify-between">
           <label
@@ -92,6 +102,7 @@ export function LoginForm() {
 
           <button
             type="button"
+            onClick={() => router.push("/forgot-password")}
             className="text-[11px] font-semibold text-cyan-400/80 transition-colors duration-200 hover:text-cyan-300"
           >
             Forgot password?
@@ -116,11 +127,11 @@ export function LoginForm() {
         </div>
       </div>
 
-      {/* =========================================================
-          ERROR ALERT
-      ========================================================== */}
       {error && (
-        <div className="relative overflow-hidden rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3.5 backdrop-blur-xl">
+        <div
+          role="alert"
+          className="relative overflow-hidden rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3.5 backdrop-blur-xl"
+        >
           <div className="pointer-events-none absolute -left-8 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-rose-500/20 blur-2xl" />
 
           <div className="relative flex items-start gap-3">
@@ -140,15 +151,11 @@ export function LoginForm() {
         </div>
       )}
 
-      {/* =========================================================
-          SUBMIT BUTTON
-      ========================================================== */}
       <button
         type="submit"
         disabled={loading}
         className="group relative flex h-14 w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-sm font-bold text-white shadow-[0_0_30px_rgba(79,70,229,0.35)] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_40px_rgba(6,182,212,0.45)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
       >
-        {/* Shimmer sweep */}
         <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
 
         <span className="relative flex items-center gap-2">
@@ -166,9 +173,6 @@ export function LoginForm() {
         </span>
       </button>
 
-      {/* =========================================================
-          SECURITY / STATUS NOTE
-      ========================================================== */}
       <div className="flex items-center justify-center gap-2 pt-1">
         <div className="flex h-6 w-6 items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-950/50 text-cyan-400">
           <Sparkles className="h-3 w-3" />

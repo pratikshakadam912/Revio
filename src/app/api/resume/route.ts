@@ -14,6 +14,15 @@ const ALLOWED_TEMPLATES = [
   "creative",
 ] as const;
 
+type AllowedTemplate = (typeof ALLOWED_TEMPLATES)[number];
+
+type ResumeRequestBody = {
+  resumeId?: unknown;
+  title?: unknown;
+  template?: unknown;
+  data?: unknown;
+};
+
 const emptyResumeData = {
   name: "",
   title: "",
@@ -32,86 +41,132 @@ const emptyResumeData = {
   achievements: [],
 };
 
+function jsonError(error: string, status: number) {
+  return NextResponse.json({ success: false, error }, { status });
+}
+
+async function getUserId(): Promise<string | null> {
+  const session = await auth();
+  return session?.user?.id ?? null;
+}
+
+function normalizeTemplate(value: unknown): AllowedTemplate | null {
+  if (typeof value !== "string") return null;
+
+  const normalized = value.toLowerCase();
+
+  return ALLOWED_TEMPLATES.includes(normalized as AllowedTemplate)
+    ? (normalized as AllowedTemplate)
+    : null;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+async function readBody(
+  request: NextRequest,
+): Promise<ResumeRequestBody | null> {
+  try {
+    const body: unknown = await request.json();
+    return isPlainObject(body) ? body : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const userId = await getUserId();
+
+    if (!userId) {
+      return jsonError("Please log in to continue.", 401);
+    }
+
+    const resumeId = request.nextUrl.searchParams.get("resumeId");
+
+    if (!resumeId?.trim()) {
+      return jsonError("Resume ID is required.", 400);
+    }
+
+    const resume = await prisma.resume.findFirst({
+      where: {
+        id: resumeId,
+        userId,
+      },
+      select: {
+        id: true,
+        title: true,
+        template: true,
+        status: true,
+        data: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!resume) {
+      return jsonError("Resume not found.", 404);
+    }
+
+    return NextResponse.json({
+      success: true,
+      resume: {
+        ...resume,
+        data: resume.data ?? emptyResumeData,
+      },
+    });
+  } catch (error) {
+    console.error("[Revio] Resume load failed:", error);
+    return jsonError("Failed to load the resume.", 500);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const userId = await getUserId();
 
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "You must be logged in to create a resume.",
-        },
-        { status: 401 },
-      );
+    if (!userId) {
+      return jsonError("You must be logged in to create a resume.", 401);
     }
 
-    let body: unknown;
+    const body = await readBody(request);
 
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid request body.",
-        },
-        { status: 400 },
-      );
+    if (!body) {
+      return jsonError("Invalid request body.", 400);
     }
-
-    if (typeof body !== "object" || body === null) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid resume details.",
-        },
-        { status: 400 },
-      );
-    }
-
-    const input = body as {
-      title?: unknown;
-      template?: unknown;
-      data?: unknown;
-    };
 
     const title =
-      typeof input.title === "string" && input.title.trim()
-        ? input.title.trim().slice(0, 120)
+      typeof body.title === "string" && body.title.trim()
+        ? body.title.trim().slice(0, 120)
         : "Untitled Resume";
 
-    const requestedTemplate =
-      typeof input.template === "string"
-        ? input.template.toLowerCase()
-        : "minimal";
+    const template =
+      body.template === undefined
+        ? "minimal"
+        : normalizeTemplate(body.template);
 
-    if (
-      !ALLOWED_TEMPLATES.includes(
-        requestedTemplate as (typeof ALLOWED_TEMPLATES)[number],
-      )
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid resume template.",
-        },
-        { status: 400 },
-      );
+    if (!template) {
+      return jsonError("Invalid resume template.", 400);
     }
 
     const data =
-      input.data && typeof input.data === "object" && !Array.isArray(input.data)
-        ? input.data
-        : emptyResumeData;
+      body.data === undefined || body.data === null
+        ? emptyResumeData
+        : isPlainObject(body.data)
+          ? body.data
+          : null;
+
+    if (!data) {
+      return jsonError("Resume data must be a valid object.", 400);
+    }
 
     const resume = await prisma.resume.create({
       data: {
-        userId: session.user.id,
+        userId,
         title,
-        template: requestedTemplate,
+        template,
         status: "DRAFT",
-        data,
+        data: data as any,
       },
       select: {
         id: true,
@@ -133,12 +188,107 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[Revio] Resume creation failed:", error);
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to create your resume. Please try again.",
+    return jsonError("Failed to create your resume. Please try again.", 500);
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const userId = await getUserId();
+
+    if (!userId) {
+      return jsonError("Please log in to save your resume.", 401);
+    }
+
+    const body = await readBody(request);
+
+    if (!body) {
+      return jsonError("Invalid request body.", 400);
+    }
+
+    const resumeId =
+      typeof body.resumeId === "string" ? body.resumeId.trim() : "";
+
+    if (!resumeId) {
+      return jsonError("Resume ID is required.", 400);
+    }
+
+    const updateData: {
+      title?: string;
+      template?: AllowedTemplate;
+      data?: Record<string, unknown>;
+    } = {};
+
+    if (typeof body.title === "string") {
+      const title = body.title.trim();
+
+      if (!title) {
+        return jsonError("Resume title cannot be empty.", 400);
+      }
+
+      updateData.title = title.slice(0, 120);
+    }
+
+    if (body.template !== undefined) {
+      const template = normalizeTemplate(body.template);
+
+      if (!template) {
+        return jsonError("Invalid resume template.", 400);
+      }
+
+      updateData.template = template;
+    }
+
+    if (body.data !== undefined) {
+      if (!isPlainObject(body.data)) {
+        return jsonError("Resume data must be a valid object.", 400);
+      }
+
+      updateData.data = body.data;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return jsonError("No valid resume changes were provided.", 400);
+    }
+
+    const result = await prisma.resume.updateMany({
+      where: {
+        id: resumeId,
+        userId,
       },
-      { status: 500 },
-    );
+      data: updateData as any,
+    });
+
+    if (result.count === 0) {
+      return jsonError("Resume not found.", 404);
+    }
+
+    const resume = await prisma.resume.findFirst({
+      where: {
+        id: resumeId,
+        userId,
+      },
+      select: {
+        id: true,
+        title: true,
+        template: true,
+        status: true,
+        data: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!resume) {
+      return jsonError("Resume not found.", 404);
+    }
+
+    return NextResponse.json({
+      success: true,
+      resume,
+    });
+  } catch (error) {
+    console.error("[Revio] Resume save failed:", error);
+
+    return jsonError("Failed to save your resume. Please try again.", 500);
   }
 }
