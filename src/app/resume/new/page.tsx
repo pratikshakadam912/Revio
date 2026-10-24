@@ -28,6 +28,14 @@ type Template = {
   accent: string;
 };
 
+type CreationMode = "ai" | "import";
+
+type CreateResumeResponse = {
+  success?: boolean;
+  id?: string;
+  error?: string;
+};
+
 const templates: Template[] = [
   {
     id: "minimal",
@@ -145,6 +153,14 @@ const templatePreviewResume: ResumeBuilderData = {
   ],
 };
 
+function isTemplate(value: string | null): value is ResumeTemplate {
+  return templates.some((template) => template.id === value);
+}
+
+function isCreationMode(value: string | null): value is CreationMode {
+  return value === "ai" || value === "import";
+}
+
 function TemplatePreview({
   template,
   selected,
@@ -184,22 +200,23 @@ export default function NewResumePage() {
   const searchParams = useSearchParams();
 
   const templateFromUrl = searchParams.get("template");
+  const modeFromUrl = searchParams.get("mode");
 
   const [selectedTemplate, setSelectedTemplate] =
     useState<ResumeTemplate>("modern");
-
-  const [creationMode, setCreationMode] = useState<"ai" | "import">("ai");
+  const [creationMode, setCreationMode] = useState<CreationMode>("ai");
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (
-      templateFromUrl &&
-      templates.some((template) => template.id === templateFromUrl)
-    ) {
-      setSelectedTemplate(templateFromUrl as ResumeTemplate);
+    if (isTemplate(templateFromUrl)) {
+      setSelectedTemplate(templateFromUrl);
     }
-  }, [templateFromUrl]);
+
+    if (isCreationMode(modeFromUrl)) {
+      setCreationMode(modeFromUrl);
+    }
+  }, [templateFromUrl, modeFromUrl]);
 
   const selected = templates.find(
     (template) => template.id === selectedTemplate,
@@ -220,38 +237,45 @@ export default function NewResumePage() {
         body: JSON.stringify({
           title: "Untitled Resume",
           template: selectedTemplate,
-          creationMode,
           data: null,
         }),
       });
 
-      const result = await response.json().catch(() => null);
+      const result = (await response
+        .json()
+        .catch(() => null)) as CreateResumeResponse | null;
+
+      if (response.status === 401 || response.status === 403) {
+        const callbackUrl = `/resume/new?template=${encodeURIComponent(
+          selectedTemplate,
+        )}&mode=${encodeURIComponent(creationMode)}`;
+
+        router.push(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+        return;
+      }
 
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          router.push(
-            `/login?callbackUrl=${encodeURIComponent(
-              `/resume/new?template=${selectedTemplate}`,
-            )}`,
-          );
-          return;
-        }
-
-        throw new Error(result?.error || "Failed to create resume.");
+        throw new Error(
+          result?.error || "Failed to create your resume. Please try again.",
+        );
       }
 
-      if (!result?.success || !result?.id) {
-        throw new Error(result?.error || "Invalid response from server.");
+      if (!result?.success || typeof result.id !== "string" || !result.id) {
+        throw new Error(
+          result?.error || "The server returned an invalid resume response.",
+        );
       }
 
-      router.push(`/resume/${result.id}?mode=${creationMode}`);
+      router.push(
+        `/resume/${encodeURIComponent(result.id)}?mode=${creationMode}`,
+      );
     } catch (error) {
       console.error("Resume creation failed:", error);
 
       setError(
         error instanceof Error
           ? error.message
-          : "Failed to create resume. Please try again.",
+          : "Failed to create your resume. Please try again.",
       );
     } finally {
       setIsCreating(false);
@@ -260,13 +284,11 @@ export default function NewResumePage() {
 
   return (
     <main className="min-h-screen bg-[#08090d] text-white">
-      {/* Background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-[-280px] h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-indigo-600/10 blur-[130px]" />
         <div className="absolute bottom-[-300px] right-[-150px] h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-violet-600/5 blur-[120px]" />
       </div>
 
-      {/* Header */}
       <header className="relative z-10 border-b border-white/[0.06] bg-[#08090d]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
           <Link
@@ -277,23 +299,25 @@ export default function NewResumePage() {
             Back to dashboard
           </Link>
 
-          <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 sm:flex">
+          <Link
+            href="/"
+            className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 sm:flex"
+          >
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-xs font-black text-black">
               R
             </div>
             <span className="font-semibold tracking-tight">Revio</span>
-          </div>
+          </Link>
 
           <div className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5">
             <Zap className="h-3.5 w-3.5 text-amber-400" />
             <span className="text-xs font-medium text-zinc-300">
-              10 free AI credits
+              AI-powered builder
             </span>
           </div>
         </div>
       </header>
 
-      {/* Progress */}
       <div className="relative z-10 border-b border-white/[0.05]">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-5 py-4 sm:px-8">
           <div className="flex items-center gap-2">
@@ -318,14 +342,12 @@ export default function NewResumePage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 text-xs">
               3
             </div>
-            <span className="hidden text-sm sm:block">Edit & preview</span>
+            <span className="hidden text-sm sm:block">Edit &amp; preview</span>
           </div>
         </div>
       </div>
 
-      {/* Main */}
       <section className="relative z-10 mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-        {/* Heading */}
         <div className="mx-auto max-w-3xl text-center">
           <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/[0.08] px-3 py-1.5 text-xs font-medium text-indigo-300">
             <Sparkles className="h-3.5 w-3.5" />
@@ -333,23 +355,23 @@ export default function NewResumePage() {
           </div>
 
           <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
-            Let's build a resume
+            Let&apos;s build a resume
             <span className="block bg-gradient-to-r from-white via-indigo-200 to-violet-300 bg-clip-text text-transparent">
-              you're proud of.
+              you&apos;re proud of.
             </span>
           </h1>
 
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-zinc-400 sm:text-base">
             Pick a design you love. Then tell Revio about yourself in your own
-            words — our AI will turn it into a polished, professional resume.
+            words — our AI will help you build a polished, professional resume.
           </p>
         </div>
 
-        {/* Creation mode */}
         <div className="mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2">
           <button
             type="button"
             onClick={() => setCreationMode("ai")}
+            aria-pressed={creationMode === "ai"}
             className={`group rounded-2xl border p-5 text-left transition-all duration-300 ${
               creationMode === "ai"
                 ? "border-indigo-500/50 bg-indigo-500/[0.08] shadow-[0_0_40px_rgba(99,102,241,0.08)]"
@@ -370,7 +392,8 @@ export default function NewResumePage() {
 
             <h2 className="mt-4 font-semibold">Build with AI</h2>
             <p className="mt-1.5 text-sm leading-5 text-zinc-400">
-              Tell Revio about yourself naturally and let AI create your resume.
+              Tell Revio about yourself naturally and let AI help create your
+              resume.
             </p>
 
             <div className="mt-4 flex items-center gap-2 text-xs font-medium text-indigo-300">
@@ -382,6 +405,7 @@ export default function NewResumePage() {
           <button
             type="button"
             onClick={() => setCreationMode("import")}
+            aria-pressed={creationMode === "import"}
             className={`group rounded-2xl border p-5 text-left transition-all duration-300 ${
               creationMode === "import"
                 ? "border-indigo-500/50 bg-indigo-500/[0.08]"
@@ -412,7 +436,6 @@ export default function NewResumePage() {
           </button>
         </div>
 
-        {/* Templates */}
         <div className="mt-14">
           <div className="flex items-end justify-between">
             <div>
@@ -437,7 +460,10 @@ export default function NewResumePage() {
                 <button
                   type="button"
                   key={template.id}
-                  onClick={() => setSelectedTemplate(template.id)}
+                  onClick={() => {
+                    setSelectedTemplate(template.id);
+                    setError("");
+                  }}
                   className="group text-left"
                   aria-pressed={isSelected}
                 >
@@ -469,7 +495,6 @@ export default function NewResumePage() {
           </div>
         </div>
 
-        {/* Selected template + CTA */}
         <div className="mt-10 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4 sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
@@ -485,6 +510,11 @@ export default function NewResumePage() {
                 <p className="text-xs text-zinc-500">Selected template</p>
                 <p className="mt-0.5 font-medium text-white">
                   {selected?.name}
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {creationMode === "ai"
+                    ? "Create a new resume with AI assistance"
+                    : "Continue to the editor to import your existing resume"}
                 </p>
               </div>
             </div>
@@ -515,11 +545,10 @@ export default function NewResumePage() {
           )}
         </div>
 
-        {/* Trust */}
         <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-zinc-600">
           <span className="flex items-center gap-1.5">
             <Check className="h-3.5 w-3.5 text-emerald-500/70" />
-            Autosaved while you work
+            Save your changes in the editor
           </span>
           <span className="flex items-center gap-1.5">
             <Check className="h-3.5 w-3.5 text-emerald-500/70" />
