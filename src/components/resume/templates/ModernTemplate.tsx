@@ -1,4 +1,18 @@
+import type { CSSProperties } from "react";
 import type { ResumeTemplateProps } from "./templateTypes";
+
+const colors = {
+  paper: "#FFFFFF",
+  ivory: "#F7F5EF",
+  sage: "#315E50",
+  mutedSage: "#719681",
+  champagne: "#D9C5A2",
+  text: "#263B33",
+  body: "#59665E",
+  muted: "#858A83",
+  border: "#E7E5DC",
+  softSage: "#F0F4EF",
+};
 
 export default function ModernTemplate({ resume }: ResumeTemplateProps) {
   return (
@@ -6,12 +20,12 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
       style={{
         width: "100%",
         minHeight: "100%",
-        background: "#fff",
-        color: "#172033",
+        background: colors.paper,
+        color: colors.text,
         fontFamily: "Arial, Helvetica, sans-serif",
         padding: "38px 42px",
         boxSizing: "border-box",
-        lineHeight: 1.45,
+        lineHeight: 1.5,
       }}
     >
       <header
@@ -19,17 +33,34 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
           display: "grid",
           gridTemplateColumns: "1fr auto",
           gap: 24,
-          paddingBottom: 18,
-          borderBottom: "3px solid #172033",
+          padding: "23px 24px",
+          background: colors.ivory,
+          borderTop: `4px solid ${colors.sage}`,
+          borderBottom: `1px solid ${colors.border}`,
         }}
       >
         <div>
+          <div
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: colors.mutedSage,
+              marginBottom: 9,
+            }}
+          >
+            Professional Profile
+          </div>
+
           <h1
             style={{
               margin: 0,
               fontSize: 30,
-              lineHeight: 1.05,
+              lineHeight: 1.1,
               fontWeight: 800,
+              letterSpacing: "-0.035em",
+              color: colors.text,
             }}
           >
             {resume.name || "Your Name"}
@@ -38,23 +69,33 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
           {resume.title && (
             <div
               style={{
-                marginTop: 7,
+                marginTop: 8,
                 fontSize: 14,
                 fontWeight: 600,
-                color: "#4b5563",
+                color: colors.sage,
               }}
             >
               {resume.title}
             </div>
           )}
+
+          <div
+            style={{
+              width: 38,
+              height: 3,
+              background: colors.champagne,
+              marginTop: 15,
+            }}
+          />
         </div>
 
         <div
           style={{
             textAlign: "right",
-            fontSize: 10,
-            color: "#4b5563",
-            lineHeight: 1.7,
+            fontSize: 9.5,
+            color: colors.body,
+            lineHeight: 1.85,
+            overflowWrap: "anywhere",
           }}
         >
           {resume.email && <div>{resume.email}</div>}
@@ -67,23 +108,24 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
       </header>
 
       {resume.summary && (
-        <section style={{ marginTop: 22 }}>
+        <section style={sectionStyle}>
           <h2 style={sectionTitle}>Profile</h2>
           <p style={bodyText}>{resume.summary}</p>
         </section>
       )}
 
       {resume.experience.length > 0 && (
-        <section style={{ marginTop: 22 }}>
+        <section style={sectionStyle}>
           <h2 style={sectionTitle}>Experience</h2>
 
           {resume.experience.map((item) => (
-            <article key={item.id} style={{ marginBottom: 17 }}>
+            <article key={item.id} style={articleStyle}>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   gap: 20,
+                  alignItems: "flex-start",
                 }}
               >
                 <div>
@@ -114,7 +156,7 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
       )}
 
       {resume.skills.length > 0 && (
-        <section style={{ marginTop: 22 }}>
+        <section style={sectionStyle}>
           <h2 style={sectionTitle}>Skills</h2>
 
           <div
@@ -128,11 +170,13 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
               <span
                 key={skill}
                 style={{
-                  padding: "4px 9px",
-                  border: "1px solid #d1d5db",
-                  borderRadius: 4,
-                  fontSize: 10,
-                  color: "#374151",
+                  padding: "5px 10px",
+                  background: colors.softSage,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 3,
+                  fontSize: 9.5,
+                  color: colors.sage,
+                  fontWeight: 600,
                 }}
               >
                 {skill}
@@ -143,11 +187,11 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
       )}
 
       {resume.projects.length > 0 && (
-        <section style={{ marginTop: 22 }}>
+        <section style={sectionStyle}>
           <h2 style={sectionTitle}>Projects</h2>
 
           {resume.projects.map((project) => (
-            <article key={project.id} style={{ marginBottom: 12 }}>
+            <article key={project.id} style={articleStyle}>
               <div style={itemTitle}>{project.name}</div>
 
               {project.description && (
@@ -163,16 +207,17 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
       )}
 
       {resume.education.length > 0 && (
-        <section style={{ marginTop: 22 }}>
+        <section style={sectionStyle}>
           <h2 style={sectionTitle}>Education</h2>
 
           {resume.education.map((item) => (
-            <article key={item.id} style={{ marginBottom: 12 }}>
+            <article key={item.id} style={articleStyle}>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   gap: 20,
+                  alignItems: "flex-start",
                 }}
               >
                 <div>
@@ -200,7 +245,7 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
       )}
 
       {resume.certifications.length > 0 && (
-        <section style={{ marginTop: 22 }}>
+        <section style={sectionStyle}>
           <h2 style={sectionTitle}>Certifications</h2>
 
           {resume.certifications.map((item) => (
@@ -210,12 +255,13 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
                 display: "flex",
                 justifyContent: "space-between",
                 gap: 20,
-                marginBottom: 7,
+                marginBottom: 9,
                 fontSize: 10.5,
+                color: colors.body,
               }}
             >
               <span>
-                <strong>{item.name}</strong>
+                <strong style={{ color: colors.text }}>{item.name}</strong>
                 {item.issuer ? ` · ${item.issuer}` : ""}
               </span>
 
@@ -226,7 +272,7 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
       )}
 
       {resume.achievements.length > 0 && (
-        <section style={{ marginTop: 22 }}>
+        <section style={sectionStyle}>
           <h2 style={sectionTitle}>Achievements</h2>
 
           <ul style={bulletList}>
@@ -236,48 +282,88 @@ export default function ModernTemplate({ resume }: ResumeTemplateProps) {
           </ul>
         </section>
       )}
+
+      <footer
+        style={{
+          marginTop: 28,
+          paddingTop: 10,
+          borderTop: `1px solid ${colors.border}`,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 8,
+            color: colors.muted,
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+          }}
+        >
+          Modern Resume
+        </span>
+        <span
+          style={{
+            width: 28,
+            height: 2,
+            background: colors.champagne,
+          }}
+        />
+      </footer>
     </div>
   );
 }
 
-const sectionTitle: React.CSSProperties = {
-  margin: "0 0 10px",
-  paddingBottom: 5,
-  borderBottom: "1px solid #d1d5db",
-  fontSize: 11,
-  fontWeight: 800,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "#172033",
+const sectionStyle: CSSProperties = {
+  marginTop: 22,
 };
 
-const itemTitle: React.CSSProperties = {
+const sectionTitle: CSSProperties = {
+  margin: "0 0 11px",
+  paddingBottom: 7,
+  borderBottom: `1px solid ${colors.border}`,
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: "0.15em",
+  textTransform: "uppercase",
+  color: colors.sage,
+};
+
+const articleStyle: CSSProperties = {
+  marginBottom: 16,
+};
+
+const itemTitle: CSSProperties = {
   fontSize: 12.5,
   fontWeight: 700,
-  color: "#172033",
+  color: colors.text,
 };
 
-const muted: React.CSSProperties = {
-  marginTop: 2,
+const muted: CSSProperties = {
+  marginTop: 3,
   fontSize: 10.5,
-  color: "#6b7280",
+  color: colors.mutedSage,
+  fontWeight: 500,
 };
 
-const dateStyle: React.CSSProperties = {
-  fontSize: 10,
-  color: "#6b7280",
+const dateStyle: CSSProperties = {
+  fontSize: 9.5,
+  color: colors.muted,
   whiteSpace: "nowrap",
 };
 
-const bodyText: React.CSSProperties = {
-  margin: 0,
+const bodyText: CSSProperties = {
+  margin: "5px 0 0",
   fontSize: 10.5,
-  color: "#374151",
+  lineHeight: 1.7,
+  color: colors.body,
 };
 
-const bulletList: React.CSSProperties = {
+const bulletList: CSSProperties = {
   margin: "7px 0 0",
   paddingLeft: 18,
-  fontSize: 10.5,
-  color: "#374151",
+  fontSize: 10,
+  lineHeight: 1.7,
+  color: colors.body,
 };

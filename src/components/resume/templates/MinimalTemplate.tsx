@@ -1,4 +1,18 @@
+import type { CSSProperties, ReactNode } from "react";
 import type { ResumeTemplateProps } from "./templateTypes";
+
+const colors = {
+  paper: "#FFFFFF",
+  ivory: "#F7F5EF",
+  sage: "#315E50",
+  mutedSage: "#719681",
+  champagne: "#D9C5A2",
+  text: "#263B33",
+  body: "#59665E",
+  muted: "#858A83",
+  border: "#E7E5DC",
+  softSage: "#F0F4EF",
+};
 
 export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
   return (
@@ -6,28 +20,30 @@ export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
       style={{
         width: "100%",
         minHeight: "100%",
-        background: "#fff",
-        color: "#18181b",
+        background: colors.paper,
+        color: colors.text,
         fontFamily: "Arial, Helvetica, sans-serif",
         padding: "42px 48px",
         boxSizing: "border-box",
-        lineHeight: 1.45,
+        lineHeight: 1.5,
       }}
     >
-      {/* Header */}
       <header
         style={{
-          paddingBottom: 18,
-          borderBottom: "1px solid #e4e4e7",
+          padding: "22px 24px",
+          background: colors.ivory,
+          borderTop: `3px solid ${colors.sage}`,
+          borderBottom: `1px solid ${colors.border}`,
         }}
       >
         <h1
           style={{
             margin: 0,
             fontSize: 30,
-            lineHeight: 1.05,
-            fontWeight: 700,
-            letterSpacing: "-0.03em",
+            lineHeight: 1.12,
+            fontWeight: 800,
+            letterSpacing: "-0.035em",
+            color: colors.text,
           }}
         >
           {resume.name || "Your Name"}
@@ -36,10 +52,10 @@ export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
         {resume.title && (
           <div
             style={{
-              marginTop: 7,
+              marginTop: 8,
               fontSize: 13,
-              color: "#52525b",
-              fontWeight: 500,
+              color: colors.sage,
+              fontWeight: 600,
             }}
           >
             {resume.title}
@@ -48,12 +64,22 @@ export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
 
         <div
           style={{
+            width: 38,
+            height: 3,
+            background: colors.champagne,
+            marginTop: 14,
+          }}
+        />
+
+        <div
+          style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: "4px 13px",
-            marginTop: 11,
+            gap: "5px 13px",
+            marginTop: 13,
             fontSize: 9.5,
-            color: "#71717a",
+            color: colors.body,
+            overflowWrap: "anywhere",
           }}
         >
           {resume.email && <span>{resume.email}</span>}
@@ -65,42 +91,28 @@ export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
         </div>
       </header>
 
-      {/* Summary */}
       {resume.summary && (
         <Section title="Summary">
           <p style={bodyText}>{resume.summary}</p>
         </Section>
       )}
 
-      {/* Experience */}
       {resume.experience.length > 0 && (
         <Section title="Experience">
           {resume.experience.map((item) => (
-            <article key={item.id} style={{ marginBottom: 18 }}>
+            <article key={item.id} style={{ marginBottom: 19 }}>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   gap: 20,
+                  alignItems: "flex-start",
                 }}
               >
                 <div>
-                  <div
-                    style={{
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {item.position}
-                  </div>
+                  <div style={positionStyle}>{item.position}</div>
 
-                  <div
-                    style={{
-                      marginTop: 2,
-                      fontSize: 10,
-                      color: "#52525b",
-                    }}
-                  >
+                  <div style={companyStyle}>
                     {item.company}
                     {item.location ? ` · ${item.location}` : ""}
                   </div>
@@ -109,7 +121,7 @@ export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
                 <div
                   style={{
                     fontSize: 9,
-                    color: "#71717a",
+                    color: colors.muted,
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -131,37 +143,23 @@ export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
         </Section>
       )}
 
-      {/* Education */}
       {resume.education.length > 0 && (
         <Section title="Education">
           {resume.education.map((item) => (
-            <article key={item.id} style={{ marginBottom: 13 }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                }}
-              >
+            <article key={item.id} style={{ marginBottom: 14 }}>
+              <div style={positionStyle}>
                 {item.degree}
                 {item.field ? `, ${item.field}` : ""}
               </div>
 
-              <div
-                style={{
-                  marginTop: 2,
-                  fontSize: 10,
-                  color: "#52525b",
-                }}
-              >
-                {item.institution}
-              </div>
+              <div style={companyStyle}>{item.institution}</div>
 
               {(item.startDate || item.endDate) && (
                 <div
                   style={{
-                    marginTop: 2,
+                    marginTop: 3,
                     fontSize: 9,
-                    color: "#71717a",
+                    color: colors.muted,
                   }}
                 >
                   {item.startDate}
@@ -175,25 +173,26 @@ export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
         </Section>
       )}
 
-      {/* Skills */}
       {resume.skills.length > 0 && (
         <Section title="Skills">
           <div
             style={{
               display: "flex",
               flexWrap: "wrap",
-              gap: 6,
+              gap: 7,
             }}
           >
             {resume.skills.map((skill) => (
               <span
                 key={skill}
                 style={{
-                  padding: "4px 8px",
-                  border: "1px solid #e4e4e7",
-                  borderRadius: 4,
+                  padding: "5px 10px",
+                  background: colors.softSage,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 3,
                   fontSize: 9,
-                  color: "#3f3f46",
+                  color: colors.sage,
+                  fontWeight: 600,
                 }}
               >
                 {skill}
@@ -203,86 +202,45 @@ export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
         </Section>
       )}
 
-      {/* Projects */}
       {resume.projects.length > 0 && (
         <Section title="Projects">
           {resume.projects.map((project) => (
-            <article key={project.id} style={{ marginBottom: 13 }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                }}
-              >
-                {project.name}
-              </div>
+            <article key={project.id} style={{ marginBottom: 14 }}>
+              <div style={positionStyle}>{project.name}</div>
 
               {project.description && (
                 <p style={bodyText}>{project.description}</p>
               )}
 
               {project.technologies.length > 0 && (
-                <div
-                  style={{
-                    marginTop: 4,
-                    fontSize: 9,
-                    color: "#71717a",
-                  }}
-                >
-                  {project.technologies.join(" · ")}
-                </div>
+                <div style={metaText}>{project.technologies.join(" · ")}</div>
               )}
 
-              {project.url && (
-                <div
-                  style={{
-                    marginTop: 3,
-                    fontSize: 8.5,
-                    color: "#71717a",
-                  }}
-                >
-                  {project.url}
-                </div>
-              )}
+              {project.url && <div style={metaText}>{project.url}</div>}
 
-              {project.github && (
-                <div
-                  style={{
-                    marginTop: 2,
-                    fontSize: 8.5,
-                    color: "#71717a",
-                  }}
-                >
-                  {project.github}
-                </div>
-              )}
+              {project.github && <div style={metaText}>{project.github}</div>}
             </article>
           ))}
         </Section>
       )}
 
-      {/* Certifications */}
       {resume.certifications.length > 0 && (
         <Section title="Certifications">
           {resume.certifications.map((item) => (
             <div
               key={item.id}
               style={{
-                marginBottom: 8,
+                marginBottom: 9,
                 fontSize: 10,
+                color: colors.body,
               }}
             >
-              <strong>{item.name}</strong>
+              <strong style={{ color: colors.text }}>{item.name}</strong>
 
               {item.issuer && <span> — {item.issuer}</span>}
 
               {item.date && (
-                <span
-                  style={{
-                    marginLeft: 5,
-                    color: "#71717a",
-                  }}
-                >
+                <span style={{ marginLeft: 5, color: colors.muted }}>
                   ({item.date})
                 </span>
               )}
@@ -291,7 +249,6 @@ export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
         </Section>
       )}
 
-      {/* Achievements */}
       {resume.achievements.length > 0 && (
         <Section title="Achievements">
           <ul style={bulletList}>
@@ -301,29 +258,52 @@ export default function MinimalTemplate({ resume }: ResumeTemplateProps) {
           </ul>
         </Section>
       )}
+
+      <footer
+        style={{
+          marginTop: 28,
+          paddingTop: 10,
+          borderTop: `1px solid ${colors.border}`,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 8,
+            color: colors.muted,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+          }}
+        >
+          Professional Resume
+        </span>
+        <span
+          style={{
+            width: 26,
+            height: 2,
+            background: colors.champagne,
+          }}
+        />
+      </footer>
     </div>
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section style={{ marginTop: 22 }}>
       <h2
         style={{
-          margin: "0 0 10px",
-          paddingBottom: 5,
-          borderBottom: "1px solid #e4e4e7",
+          margin: "0 0 11px",
+          paddingBottom: 7,
+          borderBottom: `1px solid ${colors.border}`,
           fontSize: 9.5,
           fontWeight: 800,
-          letterSpacing: "0.14em",
+          letterSpacing: "0.15em",
           textTransform: "uppercase",
-          color: "#3f3f46",
+          color: colors.sage,
         }}
       >
         {title}
@@ -334,15 +314,37 @@ function Section({
   );
 }
 
-const bodyText: React.CSSProperties = {
-  margin: "5px 0 0",
-  fontSize: 10,
-  color: "#3f3f46",
+const positionStyle: CSSProperties = {
+  fontSize: 11.5,
+  fontWeight: 700,
+  color: colors.text,
 };
 
-const bulletList: React.CSSProperties = {
+const companyStyle: CSSProperties = {
+  marginTop: 3,
+  fontSize: 10,
+  color: colors.mutedSage,
+  fontWeight: 600,
+};
+
+const bodyText: CSSProperties = {
   margin: "6px 0 0",
+  fontSize: 10,
+  lineHeight: 1.7,
+  color: colors.body,
+};
+
+const metaText: CSSProperties = {
+  marginTop: 4,
+  fontSize: 9,
+  color: colors.muted,
+  overflowWrap: "anywhere",
+};
+
+const bulletList: CSSProperties = {
+  margin: "7px 0 0",
   paddingLeft: 17,
   fontSize: 9.5,
-  color: "#3f3f46",
+  lineHeight: 1.7,
+  color: colors.body,
 };
