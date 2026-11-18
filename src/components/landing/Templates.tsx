@@ -151,12 +151,18 @@ const previewResume: ResumeBuilderData = {
 };
 
 export function Templates() {
+  /*
+   * Redirect visitors to login before allowing access
+   * to the authenticated resume builder.
+   *
+   * The selected template is preserved in the redirect URL.
+   */
   const handleUseTemplate = (template: TemplateItem) => {
-    /*
-     * Template selection will be connected to the authenticated
-     * resume creation flow next.
-     */
-    window.location.href = `/resume/new?template=${template.slug}`;
+    const destination = `/resume/new?template=${encodeURIComponent(
+      template.slug,
+    )}`;
+
+    window.location.href = `/login?redirect=${encodeURIComponent(destination)}`;
   };
 
   const scrollToTemplates = () => {

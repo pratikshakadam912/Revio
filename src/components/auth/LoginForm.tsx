@@ -21,16 +21,18 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
 
   function getSafeRedirectPath(): string {
-    const callbackUrl = searchParams.get("callbackUrl");
+    const destination =
+      searchParams.get("redirect") || searchParams.get("callbackUrl");
 
     // Only allow local application paths.
     if (
-      callbackUrl &&
-      callbackUrl.startsWith("/") &&
-      !callbackUrl.startsWith("//") &&
-      !callbackUrl.includes("\\")
+      destination &&
+      destination.startsWith("/") &&
+      !destination.startsWith("//") &&
+      !destination.includes("\\") &&
+      !/[\r\n]/.test(destination)
     ) {
-      return callbackUrl;
+      return destination;
     }
 
     return "/dashboard";
@@ -143,6 +145,7 @@ export function LoginForm() {
               <p className="text-xs font-bold text-rose-300">
                 Sign in unsuccessful
               </p>
+
               <p className="mt-0.5 text-[11px] leading-4 text-rose-200/60">
                 {error}
               </p>
