@@ -20,8 +20,9 @@ export default function ResumeRenderer({
       className={className}
       style={{
         width: "100%",
-        background: "#ffffff",
+        background: "#F7F5EF",
         overflow: "hidden",
+        borderRadius: "12px",
       }}
     >
       <TemplateComponent resume={resume} />
