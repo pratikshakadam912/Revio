@@ -1,4 +1,18 @@
+import type { CSSProperties, ReactNode } from "react";
 import type { ResumeTemplateProps } from "./templateTypes";
+
+const colors = {
+  paper: "#FFFFFF",
+  ivory: "#F7F5EF",
+  sage: "#315E50",
+  mutedSage: "#719681",
+  champagne: "#D9C5A2",
+  text: "#263B33",
+  body: "#59665E",
+  muted: "#858A83",
+  border: "#E7E5DC",
+  softSage: "#F0F4EF",
+};
 
 export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
   return (
@@ -6,34 +20,50 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
       style={{
         width: "100%",
         minHeight: "100%",
-        background: "#fff",
-        color: "#1f2937",
+        background: colors.paper,
+        color: colors.text,
         fontFamily: "Arial, Helvetica, sans-serif",
         padding: 0,
         boxSizing: "border-box",
-        lineHeight: 1.45,
+        lineHeight: 1.5,
       }}
     >
-      {/* Creative header */}
+      {/* Header */}
       <header
         style={{
-          padding: "38px 44px 30px",
-          borderBottom: "1px solid #e5e7eb",
+          position: "relative",
+          padding: "38px 44px 32px",
+          background: colors.ivory,
+          borderBottom: `1px solid ${colors.border}`,
+          overflow: "hidden",
         }}
       >
         <div
           style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            width: 130,
+            height: 130,
+            borderRadius: "0 0 0 100%",
+            background: "rgba(113,150,129,0.09)",
+          }}
+        />
+
+        <div
+          style={{
             display: "flex",
             alignItems: "center",
-            gap: 12,
-            marginBottom: 13,
+            gap: 10,
+            marginBottom: 20,
           }}
         >
           <div
             style={{
-              width: 38,
-              height: 4,
-              background: "#111827",
+              width: 28,
+              height: 3,
+              borderRadius: 4,
+              background: colors.sage,
             }}
           />
 
@@ -41,22 +71,24 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
             style={{
               fontSize: 9,
               fontWeight: 800,
-              letterSpacing: "0.18em",
+              letterSpacing: "0.22em",
               textTransform: "uppercase",
-              color: "#6b7280",
+              color: colors.mutedSage,
             }}
           >
-            Resume
+            Professional Profile
           </div>
         </div>
 
         <h1
           style={{
+            position: "relative",
             margin: 0,
             fontSize: 34,
-            lineHeight: 1,
+            lineHeight: 1.12,
             fontWeight: 800,
-            letterSpacing: "-0.03em",
+            letterSpacing: "-0.04em",
+            color: colors.text,
           }}
         >
           {resume.name || "Your Name"}
@@ -65,10 +97,11 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
         {resume.title && (
           <div
             style={{
-              marginTop: 9,
+              marginTop: 10,
               fontSize: 14,
               fontWeight: 600,
-              color: "#6b7280",
+              color: colors.sage,
+              letterSpacing: "0.015em",
             }}
           >
             {resume.title}
@@ -79,10 +112,10 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
           style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: "5px 14px",
-            marginTop: 14,
+            gap: "8px 16px",
+            marginTop: 20,
             fontSize: 9.5,
-            color: "#6b7280",
+            color: colors.body,
           }}
         >
           {resume.email && <span>{resume.email}</span>}
@@ -92,33 +125,58 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
           {resume.github && <span>{resume.github}</span>}
           {resume.website && <span>{resume.website}</span>}
         </div>
+
+        <div
+          style={{
+            width: 48,
+            height: 3,
+            marginTop: 23,
+            borderRadius: 4,
+            background: colors.champagne,
+          }}
+        />
       </header>
 
+      {/* Main content */}
       <main
         style={{
           display: "grid",
-          gridTemplateColumns: "155px 1fr",
+          gridTemplateColumns: "155px minmax(0, 1fr)",
           minHeight: 500,
         }}
       >
         {/* Sidebar */}
         <aside
           style={{
-            padding: "28px 22px",
-            borderRight: "1px solid #e5e7eb",
+            padding: "30px 22px",
+            background: "#FAFAF7",
+            borderRight: `1px solid ${colors.border}`,
           }}
         >
           {resume.skills.length > 0 && (
-            <SideSection title="Skills">
+            <SideSection title="Core Skills">
               {resume.skills.map((skill) => (
                 <div
                   key={skill}
                   style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 7,
+                    marginBottom: 9,
                     fontSize: 9.5,
-                    marginBottom: 6,
-                    color: "#374151",
+                    color: colors.body,
                   }}
                 >
+                  <span
+                    style={{
+                      width: 5,
+                      height: 5,
+                      marginTop: 5,
+                      flexShrink: 0,
+                      borderRadius: "50%",
+                      background: colors.mutedSage,
+                    }}
+                  />
                   {skill}
                 </div>
               ))}
@@ -131,13 +189,14 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
                 <div
                   key={item.id}
                   style={{
-                    marginBottom: 13,
+                    marginBottom: 16,
                   }}
                 >
                   <div
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
+                      color: colors.text,
                     }}
                   >
                     {item.degree}
@@ -146,9 +205,9 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
                   {item.field && (
                     <div
                       style={{
-                        marginTop: 2,
+                        marginTop: 3,
                         fontSize: 9,
-                        color: "#6b7280",
+                        color: colors.body,
                       }}
                     >
                       {item.field}
@@ -157,22 +216,37 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
 
                   <div
                     style={{
-                      marginTop: 3,
+                      marginTop: 4,
                       fontSize: 9,
-                      color: "#6b7280",
+                      fontWeight: 600,
+                      color: colors.sage,
                     }}
                   >
                     {item.institution}
                   </div>
 
-                  {item.endDate && (
+                  {item.location && (
                     <div
                       style={{
                         marginTop: 2,
                         fontSize: 8.5,
-                        color: "#9ca3af",
+                        color: colors.muted,
                       }}
                     >
+                      {item.location}
+                    </div>
+                  )}
+
+                  {(item.startDate || item.endDate) && (
+                    <div
+                      style={{
+                        marginTop: 3,
+                        fontSize: 8.5,
+                        color: colors.muted,
+                      }}
+                    >
+                      {item.startDate}
+                      {item.startDate && item.endDate ? " — " : ""}
                       {item.endDate}
                     </div>
                   )}
@@ -187,17 +261,24 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
                 <div
                   key={item.id}
                   style={{
-                    marginBottom: 10,
+                    marginBottom: 13,
                     fontSize: 9,
                   }}
                 >
-                  <strong>{item.name}</strong>
+                  <strong
+                    style={{
+                      color: colors.text,
+                      fontSize: 9.5,
+                    }}
+                  >
+                    {item.name}
+                  </strong>
 
                   {item.issuer && (
                     <div
                       style={{
-                        marginTop: 2,
-                        color: "#6b7280",
+                        marginTop: 3,
+                        color: colors.body,
                       }}
                     >
                       {item.issuer}
@@ -207,8 +288,8 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
                   {item.date && (
                     <div
                       style={{
-                        marginTop: 1,
-                        color: "#9ca3af",
+                        marginTop: 2,
+                        color: colors.muted,
                       }}
                     >
                       {item.date}
@@ -220,39 +301,42 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
           )}
         </aside>
 
-        {/* Main content */}
+        {/* Main resume sections */}
         <div
           style={{
-            padding: "28px 30px 40px",
+            padding: "30px 30px 40px",
+            minWidth: 0,
           }}
         >
           {resume.summary && (
-            <MainSection title="About">
+            <MainSection title="Professional Summary">
               <p style={bodyText}>{resume.summary}</p>
             </MainSection>
           )}
 
           {resume.experience.length > 0 && (
-            <MainSection title="Experience">
+            <MainSection title="Work Experience">
               {resume.experience.map((item) => (
                 <article
                   key={item.id}
                   style={{
                     position: "relative",
                     paddingLeft: 17,
-                    marginBottom: 19,
-                    borderLeft: "2px solid #d1d5db",
+                    marginBottom: 21,
+                    borderLeft: `2px solid ${colors.border}`,
                   }}
                 >
                   <div
                     style={{
                       position: "absolute",
                       left: -5,
-                      top: 3,
+                      top: 4,
                       width: 8,
                       height: 8,
                       borderRadius: "50%",
-                      background: "#111827",
+                      background: colors.sage,
+                      border: `2px solid ${colors.paper}`,
+                      boxSizing: "content-box",
                     }}
                   />
 
@@ -260,10 +344,11 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
-                      gap: 15,
+                      alignItems: "flex-start",
+                      gap: 12,
                     }}
                   >
-                    <div>
+                    <div style={{ minWidth: 0 }}>
                       <div style={itemTitle}>{item.position}</div>
 
                       <div style={muted}>
@@ -274,7 +359,8 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
 
                     <div style={dateStyle}>
                       {item.startDate}
-                      {(item.startDate || item.endDate) && " — "}
+                      {(item.startDate || item.endDate || item.current) &&
+                        " — "}
                       {item.current ? "Present" : item.endDate}
                     </div>
                   </div>
@@ -292,12 +378,14 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
           )}
 
           {resume.projects.length > 0 && (
-            <MainSection title="Projects">
+            <MainSection title="Selected Projects">
               {resume.projects.map((project) => (
                 <article
                   key={project.id}
                   style={{
-                    marginBottom: 14,
+                    marginBottom: 17,
+                    paddingBottom: 12,
+                    borderBottom: `1px solid ${colors.border}`,
                   }}
                 >
                   <div style={itemTitle}>{project.name}</div>
@@ -307,7 +395,47 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
                   )}
 
                   {project.technologies.length > 0 && (
-                    <div style={muted}>{project.technologies.join(" · ")}</div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 5,
+                        marginTop: 8,
+                      }}
+                    >
+                      {project.technologies.map((technology) => (
+                        <span
+                          key={technology}
+                          style={{
+                            padding: "3px 7px",
+                            borderRadius: 4,
+                            background: colors.softSage,
+                            color: colors.sage,
+                            fontSize: 8,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {technology}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {(project.url || project.github) && (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "5px 12px",
+                        marginTop: 7,
+                        fontSize: 8.5,
+                        color: colors.mutedSage,
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {project.url && <span>{project.url}</span>}
+                      {project.github && <span>{project.github}</span>}
+                    </div>
                   )}
                 </article>
               ))}
@@ -325,6 +453,14 @@ export default function CreativeTemplate({ resume }: ResumeTemplateProps) {
           )}
         </div>
       </main>
+
+      {/* Footer accent */}
+      <footer
+        style={{
+          height: 5,
+          background: `linear-gradient(to right, ${colors.sage}, ${colors.mutedSage}, ${colors.champagne})`,
+        }}
+      />
     </div>
   );
 }
@@ -334,18 +470,20 @@ function SideSection({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <section style={{ marginBottom: 26 }}>
+    <section style={{ marginBottom: 27 }}>
       <h2
         style={{
-          margin: "0 0 12px",
+          margin: "0 0 14px",
+          paddingBottom: 8,
+          borderBottom: `1px solid ${colors.border}`,
           fontSize: 9,
           fontWeight: 800,
-          letterSpacing: "0.15em",
+          letterSpacing: "0.14em",
           textTransform: "uppercase",
-          color: "#111827",
+          color: colors.sage,
         }}
       >
         {title}
@@ -361,29 +499,31 @@ function MainSection({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <section style={{ marginBottom: 25 }}>
+    <section style={{ marginBottom: 26 }}>
       <h2
         style={{
-          margin: "0 0 12px",
-          fontSize: 11,
-          fontWeight: 800,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "#111827",
           display: "flex",
           alignItems: "center",
-          gap: 8,
+          gap: 9,
+          margin: "0 0 15px",
+          fontSize: 11,
+          fontWeight: 800,
+          letterSpacing: "0.11em",
+          textTransform: "uppercase",
+          color: colors.sage,
         }}
       >
         <span
           style={{
-            width: 20,
+            width: 19,
             height: 2,
-            background: "#111827",
+            borderRadius: 4,
+            background: colors.mutedSage,
             display: "inline-block",
+            flexShrink: 0,
           }}
         />
 
@@ -395,33 +535,36 @@ function MainSection({
   );
 }
 
-const itemTitle: React.CSSProperties = {
+const itemTitle: CSSProperties = {
   fontSize: 12,
   fontWeight: 700,
-  color: "#111827",
+  color: colors.text,
 };
 
-const muted: React.CSSProperties = {
-  marginTop: 3,
+const muted: CSSProperties = {
+  marginTop: 4,
   fontSize: 9.5,
-  color: "#6b7280",
+  color: colors.body,
 };
 
-const dateStyle: React.CSSProperties = {
+const dateStyle: CSSProperties = {
+  flexShrink: 0,
   fontSize: 8.5,
-  color: "#9ca3af",
+  color: colors.muted,
   whiteSpace: "nowrap",
 };
 
-const bodyText: React.CSSProperties = {
+const bodyText: CSSProperties = {
   margin: 0,
   fontSize: 10,
-  color: "#374151",
+  lineHeight: 1.65,
+  color: colors.body,
 };
 
-const bulletList: React.CSSProperties = {
-  margin: "7px 0 0",
+const bulletList: CSSProperties = {
+  margin: "8px 0 0",
   paddingLeft: 17,
   fontSize: 9.5,
-  color: "#374151",
+  lineHeight: 1.65,
+  color: colors.body,
 };

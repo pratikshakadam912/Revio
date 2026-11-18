@@ -1,4 +1,18 @@
+import type { CSSProperties, ReactNode } from "react";
 import type { ResumeTemplateProps } from "./templateTypes";
+
+const colors = {
+  paper: "#FFFFFF",
+  ivory: "#F7F5EF",
+  sage: "#315E50",
+  mutedSage: "#719681",
+  champagne: "#D9C5A2",
+  text: "#263B33",
+  body: "#59665E",
+  muted: "#858A83",
+  border: "#E7E5DC",
+  softSage: "#F0F4EF",
+};
 
 export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
   return (
@@ -6,12 +20,12 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
       style={{
         width: "100%",
         minHeight: "100%",
-        background: "#fff",
-        color: "#18212f",
+        background: colors.paper,
+        color: colors.text,
         fontFamily: "Arial, Helvetica, sans-serif",
         padding: "42px 48px",
         boxSizing: "border-box",
-        lineHeight: 1.45,
+        lineHeight: 1.5,
       }}
     >
       <header
@@ -19,8 +33,10 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
           display: "grid",
           gridTemplateColumns: "1fr 190px",
           gap: 28,
-          paddingBottom: 22,
-          borderBottom: "2px solid #18212f",
+          padding: "25px 26px 24px",
+          background: colors.ivory,
+          borderTop: `4px solid ${colors.sage}`,
+          borderBottom: `1px solid ${colors.border}`,
         }}
       >
         <div>
@@ -28,10 +44,10 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
             style={{
               fontSize: 9,
               fontWeight: 700,
-              letterSpacing: "0.2em",
+              letterSpacing: "0.22em",
               textTransform: "uppercase",
-              color: "#6b7280",
-              marginBottom: 8,
+              color: colors.mutedSage,
+              marginBottom: 11,
             }}
           >
             Executive Profile
@@ -41,8 +57,10 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
             style={{
               margin: 0,
               fontSize: 31,
-              lineHeight: 1.05,
+              lineHeight: 1.12,
               fontWeight: 800,
+              letterSpacing: "-0.035em",
+              color: colors.text,
             }}
           >
             {resume.name || "Your Name"}
@@ -51,24 +69,35 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
           {resume.title && (
             <div
               style={{
-                marginTop: 8,
-                fontSize: 14,
+                marginTop: 9,
+                fontSize: 13,
                 fontWeight: 600,
-                color: "#4b5563",
+                color: colors.sage,
+                letterSpacing: "0.015em",
               }}
             >
               {resume.title}
             </div>
           )}
+
+          <div
+            style={{
+              width: 42,
+              height: 3,
+              background: colors.champagne,
+              marginTop: 17,
+            }}
+          />
         </div>
 
         <div
           style={{
-            borderLeft: "1px solid #d1d5db",
+            borderLeft: `1px solid ${colors.border}`,
             paddingLeft: 18,
             fontSize: 9.5,
-            color: "#4b5563",
-            lineHeight: 1.75,
+            color: colors.body,
+            lineHeight: 1.85,
+            overflowWrap: "anywhere",
           }}
         >
           {resume.email && <div>{resume.email}</div>}
@@ -95,10 +124,15 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
                 display: "grid",
                 gridTemplateColumns: "135px 1fr",
                 gap: 20,
-                marginBottom: 20,
+                marginBottom: 21,
               }}
             >
-              <div>
+              <div
+                style={{
+                  borderLeft: `2px solid ${colors.champagne}`,
+                  paddingLeft: 11,
+                }}
+              >
                 <div style={dateStyle}>
                   {item.startDate}
                   {(item.startDate || item.endDate) && " — "}
@@ -110,7 +144,7 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
                     style={{
                       marginTop: 5,
                       fontSize: 9.5,
-                      color: "#6b7280",
+                      color: colors.muted,
                     }}
                   >
                     {item.location}
@@ -120,7 +154,6 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
 
               <div>
                 <div style={positionStyle}>{item.position}</div>
-
                 <div style={companyStyle}>{item.company}</div>
 
                 {item.description.length > 0 && (
@@ -141,6 +174,7 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: 35,
+          alignItems: "start",
         }}
       >
         {resume.skills.length > 0 && (
@@ -149,7 +183,7 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                gap: 7,
+                gap: 9,
                 fontSize: 10,
               }}
             >
@@ -157,8 +191,9 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
                 <div
                   key={skill}
                   style={{
-                    paddingBottom: 5,
-                    borderBottom: "1px solid #e5e7eb",
+                    padding: "5px 0",
+                    borderBottom: `1px solid ${colors.border}`,
+                    color: colors.body,
                   }}
                 >
                   {skill}
@@ -171,7 +206,7 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
         {resume.education.length > 0 && (
           <Section title="Education">
             {resume.education.map((item) => (
-              <article key={item.id} style={{ marginBottom: 12 }}>
+              <article key={item.id} style={{ marginBottom: 14 }}>
                 <div style={positionStyle}>
                   {item.degree}
                   {item.field ? `, ${item.field}` : ""}
@@ -182,9 +217,9 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
                 {(item.startDate || item.endDate) && (
                   <div
                     style={{
-                      marginTop: 2,
+                      marginTop: 3,
                       fontSize: 9.5,
-                      color: "#6b7280",
+                      color: colors.muted,
                     }}
                   >
                     {item.startDate}
@@ -203,7 +238,9 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
             <article
               key={project.id}
               style={{
-                marginBottom: 13,
+                marginBottom: 15,
+                paddingLeft: 13,
+                borderLeft: `2px solid ${colors.champagne}`,
               }}
             >
               <div style={positionStyle}>{project.name}</div>
@@ -215,9 +252,10 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
               {project.technologies.length > 0 && (
                 <div
                   style={{
-                    marginTop: 4,
+                    marginTop: 5,
                     fontSize: 9.5,
-                    color: "#6b7280",
+                    color: colors.mutedSage,
+                    fontWeight: 600,
                   }}
                 >
                   {project.technologies.join(" · ")}
@@ -234,21 +272,32 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 8,
+              gap: 12,
               fontSize: 10,
             }}
           >
             {resume.certifications.map((item) => (
-              <div key={item.id}>
-                <strong>{item.name}</strong>
-                {item.issuer ? ` — ${item.issuer}` : ""}
+              <div
+                key={item.id}
+                style={{
+                  padding: "9px 11px",
+                  background: colors.ivory,
+                  border: `1px solid ${colors.border}`,
+                }}
+              >
+                <strong style={{ color: colors.text }}>{item.name}</strong>
+                {item.issuer && (
+                  <div style={{ marginTop: 3, color: colors.body }}>
+                    {item.issuer}
+                  </div>
+                )}
                 {item.date && (
                   <span
                     style={{
                       display: "block",
-                      marginTop: 2,
+                      marginTop: 3,
                       fontSize: 9,
-                      color: "#6b7280",
+                      color: colors.muted,
                     }}
                   >
                     {item.date}
@@ -269,29 +318,52 @@ export default function ExecutiveTemplate({ resume }: ResumeTemplateProps) {
           </ul>
         </Section>
       )}
+
+      <footer
+        style={{
+          marginTop: 30,
+          paddingTop: 10,
+          borderTop: `1px solid ${colors.border}`,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 8,
+            color: colors.muted,
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+          }}
+        >
+          Executive Profile
+        </span>
+        <span
+          style={{
+            width: 28,
+            height: 2,
+            background: colors.champagne,
+          }}
+        />
+      </footer>
     </div>
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section style={{ marginTop: 23 }}>
       <h2
         style={{
-          margin: "0 0 11px",
-          paddingBottom: 6,
-          borderBottom: "1px solid #d1d5db",
+          margin: "0 0 12px",
+          paddingBottom: 8,
+          borderBottom: `1px solid ${colors.border}`,
           fontSize: 10,
           fontWeight: 800,
-          letterSpacing: "0.16em",
+          letterSpacing: "0.17em",
           textTransform: "uppercase",
-          color: "#374151",
+          color: colors.sage,
         }}
       >
         {title}
@@ -302,34 +374,36 @@ function Section({
   );
 }
 
-const positionStyle: React.CSSProperties = {
+const positionStyle: CSSProperties = {
   fontSize: 12,
   fontWeight: 700,
-  color: "#18212f",
+  color: colors.text,
 };
 
-const companyStyle: React.CSSProperties = {
+const companyStyle: CSSProperties = {
   marginTop: 3,
   fontSize: 10.5,
   fontWeight: 600,
-  color: "#4b5563",
+  color: colors.mutedSage,
 };
 
-const dateStyle: React.CSSProperties = {
+const dateStyle: CSSProperties = {
   fontSize: 9.5,
-  color: "#6b7280",
-  lineHeight: 1.5,
+  color: colors.muted,
+  lineHeight: 1.6,
 };
 
-const bodyText: React.CSSProperties = {
+const bodyText: CSSProperties = {
   margin: "6px 0 0",
   fontSize: 10.5,
-  color: "#374151",
+  lineHeight: 1.7,
+  color: colors.body,
 };
 
-const bulletList: React.CSSProperties = {
-  margin: "7px 0 0",
+const bulletList: CSSProperties = {
+  margin: "8px 0 0",
   paddingLeft: 18,
   fontSize: 10.5,
-  color: "#374151",
+  lineHeight: 1.7,
+  color: colors.body,
 };
