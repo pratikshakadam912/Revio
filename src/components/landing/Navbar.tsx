@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, ChevronDown, Menu, Sparkles, X } from "lucide-react";
-
-import { Button } from "../ui/Button";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, ChevronDown, Command, Menu, X } from "lucide-react";
 
 const navigationLinks = [
   { label: "Features", href: "/features" },
@@ -15,18 +13,12 @@ const navigationLinks = [
   { label: "How it works", href: "/#how-it-works" },
 ];
 
+const ease = [0.22, 1, 0.36, 1] as const;
+
 export function Navbar() {
   const pathname = usePathname();
-  const [intro, setIntro] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setIntro(false);
-    }, 1200);
-
-    return () => window.clearTimeout(timer);
-  }, []);
+  const reduceMotion = useReducedMotion() ?? false;
 
   useEffect(() => {
     setMobileOpen(false);
@@ -35,11 +27,9 @@ export function Navbar() {
   useEffect(() => {
     if (!mobileOpen) return;
 
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setMobileOpen(false);
-      }
-    }
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
 
     window.addEventListener("keydown", handleEscape);
 
@@ -48,241 +38,290 @@ export function Navbar() {
 
   return (
     <>
+      {/* =====================================================
+          DESKTOP + MOBILE NAVBAR
+      ===================================================== */}
+
       <motion.header
-        initial={{ y: -30, opacity: 0 }}
+        initial={reduceMotion ? false : { y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed inset-x-0 top-0 z-50 w-full selection:bg-indigo-500 selection:text-white"
+        transition={{
+          duration: 0.6,
+          ease,
+        }}
+        className="fixed inset-x-0 top-0 z-50 w-full selection:bg-[#315E50] selection:text-white"
       >
-        <motion.div
-          initial={{ height: 92 }}
-          animate={{ height: 72 }}
-          transition={{
-            delay: 0.35,
-            duration: 0.8,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-          className="relative w-full overflow-visible border-b border-white/[0.08] bg-[#0A0D14]/80 shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
-        >
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
+        {/* Premium glass header */}
+        <div className="relative border-b border-[#E5E5D9]/80 bg-[#FAF9F5]/85 shadow-[0_4px_24px_rgba(49,94,80,0.035)] backdrop-blur-2xl">
+          {/* Top specular highlight */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
 
-          <div className="pointer-events-none absolute -left-20 -top-28 h-64 w-64 rounded-full bg-indigo-600/15 blur-[80px]" />
+          {/* Subtle bottom accent */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#B9D0BD]/40 to-transparent" />
 
-          <div className="pointer-events-none absolute right-[12%] -top-24 h-56 w-56 rounded-full bg-cyan-500/10 blur-[80px]" />
+          <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-12">
+            {/* =================================================
+                BRAND LOGO
+            ================================================= */}
 
-          <div className="relative flex h-[72px] w-full items-center px-5 sm:px-8 lg:px-12 xl:px-16">
             <Link
               href="/"
               aria-label="Revio home"
-              className="group relative flex shrink-0 items-center gap-3"
+              className="group flex shrink-0 items-center gap-3"
             >
               <motion.div
-                initial={{ scale: 0.8, rotate: -8 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{
-                  delay: 0.25,
-                  duration: 0.65,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_0_28px_rgba(6,182,212,0.45)]"
+                whileHover={
+                  reduceMotion ? undefined : { scale: 1.06, rotate: -3 }
+                }
+                whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+                transition={{ duration: 0.25 }}
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#527763]/20 bg-gradient-to-br from-[#527763] via-[#315E50] to-[#264B3F] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_5px_14px_rgba(49,94,80,0.20)]"
               >
-                <div className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-white/30 blur-sm" />
-                <Sparkles className="relative z-10 h-4 w-4" />
+                <Command className="h-[17px] w-[17px] text-[#F4F5EC]" />
+
+                {/* Small ambient glow */}
+                <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
               </motion.div>
 
-              <AnimatePresence mode="wait">
-                {intro ? (
-                  <motion.span
-                    key="intro"
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.3 }}
-                    className="text-[22px] font-black tracking-tight text-white"
-                  >
-                    Revio<span className="text-cyan-400">.</span>
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="brand"
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: "auto" }}
-                    transition={{ duration: 0.45 }}
-                    className="overflow-hidden whitespace-nowrap text-[20px] font-black tracking-tight text-white"
-                  >
-                    Revio<span className="text-cyan-400">.</span>
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              <div className="flex flex-col">
+                <span className="text-[20px] font-bold tracking-[-0.045em] text-[#29342E] transition-colors duration-300 group-hover:text-[#56836A]">
+                  Revio
+                </span>
+
+                <span className="-mt-0.5 font-mono text-[8px] font-medium tracking-[0.22em] text-[#98A096]">
+                  CAREER INTELLIGENCE
+                </span>
+              </div>
             </Link>
+
+            {/* =================================================
+                CENTER NAVIGATION
+            ================================================= */}
 
             <nav
               aria-label="Main navigation"
-              className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 md:flex"
+              className="hidden items-center gap-1 rounded-full border border-[#E5E6DC]/90 bg-white/65 p-1 shadow-[inset_0_1px_2px_rgba(49,94,80,0.025),0_2px_8px_rgba(49,94,80,0.025)] backdrop-blur-xl md:flex"
             >
-              {navigationLinks.map((item) => (
-                <NavLink
-                  key={item.label}
-                  href={item.href}
-                  active={
-                    item.href !== "/#how-it-works" &&
-                    (pathname === item.href ||
-                      (item.href === "/templates" &&
-                        pathname.startsWith("/templates")))
-                  }
-                >
-                  {item.label}
-                  {item.label === "Templates" && (
-                    <ChevronDown className="h-3 w-3 opacity-60 transition-transform duration-200 group-hover:rotate-180" />
-                  )}
-                </NavLink>
-              ))}
+              {navigationLinks.map((item) => {
+                const active =
+                  item.href !== "/#how-it-works" &&
+                  (pathname === item.href ||
+                    (item.href === "/templates" &&
+                      pathname.startsWith("/templates")));
+
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`group relative flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-300 ${
+                      active
+                        ? "bg-[#EAF1E9] text-[#315E50] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_3px_rgba(49,94,80,0.05)]"
+                        : "text-[#778178] hover:bg-[#F1F3EC] hover:text-[#315E50]"
+                    }`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="navbar-active-indicator"
+                        className="absolute inset-0 rounded-full bg-[#EAF1E9]"
+                        transition={{
+                          type: "spring",
+                          stiffness: 380,
+                          damping: 30,
+                        }}
+                      />
+                    )}
+
+                    <span className="relative z-10">{item.label}</span>
+
+                    {item.label === "Templates" && (
+                      <ChevronDown className="relative z-10 h-3 w-3 text-[#9AA59A] transition-transform duration-300 group-hover:rotate-180" />
+                    )}
+                  </Link>
+                );
+              })}
             </nav>
 
-            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            {/* =================================================
+                RIGHT ACTIONS
+            ================================================= */}
+
+            <div className="flex items-center gap-3">
+              {/* Login */}
               <Link
                 href="/login"
-                className="hidden rounded-xl px-4 py-2 text-sm font-medium text-slate-400 transition-all duration-200 hover:bg-white/[0.05] hover:text-white sm:block"
+                className="hidden rounded-lg px-3.5 py-2 text-[13px] font-semibold text-[#778178] transition-colors duration-300 hover:text-[#315E50] sm:block"
               >
                 Log in
               </Link>
 
-              <Link href="/resume/new" className="hidden sm:block">
-                <Button className="group relative h-10 overflow-hidden rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 px-5 text-sm font-bold text-white shadow-[0_0_25px_rgba(79,70,229,0.3)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_35px_rgba(6,182,212,0.45)]">
-                  <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+              {/* Primary CTA */}
+              <motion.div
+                whileHover={reduceMotion ? undefined : { y: -2 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.97 }}
+                transition={{ duration: 0.2 }}
+                className="hidden sm:block"
+              >
+                <Link
+                  href="/resume/new"
+                  className="group relative inline-flex h-10 items-center justify-center overflow-hidden rounded-xl bg-[#315E50] px-4 text-[13px] font-semibold text-white shadow-[0_5px_16px_rgba(49,94,80,0.18)] transition-all duration-300 hover:bg-[#264B3F] hover:shadow-[0_8px_22px_rgba(49,94,80,0.25)]"
+                >
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
 
-                  <span className="relative flex items-center gap-2">
-                    Get Started
-                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                  </span>
-                </Button>
-              </Link>
+                  <span className="relative">Get Started</span>
 
-              <button
+                  <ArrowRight className="relative ml-1.5 h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+              </motion.div>
+
+              {/* Mobile menu button */}
+              <motion.button
                 type="button"
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-navigation"
-                onClick={() => setMobileOpen((value) => !value)}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-slate-900/80 text-slate-300 transition-all hover:border-indigo-500/40 hover:bg-slate-800 hover:text-white md:hidden"
+                whileTap={reduceMotion ? undefined : { scale: 0.92 }}
+                onClick={() => setMobileOpen((prev) => !prev)}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#E2E5DA] bg-white/75 text-[#53675A] shadow-sm transition-all duration-300 hover:border-[#B9D0BD] hover:bg-[#EDF4ED] hover:text-[#315E50] md:hidden"
               >
-                {mobileOpen ? (
-                  <X className="h-5 w-5 text-cyan-400" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
-              </button>
+                <AnimatePresence mode="wait" initial={false}>
+                  {mobileOpen ? (
+                    <motion.span
+                      key="close"
+                      initial={
+                        reduceMotion ? false : { rotate: -90, opacity: 0 }
+                      }
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: 90, opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <X className="h-[18px] w-[18px]" />
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="menu"
+                      initial={
+                        reduceMotion ? false : { rotate: 90, opacity: 0 }
+                      }
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: -90, opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <Menu className="h-[18px] w-[18px]" />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
             </div>
           </div>
-        </motion.div>
+        </div>
+
+        {/* =====================================================
+            MOBILE DRAWER
+        ===================================================== */}
 
         <AnimatePresence>
           {mobileOpen && (
             <motion.div
               id="mobile-navigation"
-              initial={{ opacity: 0, y: -10 }}
+              initial={reduceMotion ? false : { opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="mx-3 mt-2 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl md:hidden"
+              exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
+              transition={{ duration: 0.22, ease }}
+              className="mx-4 mt-2 overflow-hidden rounded-2xl border border-[#E4E6DC] bg-[#FFFEFB]/95 p-3 shadow-[0_18px_50px_rgba(49,94,80,0.13)] backdrop-blur-2xl md:hidden"
             >
-              <nav aria-label="Mobile navigation">
-                {navigationLinks.map((item) => (
-                  <MobileLink
-                    key={item.label}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    active={
-                      item.href !== "/#how-it-works" && pathname === item.href
-                    }
-                  >
-                    {item.label}
-                  </MobileLink>
-                ))}
+              {/* Mobile brand header */}
+              <div className="mb-2 flex items-center justify-between border-b border-[#ECEAE1] px-2 pb-3 pt-1">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#315E50] text-white">
+                    <Command className="h-3.5 w-3.5" />
+                  </div>
+
+                  <span className="text-sm font-bold tracking-tight text-[#344139]">
+                    Revio
+                  </span>
+                </div>
+
+                <span className="font-mono text-[9px] tracking-wider text-[#A0A99F]">
+                  NAVIGATION
+                </span>
+              </div>
+
+              {/* Mobile links */}
+              <nav aria-label="Mobile navigation" className="space-y-1">
+                {navigationLinks.map((item, index) => {
+                  const active =
+                    item.href !== "/#how-it-works" &&
+                    (pathname === item.href ||
+                      (item.href === "/templates" &&
+                        pathname.startsWith("/templates")));
+
+                  return (
+                    <motion.div
+                      key={item.label}
+                      initial={reduceMotion ? false : { opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{
+                        delay: reduceMotion ? 0 : index * 0.045,
+                        duration: 0.2,
+                      }}
+                    >
+                      <Link
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        aria-current={active ? "page" : undefined}
+                        className={`group flex h-12 items-center justify-between rounded-xl px-3.5 text-sm font-medium transition-all duration-200 ${
+                          active
+                            ? "bg-[#EAF1E9] text-[#315E50]"
+                            : "text-[#657268] hover:bg-[#F2F4EE] hover:text-[#315E50]"
+                        }`}
+                      >
+                        <span>{item.label}</span>
+
+                        <ArrowRight
+                          className={`h-4 w-4 transition-all duration-200 group-hover:translate-x-1 ${
+                            active ? "text-[#56836A]" : "text-[#ADB5A9]"
+                          }`}
+                        />
+                      </Link>
+                    </motion.div>
+                  );
+                })}
               </nav>
 
-              <div className="my-2 h-px bg-white/[0.08]" />
+              <div className="my-3 h-px bg-gradient-to-r from-transparent via-[#E4E5DA] to-transparent" />
 
-              <Link
-                href="/login"
-                onClick={() => setMobileOpen(false)}
-                className="flex h-11 items-center justify-between rounded-xl px-4 text-sm font-medium text-slate-300 transition-colors hover:bg-white/[0.05] hover:text-white"
-              >
-                <span>Log in</span>
-                <ArrowRight className="h-4 w-4 text-slate-500" />
-              </Link>
+              {/* Mobile CTA actions */}
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex h-11 items-center justify-center rounded-xl border border-[#E1E4D9] bg-white text-sm font-semibold text-[#607066] transition-all duration-200 hover:border-[#B9D0BD] hover:bg-[#F4F6F0] hover:text-[#315E50]"
+                >
+                  Log in
+                </Link>
 
-              <Link
-                href="/resume/new"
-                onClick={() => setMobileOpen(false)}
-                className="mt-2 flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 px-4 text-sm font-bold text-white transition hover:opacity-90"
-              >
-                Get Started
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+                <Link
+                  href="/resume/new"
+                  onClick={() => setMobileOpen(false)}
+                  className="group flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[#315E50] text-sm font-semibold text-white shadow-[0_4px_12px_rgba(49,94,80,0.15)] transition-all duration-200 hover:bg-[#264B3F]"
+                >
+                  Get Started
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+                </Link>
+              </div>
+
+              {/* Footer detail */}
+              <p className="mt-3 text-center font-mono text-[9px] tracking-[0.14em] text-[#A2AA9F]">
+                BUILD YOUR NEXT OPPORTUNITY
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
       </motion.header>
 
-      <div className="h-[74px]" />
+      {/* Header spacing */}
+      <div className="h-[72px]" />
     </>
-  );
-}
-
-function NavLink({
-  href,
-  children,
-  active = false,
-}: {
-  href: string;
-  children: React.ReactNode;
-  active?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={`group relative flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-semibold transition-all duration-200 ${
-        active ? "text-white" : "text-slate-400 hover:text-white"
-      }`}
-    >
-      {children}
-      <span
-        className={`pointer-events-none absolute bottom-1 left-1/2 h-[2px] -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)] transition-all duration-300 ${
-          active
-            ? "w-5 opacity-100"
-            : "w-0 opacity-0 group-hover:w-5 group-hover:opacity-100"
-        }`}
-      />
-    </Link>
-  );
-}
-
-function MobileLink({
-  href,
-  children,
-  onClick,
-  active = false,
-}: {
-  href: string;
-  children: React.ReactNode;
-  onClick?: () => void;
-  active?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      className={`group flex h-12 items-center justify-between rounded-xl px-4 text-sm font-medium transition-all ${
-        active
-          ? "bg-indigo-500/10 text-cyan-300"
-          : "text-slate-300 hover:bg-indigo-500/10 hover:text-cyan-300"
-      }`}
-    >
-      <span>{children}</span>
-      <ArrowRight className="h-4 w-4 text-slate-500 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-cyan-400" />
-    </Link>
   );
 }
