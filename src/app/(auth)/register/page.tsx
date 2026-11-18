@@ -5,37 +5,38 @@ import { RegisterForm } from "@/components/auth/RegisterForm";
 
 export default function RegisterPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0A0D14] text-slate-100 selection:bg-indigo-500 selection:text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[#F7F5EF] text-[#263B33] selection:bg-[#315E50] selection:text-white">
       {/* ============================================================
-          DYNAMIC BACKGROUND ATMOSPHERE
+          WARM BACKGROUND ATMOSPHERE
       ============================================================ */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* Electric indigo glow — top left */}
-        <div className="absolute -left-[280px] -top-[260px] h-[750px] w-[750px] rounded-full bg-gradient-to-br from-indigo-600/25 via-sky-500/10 to-transparent blur-[140px]" />
+        {/* Sage glow — top left */}
+        <div className="absolute -left-[280px] -top-[260px] h-[750px] w-[750px] rounded-full bg-gradient-to-br from-[#719681]/25 via-[#D9C5A2]/20 to-transparent blur-[140px]" />
 
-        {/* Cyan ambient glow — top right */}
-        <div className="absolute -right-[280px] top-[10%] h-[700px] w-[700px] rounded-full bg-gradient-to-bl from-cyan-500/20 via-indigo-600/10 to-transparent blur-[140px]" />
+        {/* Champagne glow — top right */}
+        <div className="absolute -right-[280px] top-[10%] h-[700px] w-[700px] rounded-full bg-gradient-to-bl from-[#D9C5A2]/35 via-[#719681]/10 to-transparent blur-[140px]" />
 
         {/* Ambient center field */}
-        <div className="absolute left-1/2 top-1/2 h-[550px] w-[850px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-950/30 blur-[170px]" />
+        <div className="absolute left-1/2 top-1/2 h-[550px] w-[850px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#719681]/10 blur-[170px]" />
 
         {/* Bottom ambient glow */}
-        <div className="absolute -bottom-[400px] left-1/2 h-[750px] w-[1000px] -translate-x-1/2 rounded-full bg-gradient-to-t from-cyan-500/15 via-indigo-600/10 to-transparent blur-[160px]" />
+        <div className="absolute -bottom-[400px] left-1/2 h-[750px] w-[1000px] -translate-x-1/2 rounded-full bg-gradient-to-t from-[#D9C5A2]/30 via-[#719681]/10 to-transparent blur-[160px]" />
 
-        {/* Precise radial matrix grid */}
+        {/* Subtle radial grid */}
         <div
-          className="absolute inset-0 opacity-[0.045]"
+          className="absolute inset-0 opacity-[0.035]"
           style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)`,
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, #315E50 1px, transparent 0)",
             backgroundSize: "36px 36px",
           }}
         />
 
-        {/* Ambient neon particles */}
-        <div className="absolute left-[10%] top-[22%] h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.9)]" />
-        <div className="absolute left-[28%] bottom-[18%] h-1 w-1 rounded-full bg-indigo-400" />
-        <div className="absolute right-[12%] top-[30%] h-1.5 w-1.5 rounded-full bg-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.8)]" />
-        <div className="absolute right-[30%] bottom-[20%] h-1 w-1 rounded-full bg-cyan-400" />
+        {/* Ambient decorative particles */}
+        <div className="absolute left-[10%] top-[22%] h-1.5 w-1.5 rounded-full bg-[#719681] shadow-[0_0_15px_rgba(113,150,129,0.6)]" />
+        <div className="absolute left-[28%] bottom-[18%] h-1 w-1 rounded-full bg-[#D9C5A2]" />
+        <div className="absolute right-[12%] top-[30%] h-1.5 w-1.5 rounded-full bg-[#B97862] shadow-[0_0_15px_rgba(185,120,98,0.4)]" />
+        <div className="absolute right-[30%] bottom-[20%] h-1 w-1 rounded-full bg-[#719681]" />
       </div>
 
       {/* ============================================================
@@ -50,36 +51,36 @@ export default function RegisterPage() {
             {/* Logo */}
             <Link
               href="/"
-              className="group inline-flex items-center gap-3 text-xl font-black tracking-tight text-white"
+              className="group inline-flex items-center gap-3 text-xl font-black tracking-tight text-[#263B33]"
             >
-              <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.35)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_0_28px_rgba(6,182,212,0.45)]">
+              <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-tr from-[#315E50] via-[#477965] to-[#719681] text-white shadow-[0_8px_22px_rgba(49,94,80,0.22)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_12px_28px_rgba(49,94,80,0.3)]">
                 <div className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-white/30 blur-sm" />
                 <Sparkles className="relative z-10 h-4 w-4" />
               </span>
               Revio
-              <span className="text-cyan-400">.</span>
+              <span className="text-[#719681]">.</span>
             </Link>
 
             <div className="mt-16 max-w-xl">
               {/* Eyebrow Pill */}
-              <div className="inline-flex items-center gap-2.5 rounded-full border border-indigo-500/30 bg-indigo-950/40 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.2)] backdrop-blur-md">
+              <div className="inline-flex items-center gap-2.5 rounded-full border border-[#719681]/25 bg-white/65 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#315E50] shadow-[0_4px_16px_rgba(49,94,80,0.06)] backdrop-blur-md">
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-cyan-400 opacity-75" />
-                  <span className="relative h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                  <span className="absolute inset-0 animate-ping rounded-full bg-[#719681] opacity-50" />
+                  <span className="relative h-2 w-2 rounded-full bg-[#719681]" />
                 </span>
                 Start Free with AI Credits
               </div>
 
               {/* Heading */}
-              <h1 className="mt-7 text-balance text-5xl font-black leading-[1.02] tracking-tight text-white xl:text-[64px]">
+              <h1 className="mt-7 text-balance text-5xl font-black leading-[1.02] tracking-tight text-[#263B33] xl:text-[64px]">
                 Your next role{" "}
-                <span className="bg-gradient-to-r from-indigo-400 via-cyan-300 to-sky-400 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#315E50] via-[#719681] to-[#B97862] bg-clip-text text-transparent">
                   starts here.
                 </span>
               </h1>
 
               {/* Description */}
-              <p className="mt-6 max-w-lg text-base leading-relaxed text-slate-400">
+              <p className="mt-6 max-w-lg text-base leading-relaxed text-[#777D76]">
                 Join over 50,000+ candidates engineering high-converting resumes
                 with quantified STAR bullet points and instant ATS verification.
               </p>
@@ -94,9 +95,9 @@ export default function RegisterPage() {
                 ].map((item) => (
                   <div
                     key={item}
-                    className="flex items-center gap-3 text-sm font-medium text-slate-300"
+                    className="flex items-center gap-3 text-sm font-medium text-[#46594F]"
                   >
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#719681]/30 bg-[#719681]/10 text-[#315E50]">
                       <Check className="h-3.5 w-3.5" />
                     </span>
                     {item}
@@ -104,15 +105,17 @@ export default function RegisterPage() {
                 ))}
               </div>
 
-              {/* Bottom Telemetry Signal */}
-              <div className="mt-12 flex items-center gap-4 pt-6 border-t border-white/[0.08]">
-                <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-                  <ShieldCheck className="h-4 w-4 text-emerald-400" />
+              {/* Bottom Trust Indicators */}
+              <div className="mt-12 flex items-center gap-4 border-t border-[#315E50]/10 pt-6">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#777D76]">
+                  <ShieldCheck className="h-4 w-4 text-[#315E50]" />
                   <span>SOC2 Type II Certified</span>
                 </div>
-                <span className="h-1 w-1 rounded-full bg-slate-700" />
-                <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-                  <Zap className="h-4 w-4 text-cyan-400" />
+
+                <span className="h-1 w-1 rounded-full bg-[#D9C5A2]" />
+
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#777D76]">
+                  <Zap className="h-4 w-4 text-[#B97862]" />
                   <span>No credit card required</span>
                 </div>
               </div>
@@ -127,32 +130,32 @@ export default function RegisterPage() {
             <div className="mb-8 lg:hidden">
               <Link
                 href="/"
-                className="inline-flex items-center gap-2.5 text-xl font-black tracking-tight text-white"
+                className="inline-flex items-center gap-2.5 text-xl font-black tracking-tight text-[#263B33]"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white shadow-md">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#315E50] to-[#719681] text-white shadow-md">
                   <Sparkles className="h-4 w-4" />
                 </span>
                 Revio
-                <span className="text-cyan-400">.</span>
+                <span className="text-[#719681]">.</span>
               </Link>
             </div>
 
             {/* Outer Glass Shell */}
-            <div className="relative rounded-[36px] border border-white/10 bg-slate-900/60 p-2.5 shadow-[0_30px_100px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:p-3.5">
+            <div className="relative rounded-[36px] border border-white/90 bg-white/55 p-2.5 shadow-[0_30px_100px_rgba(49,59,48,0.10)] backdrop-blur-2xl sm:p-3.5">
               {/* Inner Shell */}
-              <div className="relative overflow-hidden rounded-[28px] border border-white/[0.07] bg-slate-950/85 px-6 py-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:px-9 sm:py-10">
-                {/* Top Border Glow Line */}
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
+              <div className="relative overflow-hidden rounded-[28px] border border-[#E7E5DC] bg-white/75 px-6 py-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] sm:px-9 sm:py-10">
+                {/* Top Accent Line */}
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#719681]/60 to-transparent" />
 
-                {/* Inner Glows */}
-                <div className="pointer-events-none absolute -left-32 -top-32 h-[380px] w-[380px] rounded-full bg-indigo-600/15 blur-[100px]" />
-                <div className="pointer-events-none absolute -bottom-32 -right-32 h-[350px] w-[350px] rounded-full bg-cyan-500/15 blur-[100px]" />
+                {/* Inner Ambient Glows */}
+                <div className="pointer-events-none absolute -left-32 -top-32 h-[380px] w-[380px] rounded-full bg-[#719681]/10 blur-[100px]" />
+                <div className="pointer-events-none absolute -bottom-32 -right-32 h-[350px] w-[350px] rounded-full bg-[#D9C5A2]/20 blur-[100px]" />
 
                 <div className="relative">
                   {/* Back Link */}
                   <Link
                     href="/"
-                    className="group inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 transition-colors hover:text-cyan-300"
+                    className="group inline-flex items-center gap-1.5 text-xs font-semibold text-[#858A83] transition-colors hover:text-[#315E50]"
                   >
                     <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-1" />
                     Back to Revio
@@ -160,32 +163,32 @@ export default function RegisterPage() {
 
                   {/* Header */}
                   <div className="mt-6">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-950/50 text-cyan-300 shadow-[0_0_25px_rgba(99,102,241,0.25)]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#719681]/25 bg-[#719681]/10 text-[#315E50] shadow-[0_6px_20px_rgba(49,94,80,0.08)]">
                       <Sparkles className="h-5 w-5" />
                     </div>
 
-                    <h2 className="mt-5 text-balance text-3xl font-black tracking-tight text-white sm:text-4xl">
+                    <h2 className="mt-5 text-balance text-3xl font-black tracking-tight text-[#263B33] sm:text-4xl">
                       Create your account.
                     </h2>
 
-                    <p className="mt-2 text-sm text-slate-400">
+                    <p className="mt-2 text-sm leading-relaxed text-[#777D76]">
                       Start building a resume engineered to convert recruiter
                       attention into interviews.
                     </p>
                   </div>
 
                   {/* Divider */}
-                  <div className="my-7 h-px bg-white/[0.08]" />
+                  <div className="my-7 h-px bg-[#E7E5DC]" />
 
                   {/* Register Form */}
                   <RegisterForm />
 
                   {/* Login Callout */}
-                  <p className="mt-7 text-center text-xs text-slate-400">
+                  <p className="mt-7 text-center text-xs text-[#858A83]">
                     Already have an account?{" "}
                     <Link
                       href="/login"
-                      className="font-bold text-cyan-400 transition-colors hover:text-cyan-300 hover:underline"
+                      className="font-bold text-[#315E50] transition-colors hover:text-[#719681] hover:underline"
                     >
                       Log in
                     </Link>
@@ -195,13 +198,19 @@ export default function RegisterPage() {
             </div>
 
             {/* Bottom Compliance Micro-copy */}
-            <p className="mt-5 text-center text-[11px] text-slate-500">
+            <p className="mt-5 text-center text-[11px] text-[#858A83]">
               By creating an account, you agree to Revio&apos;s{" "}
-              <Link href="/terms" className="underline hover:text-slate-300">
+              <Link
+                href="/terms"
+                className="underline decoration-[#719681]/40 underline-offset-2 transition-colors hover:text-[#315E50]"
+              >
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="underline hover:text-slate-300">
+              <Link
+                href="/privacy"
+                className="underline decoration-[#719681]/40 underline-offset-2 transition-colors hover:text-[#315E50]"
+              >
                 Privacy Policy
               </Link>
               .

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   Check,
@@ -14,6 +14,7 @@ import {
 
 export function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -21,6 +22,23 @@ export function RegisterForm() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function getSafeRedirectPath(): string {
+    const destination =
+      searchParams.get("redirect") || searchParams.get("callbackUrl");
+
+    if (
+      destination &&
+      destination.startsWith("/") &&
+      !destination.startsWith("//") &&
+      !destination.includes("\\") &&
+      !/[\r\n]/.test(destination)
+    ) {
+      return destination;
+    }
+
+    return "/dashboard";
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,8 +53,8 @@ export function RegisterForm() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name,
-          email,
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
           password,
         }),
       });
@@ -48,7 +66,11 @@ export function RegisterForm() {
         return;
       }
 
-      router.push("/login?registered=true");
+      const destination = getSafeRedirectPath();
+
+      router.push(
+        `/login?registered=true&redirect=${encodeURIComponent(destination)}`,
+      );
     } catch {
       setError("Unable to create your account. Please try again.");
     } finally {
@@ -58,19 +80,17 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* ============================================================
-          FULL NAME
-      ============================================================ */}
+      {/* Full name */}
       <div>
         <label
           htmlFor="name"
-          className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400"
+          className="mb-2 block text-xs font-bold uppercase tracking-wider text-[#858A83]"
         >
           Full name
         </label>
 
         <div className="group relative">
-          <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 transition-colors duration-200 group-focus-within:text-cyan-400" />
+          <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#858A83] transition-colors duration-200 group-focus-within:text-[#315E50]" />
 
           <input
             id="name"
@@ -82,24 +102,22 @@ export function RegisterForm() {
             required
             disabled={loading}
             autoComplete="name"
-            className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/60 pl-11 pr-4 text-sm text-white outline-none backdrop-blur-xl transition-all duration-300 placeholder:text-slate-600 hover:border-white/20 hover:bg-slate-900/60 focus:border-indigo-500/50 focus:bg-slate-900/80 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-12 w-full rounded-2xl border border-[#E7E5DC] bg-white/75 pl-11 pr-4 text-sm text-[#263B33] outline-none backdrop-blur-xl transition-all duration-300 placeholder:text-[#A5A79F] hover:border-[#719681]/40 hover:bg-white focus:border-[#719681] focus:bg-white focus:ring-4 focus:ring-[#719681]/10 disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
       </div>
 
-      {/* ============================================================
-          EMAIL ADDRESS
-      ============================================================ */}
+      {/* Email address */}
       <div>
         <label
           htmlFor="email"
-          className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400"
+          className="mb-2 block text-xs font-bold uppercase tracking-wider text-[#858A83]"
         >
           Work or personal email
         </label>
 
         <div className="group relative">
-          <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 transition-colors duration-200 group-focus-within:text-cyan-400" />
+          <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#858A83] transition-colors duration-200 group-focus-within:text-[#315E50]" />
 
           <input
             id="email"
@@ -111,24 +129,22 @@ export function RegisterForm() {
             required
             disabled={loading}
             autoComplete="email"
-            className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/60 pl-11 pr-4 text-sm text-white outline-none backdrop-blur-xl transition-all duration-300 placeholder:text-slate-600 hover:border-white/20 hover:bg-slate-900/60 focus:border-indigo-500/50 focus:bg-slate-900/80 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-12 w-full rounded-2xl border border-[#E7E5DC] bg-white/75 pl-11 pr-4 text-sm text-[#263B33] outline-none backdrop-blur-xl transition-all duration-300 placeholder:text-[#A5A79F] hover:border-[#719681]/40 hover:bg-white focus:border-[#719681] focus:bg-white focus:ring-4 focus:ring-[#719681]/10 disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
       </div>
 
-      {/* ============================================================
-          PASSWORD
-      ============================================================ */}
+      {/* Password */}
       <div>
         <label
           htmlFor="password"
-          className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400"
+          className="mb-2 block text-xs font-bold uppercase tracking-wider text-[#858A83]"
         >
           Password
         </label>
 
         <div className="group relative">
-          <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 transition-colors duration-200 group-focus-within:text-cyan-400" />
+          <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#858A83] transition-colors duration-200 group-focus-within:text-[#315E50]" />
 
           <input
             id="password"
@@ -141,35 +157,34 @@ export function RegisterForm() {
             minLength={8}
             disabled={loading}
             autoComplete="new-password"
-            className="h-12 w-full rounded-2xl border border-white/10 bg-slate-950/60 pl-11 pr-4 text-sm text-white outline-none backdrop-blur-xl transition-all duration-300 placeholder:text-slate-600 hover:border-white/20 hover:bg-slate-900/60 focus:border-indigo-500/50 focus:bg-slate-900/80 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-12 w-full rounded-2xl border border-[#E7E5DC] bg-white/75 pl-11 pr-4 text-sm text-[#263B33] outline-none backdrop-blur-xl transition-all duration-300 placeholder:text-[#A5A79F] hover:border-[#719681]/40 hover:bg-white focus:border-[#719681] focus:bg-white focus:ring-4 focus:ring-[#719681]/10 disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
 
-        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500">
-          <Check className="h-3 w-3 text-emerald-400" />
+        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[#858A83]">
+          <Check className="h-3 w-3 text-[#719681]" />
           <span>
             Must be at least 8 characters with a mix of letters and numbers
           </span>
         </div>
       </div>
 
-      {/* ============================================================
-          ERROR ALERT
-      ============================================================ */}
+      {/* Error alert */}
       {error && (
-        <div className="relative overflow-hidden rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3.5 backdrop-blur-xl">
-          <div className="pointer-events-none absolute -left-8 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-rose-500/20 blur-2xl" />
-
+        <div
+          role="alert"
+          className="relative overflow-hidden rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5"
+        >
           <div className="relative flex items-start gap-3">
-            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-rose-500/30 bg-rose-500/20 text-rose-400">
+            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-rose-200 bg-rose-100 text-rose-600">
               <AlertCircle className="h-3.5 w-3.5" />
             </div>
 
             <div>
-              <p className="text-xs font-bold text-rose-300">
+              <p className="text-xs font-bold text-rose-700">
                 Account creation failed
               </p>
-              <p className="mt-0.5 text-[11px] leading-4 text-rose-200/60">
+              <p className="mt-0.5 text-[11px] leading-4 text-rose-600">
                 {error}
               </p>
             </div>
@@ -177,16 +192,13 @@ export function RegisterForm() {
         </div>
       )}
 
-      {/* ============================================================
-          SUBMIT ACTION BUTTON
-      ============================================================ */}
+      {/* Submit button */}
       <button
         type="submit"
         disabled={loading}
-        className="group relative flex h-13 w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-sm font-bold text-white shadow-[0_0_30px_rgba(79,70,229,0.35)] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_40px_rgba(6,182,212,0.45)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+        className="group relative flex h-[52px] w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border border-[#315E50]/20 bg-gradient-to-r from-[#315E50] via-[#416F5D] to-[#719681] text-sm font-bold text-white shadow-[0_8px_24px_rgba(49,94,80,0.20)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(49,94,80,0.28)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
       >
-        {/* Shimmer sweep */}
-        <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+        <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
 
         <span className="relative flex items-center gap-2">
           {loading ? (
@@ -203,11 +215,9 @@ export function RegisterForm() {
         </span>
       </button>
 
-      {/* ============================================================
-          BOTTOM STATUS NOTE
-      ============================================================ */}
-      <div className="flex items-center justify-center gap-2 pt-1 text-xs text-slate-500">
-        <div className="flex h-5 w-5 items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-950/50 text-cyan-400">
+      {/* Bottom note */}
+      <div className="flex items-center justify-center gap-2 pt-1 text-xs text-[#858A83]">
+        <div className="flex h-5 w-5 items-center justify-center rounded-lg border border-[#719681]/25 bg-[#719681]/10 text-[#315E50]">
           <Sparkles className="h-3 w-3" />
         </div>
         <span>Includes 5 free AI STAR rewrites &bull; No CC required</span>
