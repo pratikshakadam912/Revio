@@ -169,8 +169,8 @@ function formatPrice(price: number) {
 
 function CheckItem({ children }: { children: React.ReactNode }) {
   return (
-    <li className="flex items-start gap-3 text-sm leading-6 text-zinc-600">
-      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+    <li className="flex items-start gap-3 text-sm leading-6 text-[#777D76]">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#719681]/15 text-[#315E50]">
         <Check className="h-3.5 w-3.5" />
       </span>
       <span>{children}</span>
@@ -180,18 +180,18 @@ function CheckItem({ children }: { children: React.ReactNode }) {
 
 function FeatureValue({ value }: { value: boolean | string }) {
   if (value === false) {
-    return <span className="text-zinc-300">—</span>;
+    return <span className="text-[#C9CBC3]">—</span>;
   }
 
   if (value === true) {
     return (
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#719681]/15 text-[#315E50]">
         <Check className="h-4 w-4" />
       </span>
     );
   }
 
-  return <span className="text-sm text-zinc-600">{value}</span>;
+  return <span className="text-sm text-[#777D76]">{value}</span>;
 }
 
 export default function PricingPage() {
@@ -212,37 +212,41 @@ export default function PricingPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-white text-zinc-950">
-      <section className="relative px-5 pb-16 pt-24 sm:px-8 sm:pb-20 sm:pt-32">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[540px] bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.10),_transparent_65%)]" />
+    <main className="relative min-h-screen overflow-hidden bg-[#F7F5EF] text-[#263B33]">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-40 top-0 h-[500px] w-[500px] rounded-full bg-[#719681]/10 blur-[120px]" />
+        <div className="absolute -right-40 top-[500px] h-[450px] w-[450px] rounded-full bg-[#D9C5A2]/20 blur-[120px]" />
+        <div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-[#B97862]/[0.07] blur-[120px]" />
+      </div>
 
+      <section className="relative px-5 pb-16 pt-24 sm:px-8 sm:pb-20 sm:pt-32">
         <div className="relative mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#315E50]/15 bg-white/65 px-4 py-2 text-xs font-semibold text-[#315E50] shadow-sm backdrop-blur-xl">
               <Sparkles className="h-4 w-4" />
               Simple, transparent pricing
             </div>
 
-            <h1 className="mt-7 text-4xl font-semibold tracking-[-0.045em] sm:text-6xl sm:leading-[1.08]">
+            <h1 className="mt-7 text-4xl font-semibold tracking-[-0.045em] text-[#263B33] sm:text-6xl sm:leading-[1.08]">
               Start free.
-              <span className="block bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-600 bg-clip-text pb-2 text-transparent">
+              <span className="block bg-gradient-to-r from-[#315E50] via-[#719681] to-[#B97862] bg-clip-text pb-2 text-transparent">
                 Grow your career.
               </span>
             </h1>
 
-            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-zinc-500 sm:text-lg sm:leading-8">
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[#777D76] sm:text-lg sm:leading-8">
               Build stronger resumes, understand your ATS compatibility, and
               prepare for your next opportunity with Revio. Start with the
               essentials and choose a plan that fits your job search.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-zinc-500">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-[#777D76]">
               <span className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-600" />
+                <Check className="h-4 w-4 text-[#315E50]" />
                 Start without a paid subscription
               </span>
               <span className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-600" />
+                <Check className="h-4 w-4 text-[#315E50]" />
                 Choose your plan when ready
               </span>
             </div>
@@ -250,7 +254,7 @@ export default function PricingPage() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <a
                 href="#plans"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-6 text-sm font-semibold text-white transition hover:bg-zinc-800"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#315E50] to-[#719681] px-6 text-sm font-semibold text-white shadow-lg shadow-[#315E50]/15 transition hover:-translate-y-0.5 hover:shadow-xl"
               >
                 Explore plans
                 <ArrowDown className="h-4 w-4" />
@@ -258,7 +262,7 @@ export default function PricingPage() {
 
               <Link
                 href="/resume/new"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-6 text-sm font-semibold text-zinc-800 transition hover:border-zinc-300 hover:bg-zinc-50"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#E7E5DC] bg-white/70 px-6 text-sm font-semibold text-[#315E50] shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#315E50]/25 hover:bg-white"
               >
                 Try Revio free
                 <ArrowRight className="h-4 w-4" />
@@ -268,30 +272,30 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section id="plans" className="scroll-mt-24 px-5 pb-24 sm:px-8">
+      <section id="plans" className="relative scroll-mt-24 px-5 pb-24 sm:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col items-center justify-between gap-5 sm:flex-row">
             <div>
-              <p className="text-sm font-semibold text-indigo-600">
+              <p className="text-sm font-semibold text-[#719681]">
                 Find your plan
               </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#263B33] sm:text-3xl">
                 The right tools for your next move
               </h2>
-              <p className="mt-2 text-sm leading-6 text-zinc-500">
+              <p className="mt-2 text-sm leading-6 text-[#777D76]">
                 Compare the options and choose what suits your goals.
               </p>
             </div>
 
-            <div className="inline-flex items-center gap-1 rounded-xl border border-zinc-200 bg-zinc-50 p-1">
+            <div className="inline-flex items-center gap-1 rounded-xl border border-[#E7E5DC] bg-white/60 p-1 shadow-sm backdrop-blur-xl">
               <button
                 type="button"
                 onClick={() => setBilling("monthly")}
                 aria-pressed={billing === "monthly"}
                 className={`rounded-lg px-4 py-2.5 text-sm font-medium transition ${
                   billing === "monthly"
-                    ? "bg-white text-zinc-950 shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-800"
+                    ? "bg-[#315E50] text-white shadow-sm"
+                    : "text-[#777D76] hover:text-[#263B33]"
                 }`}
               >
                 Monthly
@@ -302,12 +306,18 @@ export default function PricingPage() {
                 aria-pressed={billing === "yearly"}
                 className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition ${
                   billing === "yearly"
-                    ? "bg-white text-zinc-950 shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-800"
+                    ? "bg-[#315E50] text-white shadow-sm"
+                    : "text-[#777D76] hover:text-[#263B33]"
                 }`}
               >
                 Yearly
-                <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                <span
+                  className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+                    billing === "yearly"
+                      ? "bg-white/20 text-white"
+                      : "bg-[#719681]/15 text-[#315E50]"
+                  }`}
+                >
                   SAVE
                 </span>
               </button>
@@ -329,25 +339,31 @@ export default function PricingPage() {
               return (
                 <article
                   key={plan.id}
-                  className={`relative flex flex-col rounded-3xl border p-6 transition sm:p-8 ${
+                  className={`relative flex flex-col rounded-3xl border p-6 backdrop-blur-xl transition duration-300 hover:-translate-y-1 sm:p-8 ${
                     plan.highlighted
-                      ? "border-indigo-600 bg-white shadow-[0_20px_70px_rgba(79,70,229,0.12)] ring-1 ring-indigo-600"
-                      : "border-zinc-200 bg-white shadow-sm hover:border-zinc-300"
-                  } ${isSelected ? "ring-2 ring-cyan-500" : ""}`}
+                      ? "border-[#315E50]/35 bg-white/85 shadow-[0_20px_70px_rgba(49,94,80,0.13)]"
+                      : "border-white/90 bg-white/60 shadow-[0_12px_35px_rgba(38,59,51,0.06)] hover:border-[#315E50]/20 hover:shadow-[0_18px_45px_rgba(38,59,51,0.09)]"
+                  } ${isSelected ? "ring-2 ring-[#D9C5A2]" : ""}`}
                 >
                   {plan.badge && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-1.5 text-xs font-semibold text-white shadow-lg">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#315E50] to-[#719681] px-4 py-1.5 text-xs font-semibold text-white shadow-lg shadow-[#315E50]/20">
                       {plan.badge}
                     </div>
                   )}
 
                   {isSelected && (
-                    <div className="absolute right-5 top-5 rounded-full bg-cyan-50 px-2.5 py-1 text-[10px] font-bold text-cyan-700">
+                    <div className="absolute right-5 top-5 rounded-full bg-[#D9C5A2]/25 px-2.5 py-1 text-[10px] font-bold text-[#315E50]">
                       Selected
                     </div>
                   )}
 
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-800">
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${
+                      plan.id === "career"
+                        ? "border-[#D9C5A2]/40 bg-[#D9C5A2]/20 text-[#9A7442]"
+                        : "border-[#315E50]/10 bg-[#315E50]/[0.07] text-[#315E50]"
+                    }`}
+                  >
                     {plan.id === "free" ? (
                       <FileText className="h-5 w-5" />
                     ) : plan.id === "pro" ? (
@@ -357,42 +373,44 @@ export default function PricingPage() {
                     )}
                   </div>
 
-                  <h3 className="mt-5 text-xl font-semibold">{plan.name}</h3>
-                  <p className="mt-2 min-h-12 text-sm leading-6 text-zinc-500">
+                  <h3 className="mt-5 text-xl font-semibold text-[#263B33]">
+                    {plan.name}
+                  </h3>
+                  <p className="mt-2 min-h-12 text-sm leading-6 text-[#777D76]">
                     {plan.description}
                   </p>
 
                   <div className="mt-6 min-h-[90px]">
                     <div className="flex flex-wrap items-baseline gap-1.5">
-                      <span className="text-4xl font-semibold tracking-tight">
+                      <span className="text-4xl font-semibold tracking-tight text-[#263B33]">
                         {price === 0 ? "Free" : `₹${formatPrice(price)}`}
                       </span>
                       {price > 0 && (
-                        <span className="text-sm text-zinc-500">
+                        <span className="text-sm text-[#858A83]">
                           /{billing === "monthly" ? "month" : "year"}
                         </span>
                       )}
                     </div>
 
                     {billing === "yearly" && yearlySavings > 0 && (
-                      <p className="mt-2 text-xs font-medium text-emerald-700">
+                      <p className="mt-2 text-xs font-medium text-[#315E50]">
                         Save ₹{formatPrice(yearlySavings)} per year
                       </p>
                     )}
 
                     {billing === "monthly" && price > 0 && (
-                      <p className="mt-2 text-xs text-zinc-500">
+                      <p className="mt-2 text-xs text-[#858A83]">
                         Billed monthly
                       </p>
                     )}
                   </div>
 
-                  <div className="mt-4 rounded-xl bg-zinc-50 px-4 py-3">
-                    <div className="flex items-center gap-2 text-sm font-medium text-zinc-800">
-                      <Gauge className="h-4 w-4 text-indigo-600" />
+                  <div className="mt-4 rounded-xl border border-[#E7E5DC] bg-[#F7F5EF]/80 px-4 py-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-[#263B33]">
+                      <Gauge className="h-4 w-4 text-[#315E50]" />
                       {plan.credits}
                     </div>
-                    <p className="mt-1 text-xs leading-5 text-zinc-500">
+                    <p className="mt-1 text-xs leading-5 text-[#858A83]">
                       Usage limits and available actions depend on the features
                       enabled for your account.
                     </p>
@@ -400,19 +418,19 @@ export default function PricingPage() {
 
                   <Link
                     href={getPlanHref(plan.id)}
-                    className={`mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
+                    className={`mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition hover:-translate-y-0.5 ${
                       plan.highlighted
-                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700"
-                        : "border border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50"
+                        ? "bg-gradient-to-r from-[#315E50] to-[#719681] text-white shadow-lg shadow-[#315E50]/20 hover:shadow-xl"
+                        : "border border-[#315E50]/20 bg-white/80 text-[#315E50] hover:border-[#315E50]/40 hover:bg-white"
                     }`}
                   >
                     {plan.cta}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
 
-                  <div className="my-6 h-px bg-zinc-100" />
+                  <div className="my-6 h-px bg-[#E7E5DC]" />
 
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#858A83]">
                     What&apos;s included
                   </p>
 
@@ -422,7 +440,7 @@ export default function PricingPage() {
                     ))}
                   </ul>
 
-                  <p className="mt-auto pt-6 text-xs leading-5 text-zinc-400">
+                  <p className="mt-auto pt-6 text-xs leading-5 text-[#858A83]">
                     {plan.id === "free"
                       ? "No paid subscription is needed to get started."
                       : "Paid features require an active subscription and must be enabled for your account."}
@@ -432,7 +450,7 @@ export default function PricingPage() {
             })}
           </div>
 
-          <p className="mx-auto mt-6 max-w-3xl text-center text-xs leading-5 text-zinc-400">
+          <p className="mx-auto mt-6 max-w-3xl text-center text-xs leading-5 text-[#858A83]">
             Displayed subscription prices are proposed starting prices and must
             be confirmed before launch. Taxes, billing, renewals, cancellation,
             refunds, and AI usage limits are subject to the final checkout
@@ -441,34 +459,34 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section className="border-y border-zinc-100 bg-zinc-50/70 px-5 py-20 sm:px-8">
+      <section className="relative border-y border-[#E7E5DC] bg-white/35 px-5 py-20 backdrop-blur-sm sm:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold text-indigo-600">
+            <p className="text-sm font-semibold text-[#719681]">
               Compare the details
             </p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight">
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#263B33]">
               Know what you&apos;re getting
             </h2>
-            <p className="mt-3 text-sm leading-6 text-zinc-500">
+            <p className="mt-3 text-sm leading-6 text-[#777D76]">
               Review the differences between plans before choosing yours.
             </p>
           </div>
 
-          <div className="mt-10 overflow-x-auto rounded-2xl border border-zinc-200 bg-white">
+          <div className="mt-10 overflow-x-auto rounded-2xl border border-white/90 bg-white/70 shadow-[0_12px_35px_rgba(38,59,51,0.06)] backdrop-blur-xl">
             <table className="w-full min-w-[680px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50">
-                  <th className="px-5 py-4 text-sm font-semibold text-zinc-800 sm:px-6">
+                <tr className="border-b border-[#E7E5DC] bg-[#F7F5EF]/80">
+                  <th className="px-5 py-4 text-sm font-semibold text-[#263B33] sm:px-6">
                     Feature
                   </th>
-                  <th className="px-5 py-4 text-sm font-semibold text-zinc-800">
+                  <th className="px-5 py-4 text-sm font-semibold text-[#263B33]">
                     Free
                   </th>
-                  <th className="bg-indigo-50/60 px-5 py-4 text-sm font-semibold text-indigo-700">
+                  <th className="bg-[#315E50]/[0.07] px-5 py-4 text-sm font-semibold text-[#315E50]">
                     Pro
                   </th>
-                  <th className="px-5 py-4 text-sm font-semibold text-zinc-800">
+                  <th className="px-5 py-4 text-sm font-semibold text-[#263B33]">
                     Career Plus
                   </th>
                 </tr>
@@ -477,15 +495,15 @@ export default function PricingPage() {
                 {comparisons.map((item) => (
                   <tr
                     key={item.feature}
-                    className="border-b border-zinc-100 last:border-0"
+                    className="border-b border-[#E7E5DC]/70 last:border-0"
                   >
-                    <td className="px-5 py-4 text-sm text-zinc-700 sm:px-6">
+                    <td className="px-5 py-4 text-sm text-[#52645B] sm:px-6">
                       {item.feature}
                     </td>
                     <td className="px-5 py-4">
                       <FeatureValue value={item.free} />
                     </td>
-                    <td className="bg-indigo-50/30 px-5 py-4">
+                    <td className="bg-[#315E50]/[0.035] px-5 py-4">
                       <FeatureValue value={item.pro} />
                     </td>
                     <td className="px-5 py-4">
@@ -497,7 +515,7 @@ export default function PricingPage() {
             </table>
           </div>
 
-          <p className="mt-4 text-center text-xs leading-5 text-zinc-400">
+          <p className="mt-4 text-center text-xs leading-5 text-[#858A83]">
             Feature availability shown here is a proposed product structure.
             Confirm that each feature and limit is implemented before enabling
             paid subscriptions.
@@ -505,19 +523,19 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section className="px-5 py-20 sm:px-8">
+      <section className="relative px-5 py-20 sm:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
             <div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#315E50]/10 bg-[#315E50]/[0.07] text-[#315E50]">
                 <ShieldCheck className="h-6 w-6" />
               </div>
 
-              <h2 className="mt-5 text-3xl font-semibold tracking-tight">
+              <h2 className="mt-5 text-3xl font-semibold tracking-tight text-[#263B33]">
                 Your career deserves clarity.
               </h2>
 
-              <p className="mt-4 max-w-md text-sm leading-7 text-zinc-500">
+              <p className="mt-4 max-w-md text-sm leading-7 text-[#777D76]">
                 Revio brings resume building, ATS feedback, and career
                 preparation into one workflow. Choose the tools you need and
                 focus on making your next application stronger.
@@ -525,24 +543,24 @@ export default function PricingPage() {
 
               <div className="mt-7 space-y-4">
                 <div className="flex items-start gap-3">
-                  <Target className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                  <Target className="mt-0.5 h-5 w-5 shrink-0 text-[#315E50]" />
                   <div>
-                    <h3 className="text-sm font-semibold">
+                    <h3 className="text-sm font-semibold text-[#263B33]">
                       Built around your goals
                     </h3>
-                    <p className="mt-1 text-sm leading-6 text-zinc-500">
+                    <p className="mt-1 text-sm leading-6 text-[#777D76]">
                       Prepare resumes around the roles you want to pursue.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                  <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-[#315E50]" />
                   <div>
-                    <h3 className="text-sm font-semibold">
+                    <h3 className="text-sm font-semibold text-[#263B33]">
                       Account-based access
                     </h3>
-                    <p className="mt-1 text-sm leading-6 text-zinc-500">
+                    <p className="mt-1 text-sm leading-6 text-[#777D76]">
                       Your resume workspace is tied to your account. Review the
                       privacy policy to understand how information is processed
                       and retained.
@@ -551,12 +569,12 @@ export default function PricingPage() {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <CircleHelp className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+                  <CircleHelp className="mt-0.5 h-5 w-5 shrink-0 text-[#315E50]" />
                   <div>
-                    <h3 className="text-sm font-semibold">
+                    <h3 className="text-sm font-semibold text-[#263B33]">
                       Clear usage expectations
                     </h3>
-                    <p className="mt-1 text-sm leading-6 text-zinc-500">
+                    <p className="mt-1 text-sm leading-6 text-[#777D76]">
                       AI credit costs, subscription terms, and feature
                       restrictions should be disclosed before purchase.
                     </p>
@@ -566,11 +584,11 @@ export default function PricingPage() {
             </div>
 
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight">
+              <h2 className="text-2xl font-semibold tracking-tight text-[#263B33]">
                 Frequently asked questions
               </h2>
 
-              <div className="mt-6 divide-y divide-zinc-200 border-y border-zinc-200">
+              <div className="mt-6 divide-y divide-[#E7E5DC] border-y border-[#E7E5DC]">
                 {faqs.map((faq, index) => {
                   const isOpen = openFaq === index;
 
@@ -582,18 +600,18 @@ export default function PricingPage() {
                         onClick={() => setOpenFaq(isOpen ? null : index)}
                         className="flex w-full items-center justify-between gap-4 py-5 text-left"
                       >
-                        <span className="text-sm font-semibold text-zinc-800">
+                        <span className="text-sm font-semibold text-[#263B33] transition-colors hover:text-[#315E50]">
                           {faq.question}
                         </span>
                         <ChevronDown
-                          className={`h-4 w-4 shrink-0 text-zinc-400 transition-transform ${
+                          className={`h-4 w-4 shrink-0 text-[#858A83] transition-transform duration-300 ${
                             isOpen ? "rotate-180" : ""
                           }`}
                         />
                       </button>
 
                       {isOpen && (
-                        <p className="max-w-2xl pb-5 pr-8 text-sm leading-7 text-zinc-500">
+                        <p className="max-w-2xl pb-5 pr-8 text-sm leading-7 text-[#777D76]">
                           {faq.answer}
                         </p>
                       )}
@@ -606,28 +624,28 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section className="px-5 pb-20 sm:px-8">
-        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-[#0B0D16] px-6 py-14 text-center text-white sm:px-12 sm:py-16">
-          <div className="pointer-events-none absolute -left-20 -top-32 h-72 w-72 rounded-full bg-indigo-600/25 blur-[100px]" />
-          <div className="pointer-events-none absolute -bottom-36 right-0 h-72 w-72 rounded-full bg-cyan-500/15 blur-[100px]" />
+      <section className="relative px-5 pb-20 sm:px-8">
+        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl border border-white/90 bg-gradient-to-br from-[#315E50] via-[#3F705F] to-[#719681] px-6 py-14 text-center text-white shadow-[0_24px_70px_rgba(49,94,80,0.20)] sm:px-12 sm:py-16">
+          <div className="pointer-events-none absolute -left-20 -top-32 h-72 w-72 rounded-full bg-[#D9C5A2]/25 blur-[100px]" />
+          <div className="pointer-events-none absolute -bottom-36 right-0 h-72 w-72 rounded-full bg-white/15 blur-[100px]" />
 
           <div className="relative mx-auto max-w-2xl">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06]">
-              <Sparkles className="h-6 w-6 text-cyan-300" />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10">
+              <Sparkles className="h-6 w-6 text-[#F1DFC0]" />
             </div>
 
             <h2 className="mt-6 text-3xl font-semibold tracking-tight sm:text-4xl">
               Your next opportunity starts here.
             </h2>
 
-            <p className="mt-4 text-sm leading-7 text-zinc-400 sm:text-base">
+            <p className="mt-4 text-sm leading-7 text-white/75 sm:text-base">
               Start building a better resume today. Explore Revio before
               deciding whether you need a paid plan.
             </p>
 
             <Link
               href="/resume/new"
-              className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
+              className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#F7F5EF] px-6 text-sm font-semibold text-[#315E50] shadow-lg transition hover:-translate-y-0.5 hover:bg-white"
             >
               Build my resume
               <ArrowRight className="h-4 w-4" />
@@ -636,26 +654,26 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-zinc-100 px-5 py-8 sm:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-          <Link href="/" className="font-bold tracking-tight text-zinc-900">
-            Revio<span className="text-indigo-600">.</span>
+      <footer className="relative border-t border-[#E7E5DC] bg-white/35 px-5 py-8 backdrop-blur-sm sm:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-[#777D76] sm:flex-row sm:items-center sm:justify-between">
+          <Link href="/" className="font-bold tracking-tight text-[#263B33]">
+            Revio<span className="text-[#719681]">.</span>
           </Link>
 
           <div className="flex flex-wrap gap-x-5 gap-y-3">
-            <Link href="/features" className="transition hover:text-zinc-900">
+            <Link href="/features" className="transition hover:text-[#315E50]">
               Features
             </Link>
-            <Link href="/templates" className="transition hover:text-zinc-900">
+            <Link href="/templates" className="transition hover:text-[#315E50]">
               Templates
             </Link>
-            <Link href="/login" className="transition hover:text-zinc-900">
+            <Link href="/login" className="transition hover:text-[#315E50]">
               Log in
             </Link>
-            <Link href="/privacy" className="transition hover:text-zinc-900">
+            <Link href="/privacy" className="transition hover:text-[#315E50]">
               Privacy
             </Link>
-            <Link href="/terms" className="transition hover:text-zinc-900">
+            <Link href="/terms" className="transition hover:text-[#315E50]">
               Terms
             </Link>
           </div>

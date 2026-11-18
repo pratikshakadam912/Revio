@@ -41,31 +41,31 @@ const templates: Template[] = [
     id: "minimal",
     name: "Minimal",
     description: "Clean, elegant and distraction-free.",
-    accent: "bg-zinc-900",
+    accent: "bg-[#315E50]",
   },
   {
     id: "modern",
     name: "Modern",
     description: "Contemporary layout with strong visual hierarchy.",
-    accent: "bg-indigo-600",
+    accent: "bg-[#719681]",
   },
   {
     id: "executive",
     name: "Executive",
     description: "Professional design for experienced candidates.",
-    accent: "bg-slate-700",
+    accent: "bg-[#263B33]",
   },
   {
     id: "professional",
     name: "Professional",
     description: "Balanced structure for almost any career.",
-    accent: "bg-blue-600",
+    accent: "bg-[#A58A61]",
   },
   {
     id: "creative",
     name: "Creative",
     description: "A distinctive layout for creative careers.",
-    accent: "bg-violet-600",
+    accent: "bg-[#B97862]",
   },
 ];
 
@@ -170,10 +170,10 @@ function TemplatePreview({
 }) {
   return (
     <div
-      className={`relative aspect-[0.72] w-full overflow-hidden rounded-lg border bg-white transition-all duration-300 ${
+      className={`relative aspect-[0.72] w-full overflow-hidden rounded-xl border bg-white transition-all duration-300 ${
         selected
-          ? "border-indigo-500 shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
-          : "border-zinc-200 group-hover:border-zinc-300"
+          ? "border-[#315E50] shadow-[0_0_0_3px_rgba(49,94,80,0.13)]"
+          : "border-[#E7E5DC] group-hover:border-[#719681]/50"
       }`}
     >
       <div
@@ -187,7 +187,7 @@ function TemplatePreview({
       </div>
 
       {selected && (
-        <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg">
+        <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[#315E50] text-white shadow-lg">
           <Check className="h-4 w-4" />
         </div>
       )}
@@ -283,17 +283,18 @@ export default function NewResumePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#08090d] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[#F7F5EF] text-[#263B33]">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute left-1/2 top-[-280px] h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-indigo-600/10 blur-[130px]" />
-        <div className="absolute bottom-[-300px] right-[-150px] h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-violet-600/5 blur-[120px]" />
+        <div className="absolute -left-40 -top-40 h-[600px] w-[600px] rounded-full bg-[#719681]/10 blur-[130px]" />
+        <div className="absolute right-[-180px] top-[30%] h-[500px] w-[500px] rounded-full bg-[#D9C5A2]/20 blur-[130px]" />
+        <div className="absolute bottom-[-250px] left-[20%] h-[500px] w-[500px] rounded-full bg-[#B97862]/[0.07] blur-[130px]" />
       </div>
 
-      <header className="relative z-10 border-b border-white/[0.06] bg-[#08090d]/80 backdrop-blur-xl">
+      <header className="relative z-10 border-b border-[#E7E5DC] bg-[#F7F5EF]/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
           <Link
             href="/dashboard"
-            className="group flex items-center gap-2 text-sm text-zinc-400 transition hover:text-white"
+            className="group flex items-center gap-2 text-sm text-[#777D76] transition hover:text-[#315E50]"
           >
             <ArrowLeft className="h-4 w-4 transition group-hover:-translate-x-0.5" />
             Back to dashboard
@@ -303,43 +304,47 @@ export default function NewResumePage() {
             href="/"
             className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 sm:flex"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-xs font-black text-black">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#315E50] to-[#719681] text-xs font-black text-white shadow-sm">
               R
             </div>
-            <span className="font-semibold tracking-tight">Revio</span>
+            <span className="font-semibold tracking-tight text-[#263B33]">
+              Revio
+            </span>
           </Link>
 
-          <div className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5">
-            <Zap className="h-3.5 w-3.5 text-amber-400" />
-            <span className="text-xs font-medium text-zinc-300">
+          <div className="flex items-center gap-2 rounded-full border border-[#315E50]/15 bg-white/65 px-3 py-1.5 shadow-sm backdrop-blur-xl">
+            <Zap className="h-3.5 w-3.5 text-[#A58A61]" />
+            <span className="text-xs font-medium text-[#52645B]">
               AI-powered builder
             </span>
           </div>
         </div>
       </header>
 
-      <div className="relative z-10 border-b border-white/[0.05]">
+      <div className="relative z-10 border-b border-[#E7E5DC]">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-5 py-4 sm:px-8">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#315E50] text-xs font-semibold text-white">
               1
             </div>
-            <span className="text-sm font-medium text-white">Template</span>
+            <span className="text-sm font-semibold text-[#315E50]">
+              Template
+            </span>
           </div>
 
-          <div className="h-px w-8 bg-white/10 sm:w-16" />
+          <div className="h-px w-8 bg-[#D9D8CE] sm:w-16" />
 
-          <div className="flex items-center gap-2 text-zinc-500">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 text-xs">
+          <div className="flex items-center gap-2 text-[#A1A49B]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#D9D8CE] text-xs">
               2
             </div>
             <span className="hidden text-sm sm:block">Your information</span>
           </div>
 
-          <div className="h-px w-8 bg-white/10 sm:w-16" />
+          <div className="h-px w-8 bg-[#D9D8CE] sm:w-16" />
 
-          <div className="flex items-center gap-2 text-zinc-500">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 text-xs">
+          <div className="flex items-center gap-2 text-[#A1A49B]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#D9D8CE] text-xs">
               3
             </div>
             <span className="hidden text-sm sm:block">Edit &amp; preview</span>
@@ -349,19 +354,19 @@ export default function NewResumePage() {
 
       <section className="relative z-10 mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/[0.08] px-3 py-1.5 text-xs font-medium text-indigo-300">
+          <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-[#315E50]/15 bg-white/65 px-3 py-1.5 text-xs font-semibold text-[#315E50] shadow-sm backdrop-blur-xl">
             <Sparkles className="h-3.5 w-3.5" />
             AI-powered resume builder
           </div>
 
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
+          <h1 className="text-3xl font-semibold tracking-tight text-[#263B33] sm:text-5xl">
             Let&apos;s build a resume
-            <span className="block bg-gradient-to-r from-white via-indigo-200 to-violet-300 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-[#315E50] via-[#719681] to-[#B97862] bg-clip-text text-transparent">
               you&apos;re proud of.
             </span>
           </h1>
 
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-zinc-400 sm:text-base">
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-[#777D76] sm:text-base">
             Pick a design you love. Then tell Revio about yourself in your own
             words — our AI will help you build a polished, professional resume.
           </p>
@@ -372,31 +377,31 @@ export default function NewResumePage() {
             type="button"
             onClick={() => setCreationMode("ai")}
             aria-pressed={creationMode === "ai"}
-            className={`group rounded-2xl border p-5 text-left transition-all duration-300 ${
+            className={`group rounded-2xl border p-5 text-left shadow-[0_12px_35px_rgba(38,59,51,0.04)] backdrop-blur-xl transition-all duration-300 ${
               creationMode === "ai"
-                ? "border-indigo-500/50 bg-indigo-500/[0.08] shadow-[0_0_40px_rgba(99,102,241,0.08)]"
-                : "border-white/[0.08] bg-white/[0.025] hover:border-white/[0.15] hover:bg-white/[0.04]"
+                ? "border-[#315E50]/35 bg-white/85 shadow-[0_12px_35px_rgba(49,94,80,0.09)]"
+                : "border-white/90 bg-white/55 hover:-translate-y-0.5 hover:border-[#719681]/40 hover:bg-white/80"
             }`}
           >
             <div className="flex items-start justify-between">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-300">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#315E50]/10 bg-[#315E50]/[0.07] text-[#315E50]">
                 <Wand2 className="h-5 w-5" />
               </div>
 
               {creationMode === "ai" && (
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#315E50] text-white">
                   <Check className="h-3.5 w-3.5" />
                 </div>
               )}
             </div>
 
-            <h2 className="mt-4 font-semibold">Build with AI</h2>
-            <p className="mt-1.5 text-sm leading-5 text-zinc-400">
+            <h2 className="mt-4 font-semibold text-[#263B33]">Build with AI</h2>
+            <p className="mt-1.5 text-sm leading-5 text-[#777D76]">
               Tell Revio about yourself naturally and let AI help create your
               resume.
             </p>
 
-            <div className="mt-4 flex items-center gap-2 text-xs font-medium text-indigo-300">
+            <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-[#315E50]">
               Recommended
               <ChevronRight className="h-3.5 w-3.5" />
             </div>
@@ -406,30 +411,32 @@ export default function NewResumePage() {
             type="button"
             onClick={() => setCreationMode("import")}
             aria-pressed={creationMode === "import"}
-            className={`group rounded-2xl border p-5 text-left transition-all duration-300 ${
+            className={`group rounded-2xl border p-5 text-left shadow-[0_12px_35px_rgba(38,59,51,0.04)] backdrop-blur-xl transition-all duration-300 ${
               creationMode === "import"
-                ? "border-indigo-500/50 bg-indigo-500/[0.08]"
-                : "border-white/[0.08] bg-white/[0.025] hover:border-white/[0.15] hover:bg-white/[0.04]"
+                ? "border-[#315E50]/35 bg-white/85 shadow-[0_12px_35px_rgba(49,94,80,0.09)]"
+                : "border-white/90 bg-white/55 hover:-translate-y-0.5 hover:border-[#719681]/40 hover:bg-white/80"
             }`}
           >
             <div className="flex items-start justify-between">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.06] text-zinc-300">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#D9C5A2]/35 bg-[#D9C5A2]/20 text-[#987746]">
                 <Upload className="h-5 w-5" />
               </div>
 
               {creationMode === "import" && (
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#315E50] text-white">
                   <Check className="h-3.5 w-3.5" />
                 </div>
               )}
             </div>
 
-            <h2 className="mt-4 font-semibold">Import an existing resume</h2>
-            <p className="mt-1.5 text-sm leading-5 text-zinc-400">
+            <h2 className="mt-4 font-semibold text-[#263B33]">
+              Import an existing resume
+            </h2>
+            <p className="mt-1.5 text-sm leading-5 text-[#777D76]">
               Upload your existing CV and turn it into an editable Revio resume.
             </p>
 
-            <div className="mt-4 flex items-center gap-2 text-xs text-zinc-500">
+            <div className="mt-4 flex items-center gap-2 text-xs text-[#858A83]">
               PDF supported
               <ChevronRight className="h-3.5 w-3.5" />
             </div>
@@ -439,15 +446,15 @@ export default function NewResumePage() {
         <div className="mt-14">
           <div className="flex items-end justify-between">
             <div>
-              <h2 className="text-xl font-semibold tracking-tight">
+              <h2 className="text-xl font-semibold tracking-tight text-[#263B33]">
                 Choose your design
               </h2>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-1 text-sm text-[#777D76]">
                 You can change your template later without losing your content.
               </p>
             </div>
 
-            <span className="hidden text-xs text-zinc-600 sm:block">
+            <span className="hidden text-xs text-[#858A83] sm:block">
               {templates.length} templates
             </span>
           </div>
@@ -473,18 +480,18 @@ export default function NewResumePage() {
                     <div>
                       <h3
                         className={`text-sm font-medium transition ${
-                          isSelected ? "text-white" : "text-zinc-300"
+                          isSelected ? "text-[#315E50]" : "text-[#52645B]"
                         }`}
                       >
                         {template.name}
                       </h3>
-                      <p className="mt-1 text-xs leading-4 text-zinc-600">
+                      <p className="mt-1 text-xs leading-4 text-[#858A83]">
                         {template.description}
                       </p>
                     </div>
 
                     {isSelected && (
-                      <span className="mt-0.5 shrink-0 rounded-full bg-indigo-500/10 px-2 py-1 text-[10px] font-semibold text-indigo-300">
+                      <span className="mt-0.5 shrink-0 rounded-full bg-[#315E50]/10 px-2 py-1 text-[10px] font-semibold text-[#315E50]">
                         Selected
                       </span>
                     )}
@@ -495,23 +502,23 @@ export default function NewResumePage() {
           </div>
         </div>
 
-        <div className="mt-10 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4 sm:p-5">
+        <div className="mt-10 rounded-2xl border border-white/90 bg-white/65 p-4 shadow-[0_12px_35px_rgba(38,59,51,0.06)] backdrop-blur-xl sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                  selected?.accent ?? "bg-indigo-600"
+                  selected?.accent ?? "bg-[#719681]"
                 }`}
               >
                 <FileText className="h-5 w-5 text-white" />
               </div>
 
               <div>
-                <p className="text-xs text-zinc-500">Selected template</p>
-                <p className="mt-0.5 font-medium text-white">
+                <p className="text-xs text-[#858A83]">Selected template</p>
+                <p className="mt-0.5 font-semibold text-[#263B33]">
                   {selected?.name}
                 </p>
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-1 text-xs text-[#777D76]">
                   {creationMode === "ai"
                     ? "Create a new resume with AI assistance"
                     : "Continue to the editor to import your existing resume"}
@@ -523,7 +530,7 @@ export default function NewResumePage() {
               type="button"
               disabled={isCreating}
               onClick={handleContinue}
-              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#315E50] to-[#719681] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#315E50]/15 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isCreating
                 ? "Creating resume..."
@@ -538,24 +545,24 @@ export default function NewResumePage() {
           {error && (
             <p
               role="alert"
-              className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+              className="mt-4 rounded-lg border border-[#B97862]/25 bg-[#B97862]/10 px-4 py-3 text-sm text-[#995B48]"
             >
               {error}
             </p>
           )}
         </div>
 
-        <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-zinc-600">
+        <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-[#858A83]">
           <span className="flex items-center gap-1.5">
-            <Check className="h-3.5 w-3.5 text-emerald-500/70" />
+            <Check className="h-3.5 w-3.5 text-[#719681]" />
             Save your changes in the editor
           </span>
           <span className="flex items-center gap-1.5">
-            <Check className="h-3.5 w-3.5 text-emerald-500/70" />
+            <Check className="h-3.5 w-3.5 text-[#719681]" />
             Change templates anytime
           </span>
           <span className="flex items-center gap-1.5">
-            <Check className="h-3.5 w-3.5 text-emerald-500/70" />
+            <Check className="h-3.5 w-3.5 text-[#719681]" />
             Your information stays yours
           </span>
         </div>

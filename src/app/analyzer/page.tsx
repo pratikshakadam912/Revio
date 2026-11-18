@@ -15,7 +15,6 @@ import {
   ExternalLink,
   FileSearch,
   FileText,
-  GraduationCap,
   Lightbulb,
   Loader2,
   MapPin,
@@ -99,25 +98,18 @@ type AnalysisResult = {
   candidate?: CandidateData;
   overallScore: number;
   summary?: string;
-
   profile?: {
     education?: ProfileItemData;
     experience?: ProfileItemData;
     careerFocus?: ProfileItemData;
   };
-
   skills?: string[];
-
   projects?: ProjectData[];
-
   experienceDetails?: ExperienceData[];
-
   atsAnalysis?: ATSAnalysisData;
-
   strengths?: string[];
   weaknesses?: string[];
   suggestions?: string[];
-
   scores?: {
     atsCompatibility?: number;
     skillsStrength?: number;
@@ -125,32 +117,23 @@ type AnalysisResult = {
     educationMatch?: number;
     contentQuality?: number;
   };
-
   recommendedRoles?: RoleData[];
-
   jobs?: JobData[];
-
   skillGaps?: SkillGapData[];
-
   nextCareerMove?: {
     title?: string;
     description?: string;
   };
-
   aiCredits?: {
     used?: number;
     total?: number;
   };
 };
 
-/* =====================================================
-   HELPERS
-===================================================== */
+/* Helpers */
 
 function toStringValue(value: unknown): string {
-  if (typeof value === "string") {
-    return value.trim();
-  }
+  if (typeof value === "string") return value.trim();
 
   if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
@@ -161,23 +144,16 @@ function toStringValue(value: unknown): string {
 
 function toSafeNumber(value: unknown, fallback = 0): number {
   const numberValue = Number(value);
-
   return Number.isFinite(numberValue) ? numberValue : fallback;
 }
 
-/**
- * Prevents cities/countries from being displayed as
- * a career focus.
- */
 function looksLikeLocationValue(
   value: unknown,
   candidateLocation?: unknown,
 ): boolean {
   const normalizedValue = toStringValue(value).toLowerCase().trim();
 
-  if (!normalizedValue) {
-    return false;
-  }
+  if (!normalizedValue) return false;
 
   const normalizedCandidateLocation = toStringValue(candidateLocation)
     .toLowerCase()
@@ -220,19 +196,11 @@ function looksLikeLocationValue(
     "uae",
   ];
 
-  if (commonLocations.includes(normalizedValue)) {
-    return true;
-  }
+  if (commonLocations.includes(normalizedValue)) return true;
 
-  if (
-    /^(?:[a-z .'-]+,\s*){1,3}(?:india|usa|uk|canada|australia|uae|singapore)$/i.test(
-      normalizedValue,
-    )
-  ) {
-    return true;
-  }
-
-  return false;
+  return /^(?:[a-z .'-]+,\s*){1,3}(?:india|usa|uk|canada|australia|uae|singapore)$/i.test(
+    normalizedValue,
+  );
 }
 
 function getCareerFocus(
@@ -252,23 +220,17 @@ function getCareerFocus(
 
   const recommendedRole = roles.find((role) => {
     const value = toStringValue(role?.role);
-
     return value && !looksLikeLocationValue(value, candidateLocation);
   });
 
-  if (recommendedRole) {
-    return toStringValue(recommendedRole.role);
-  }
+  if (recommendedRole) return toStringValue(recommendedRole.role);
 
   const experienceRole = experience.find((item) => {
     const value = toStringValue(item?.role);
-
     return value && !looksLikeLocationValue(value, candidateLocation);
   });
 
-  if (experienceRole) {
-    return toStringValue(experienceRole.role);
-  }
+  if (experienceRole) return toStringValue(experienceRole.role);
 
   return "Not identified";
 }
@@ -290,24 +252,14 @@ function getProjectStatus(project: ProjectData): {
 
   const isRepository = /github\.com/i.test(url);
 
-  if (isRepository) {
-    return {
-      label: "Repository",
-      isLive: false,
-      isRepository: true,
-    };
-  }
-
   return {
-    label: "Live",
-    isLive: true,
-    isRepository: false,
+    label: isRepository ? "Repository" : "Live",
+    isLive: !isRepository,
+    isRepository,
   };
 }
 
-/* =====================================================
-   NORMALIZE API RESPONSE
-===================================================== */
+/* Normalize API response */
 
 function normalizeAnalysisResult(apiResult: any): AnalysisResult {
   const resume = apiResult?.resume ?? {};
@@ -322,7 +274,6 @@ function normalizeAnalysisResult(apiResult: any): AnalysisResult {
   const projects = Array.isArray(resume?.projects) ? resume.projects : [];
 
   const skills = Array.isArray(resume?.skills) ? resume.skills : [];
-
   const roles = Array.isArray(apiResult?.roles) ? apiResult.roles : [];
 
   const skillGaps = Array.isArray(apiResult?.skillGaps)
@@ -330,7 +281,6 @@ function normalizeAnalysisResult(apiResult: any): AnalysisResult {
     : [];
 
   const overallScore = toSafeNumber(scores?.overall);
-
   const candidateLocation = toStringValue(candidate?.location);
 
   const careerFocus = getCareerFocus(
@@ -343,21 +293,16 @@ function normalizeAnalysisResult(apiResult: any): AnalysisResult {
   const normalizedExperience = experience.map(
     (item: any): ExperienceData => ({
       company: toStringValue(item?.company) || "Company not identified",
-
       role: toStringValue(item?.role) || "Role not identified",
-
       duration: [toStringValue(item?.startDate), toStringValue(item?.endDate)]
         .filter(Boolean)
         .join(" — "),
-
       description: toStringValue(item?.description),
-
       responsibilities: Array.isArray(item?.responsibilities)
         ? item.responsibilities
             .map((itemValue: unknown) => toStringValue(itemValue))
             .filter(Boolean)
         : [],
-
       achievements: Array.isArray(item?.achievements)
         ? item.achievements
             .map((itemValue: unknown) => toStringValue(itemValue))
@@ -369,106 +314,75 @@ function normalizeAnalysisResult(apiResult: any): AnalysisResult {
   const normalizedProjects = projects.map((project: any): ProjectData => {
     const projectUrl = toStringValue(project?.url);
 
-    const projectIsLive =
-      Boolean(projectUrl) && !/github\.com/i.test(projectUrl);
-
     return {
       name: toStringValue(project?.name) || "Untitled Project",
-
       description: toStringValue(project?.description),
-
       contribution: toStringValue(project?.description),
-
       technologies: Array.isArray(project?.technologies)
         ? project.technologies
             .map((technology: unknown) => toStringValue(technology))
             .filter(Boolean)
         : [],
-
       impact: "",
-
       url: projectUrl,
-
-      isLive: projectIsLive,
+      isLive: Boolean(projectUrl) && !/github\.com/i.test(projectUrl),
     };
   });
 
   return {
     id: typeof apiResult?.id === "string" ? apiResult.id : undefined,
-
     candidate: {
       name: toStringValue(candidate?.name),
-
       headline: toStringValue(candidate?.headline),
-
       location: candidateLocation,
     },
-
     overallScore,
-
     summary: toStringValue(resume?.summary),
-
     profile: {
       education: {
         label: "Education",
-
         value:
           toStringValue(education[0]?.degree) ||
           toStringValue(education[0]?.field) ||
           "Not identified",
-
         detail: toStringValue(education[0]?.institution),
       },
-
       experience: {
         label: "Experience",
-
         value:
           normalizedExperience.length > 0
             ? `${normalizedExperience.length} ${
                 normalizedExperience.length === 1 ? "role" : "roles"
               }`
             : "Not identified",
-
         detail: normalizedExperience[0]?.role || "",
       },
-
       careerFocus: {
         label: "Career Focus",
-
         value: careerFocus,
-
         detail:
           toStringValue(roles[0]?.reasoning) ||
           toStringValue(roles[0]?.description),
       },
     },
-
     skills: skills
       .map((skill: unknown) => toStringValue(skill))
       .filter(Boolean),
-
     projects: normalizedProjects,
-
     experienceDetails: normalizedExperience,
-
     atsAnalysis: {
       keywordOptimization:
         typeof ats?.keywordOptimization === "number"
           ? `${ats.keywordOptimization}/100`
           : "",
-
       formatting:
         typeof ats?.formatting === "number" ? `${ats.formatting}/100` : "",
-
       sectionStructure:
         typeof ats?.sectionStructure === "number"
           ? `${ats.sectionStructure}/100`
           : "",
-
       readability:
         typeof ats?.readability === "number" ? `${ats.readability}/100` : "",
-
       issues: Array.isArray(ats?.issues)
         ? ats.issues
             .map((issue: any) =>
@@ -477,48 +391,35 @@ function normalizeAnalysisResult(apiResult: any): AnalysisResult {
             .filter(Boolean)
         : [],
     },
-
     strengths: Array.isArray(apiResult?.strengths)
       ? apiResult.strengths
           .map((item: unknown) => toStringValue(item))
           .filter(Boolean)
       : [],
-
     weaknesses: Array.isArray(apiResult?.weaknesses)
       ? apiResult.weaknesses
           .map((item: unknown) => toStringValue(item))
           .filter(Boolean)
       : [],
-
     suggestions: Array.isArray(apiResult?.suggestions)
       ? apiResult.suggestions
           .map((item: unknown) => toStringValue(item))
           .filter(Boolean)
       : [],
-
     scores: {
       atsCompatibility: toSafeNumber(scores?.ats),
-
       skillsStrength: toSafeNumber(scores?.skills),
-
       experience: toSafeNumber(scores?.experience),
-
       educationMatch: toSafeNumber(scores?.education),
-
       contentQuality: toSafeNumber(scores?.content),
     },
-
     recommendedRoles: roles.map(
       (role: any, index: number): RoleData => ({
         rank: toStringValue(role?.rank) || `#${index + 1}`,
-
         role: toStringValue(role?.role) || "Recommended Role",
-
         match: toSafeNumber(role?.matchScore ?? role?.match),
-
         description:
           toStringValue(role?.reasoning) || toStringValue(role?.description),
-
         skills: Array.isArray(role?.matchedSkills)
           ? role.matchedSkills
               .map((skill: unknown) => toStringValue(skill))
@@ -530,34 +431,26 @@ function normalizeAnalysisResult(apiResult: any): AnalysisResult {
             : [],
       }),
     ),
-
     jobs: [],
-
     skillGaps: skillGaps.map(
       (gap: any): SkillGapData => ({
         name: toStringValue(gap?.name) || toStringValue(gap?.skill) || "Skill",
-
         level: toSafeNumber(gap?.level),
-
         reason: toStringValue(gap?.reason),
       }),
     ),
-
     nextCareerMove: apiResult?.careerMove
       ? {
           title:
             toStringValue(apiResult?.careerMove?.title) ||
             "Your next career move",
-
           description: toStringValue(apiResult?.careerMove?.description),
         }
       : undefined,
   };
 }
 
-/* =====================================================
-   SMALL UI COMPONENTS
-===================================================== */
+/* UI components */
 
 function SectionHeader({
   icon: Icon,
@@ -570,15 +463,14 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-5 flex items-start gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10">
-        <Icon className="h-5 w-5 text-cyan-300" />
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#DCE7DF] bg-[#EAF1EB]">
+        <Icon className="h-5 w-5 text-[#315E50]" />
       </div>
 
       <div>
-        <h2 className="text-lg font-bold text-white">{title}</h2>
-
+        <h2 className="text-lg font-bold text-[#263B33]">{title}</h2>
         {description ? (
-          <p className="mt-1 text-sm text-slate-400">{description}</p>
+          <p className="mt-1 text-sm text-[#777D76]">{description}</p>
         ) : null}
       </div>
     </div>
@@ -591,19 +483,16 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-slate-300">{label}</span>
-
-        <span className="font-semibold text-white">
+        <span className="text-[#777D76]">{label}</span>
+        <span className="font-semibold text-[#263B33]">
           {Math.round(safeValue)}
         </span>
       </div>
 
-      <div className="h-2 overflow-hidden rounded-full bg-white/5">
+      <div className="h-2 overflow-hidden rounded-full bg-[#EAE9E1]">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-indigo-400 to-violet-400 transition-all"
-          style={{
-            width: `${safeValue}%`,
-          }}
+          className="h-full rounded-full bg-gradient-to-r from-[#315E50] via-[#719681] to-[#D9C5A2] transition-all duration-700"
+          style={{ width: `${safeValue}%` }}
         />
       </div>
     </div>
@@ -614,13 +503,13 @@ function ProjectCard({ project }: { project: ProjectData }) {
   const status = getProjectStatus(project);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-cyan-400/20 hover:bg-white/[0.045]">
+    <div className="rounded-2xl border border-[#E7E5DC] bg-white/65 p-5 shadow-[0_8px_24px_rgba(38,59,51,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-[#C9D9CE] hover:shadow-[0_12px_28px_rgba(38,59,51,0.08)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h3 className="text-base font-bold text-white">{project.name}</h3>
+          <h3 className="text-base font-bold text-[#263B33]">{project.name}</h3>
 
           {project.description ? (
-            <p className="mt-2 text-sm leading-6 text-slate-400">
+            <p className="mt-2 text-sm leading-6 text-[#777D76]">
               {project.description}
             </p>
           ) : null}
@@ -629,10 +518,10 @@ function ProjectCard({ project }: { project: ProjectData }) {
         <div
           className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
             status.isLive
-              ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+              ? "border-[#C9DED0] bg-[#EDF5EF] text-[#315E50]"
               : status.isRepository
-                ? "border-indigo-400/20 bg-indigo-400/10 text-indigo-300"
-                : "border-white/10 bg-white/5 text-slate-400"
+                ? "border-[#DADFEA] bg-[#F0F2F7] text-[#596783]"
+                : "border-[#E7E5DC] bg-[#F5F4EF] text-[#858A83]"
           }`}
         >
           {status.isLive ? (
@@ -652,7 +541,7 @@ function ProjectCard({ project }: { project: ProjectData }) {
           {project.technologies.map((technology, index) => (
             <span
               key={`${technology}-${index}`}
-              className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300"
+              className="rounded-lg border border-[#E7E5DC] bg-[#F7F5EF] px-2.5 py-1 text-xs text-[#59645D]"
             >
               {technology}
             </span>
@@ -665,10 +554,9 @@ function ProjectCard({ project }: { project: ProjectData }) {
           href={project.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 transition hover:text-cyan-200"
+          className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#315E50] transition hover:text-[#719681]"
         >
           {status.isLive ? "Open live project" : "View project repository"}
-
           <ExternalLink className="h-4 w-4" />
         </a>
       ) : null}
@@ -676,23 +564,16 @@ function ProjectCard({ project }: { project: ProjectData }) {
   );
 }
 
-/* =====================================================
-   MAIN PAGE
-===================================================== */
+/* Main page */
 
 export default function AnalyzerPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-
   const [uploadProgress, setUploadProgress] = useState(0);
-
   const [error, setError] = useState("");
-
   const [result, setResult] = useState<AnalysisResult | null>(null);
-
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const [dragActive, setDragActive] = useState(false);
 
   async function analyzeFile(file: File) {
@@ -702,10 +583,6 @@ export default function AnalyzerPage() {
     setUploadProgress(10);
 
     try {
-      /* =================================================
-         FILE VALIDATION
-      ================================================= */
-
       const isPdf =
         file.type === "application/pdf" ||
         file.name.toLowerCase().endsWith(".pdf");
@@ -718,12 +595,7 @@ export default function AnalyzerPage() {
         throw new Error("Resume must be smaller than 10MB.");
       }
 
-      /* =================================================
-         STEP 1 — UPLOAD RESUME
-      ================================================= */
-
       const formData = new FormData();
-
       formData.append("file", file);
 
       setUploadProgress(25);
@@ -754,18 +626,12 @@ export default function AnalyzerPage() {
 
       setUploadProgress(50);
 
-      /* =================================================
-         STEP 2 — ANALYZE RESUME
-      ================================================= */
-
       const analysisResponse = await fetch("/api/resume/analyze", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          resumeId,
-        }),
+        body: JSON.stringify({ resumeId }),
       });
 
       let analysisData: any = null;
@@ -790,10 +656,6 @@ export default function AnalyzerPage() {
 
       setUploadProgress(80);
 
-      /* =================================================
-         STEP 3 — GET ACTUAL RESULT
-      ================================================= */
-
       const apiResult =
         analysisData?.result ?? analysisData?.analysis ?? analysisData;
 
@@ -801,15 +663,7 @@ export default function AnalyzerPage() {
         throw new Error("The analysis response was empty.");
       }
 
-      /* =================================================
-         STEP 4 — NORMALIZE RESULT
-      ================================================= */
-
       const normalized = normalizeAnalysisResult(apiResult);
-
-      /* =================================================
-         STEP 5 — SHOW RESULT
-      ================================================= */
 
       setResult(normalized);
       setUploadProgress(100);
@@ -831,9 +685,7 @@ export default function AnalyzerPage() {
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
-    if (file) {
-      void analyzeFile(file);
-    }
+    if (file) void analyzeFile(file);
 
     event.target.value = "";
   }
@@ -844,9 +696,7 @@ export default function AnalyzerPage() {
 
     const file = event.dataTransfer.files?.[0];
 
-    if (file) {
-      void analyzeFile(file);
-    }
+    if (file) void analyzeFile(file);
   }
 
   function handleNewAnalysis() {
@@ -865,36 +715,43 @@ export default function AnalyzerPage() {
       ? result.candidate.headline
       : "";
 
-  return (
-    <div className="min-h-screen bg-[#070b17] text-white">
-      {/* =================================================
-          BACKGROUND
-      ================================================= */}
+  const navLinks = [
+    { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+    { href: "/resume", label: "My Resume", icon: FileText },
+    { href: "/templates", label: "Templates", icon: FileSearch },
+    { href: "/analyzer", label: "Resume Analyzer", icon: Target },
+    { href: "/ai", label: "AI Career Coach", icon: MessageSquareText },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ];
 
+  return (
+    <div className="min-h-screen bg-[#F7F5EF] text-[#263B33]">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
-        <div className="absolute right-0 top-1/4 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-violet-600/10 blur-3xl" />
+        <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-[#719681]/10 blur-3xl" />
+        <div className="absolute right-0 top-1/4 h-96 w-96 rounded-full bg-[#D9C5A2]/20 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-[#B97862]/10 blur-3xl" />
       </div>
 
-      {/* =================================================
-          MOBILE HEADER
-      ================================================= */}
+      {/* Mobile header */}
 
-      <div className="sticky top-0 z-40 border-b border-white/10 bg-[#070b17]/90 backdrop-blur-xl lg:hidden">
+      <div className="sticky top-0 z-40 border-b border-[#E7E5DC] bg-[#F7F5EF]/90 shadow-[0_4px_20px_rgba(38,59,51,0.04)] backdrop-blur-xl lg:hidden">
         <div className="flex h-16 items-center justify-between px-4">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-300 via-indigo-400 to-violet-500 text-slate-950">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#315E50] to-[#719681] text-white shadow-md shadow-[#315E50]/15">
               <Zap className="h-5 w-5" />
             </div>
 
-            <span className="text-lg font-black">Revio</span>
+            <span className="text-lg font-black tracking-tight text-[#263B33]">
+              Revio
+            </span>
           </Link>
 
           <button
             type="button"
             onClick={() => setMobileMenuOpen((value) => !value)}
-            className="rounded-lg border border-white/10 bg-white/5 p-2 text-slate-300"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileMenuOpen}
+            className="rounded-lg border border-[#E7E5DC] bg-white/70 p-2 text-[#59645D] transition hover:bg-white"
           >
             {mobileMenuOpen ? (
               <X className="h-5 w-5" />
@@ -905,161 +762,103 @@ export default function AnalyzerPage() {
         </div>
 
         {mobileMenuOpen ? (
-          <div className="border-t border-white/10 px-4 py-3">
-            <Link
-              href="/dashboard"
-              className="block rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/5"
-            >
-              Dashboard
-            </Link>
-
-            <Link
-              href="/resume"
-              className="block rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/5"
-            >
-              My Resume
-            </Link>
-
-            <Link
-              href="/templates"
-              className="block rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/5"
-            >
-              Templates
-            </Link>
-
-            <Link
-              href="/analyzer"
-              className="block rounded-lg bg-cyan-400/10 px-3 py-2 text-sm font-semibold text-cyan-300"
-            >
-              Analyzer
-            </Link>
-
-            <Link
-              href="/ai"
-              className="block rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/5"
-            >
-              AI Career Coach
-            </Link>
-
-            <Link
-              href="/settings"
-              className="block rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/5"
-            >
-              Settings
-            </Link>
-          </div>
+          <nav className="border-t border-[#E7E5DC] bg-[#F7F5EF]/95 px-4 py-3">
+            {navLinks.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
+                  href === "/analyzer"
+                    ? "bg-[#EAF1EB] font-semibold text-[#315E50]"
+                    : "text-[#59645D] hover:bg-white/70"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Link>
+            ))}
+          </nav>
         ) : null}
       </div>
 
       <div className="relative flex min-h-screen">
-        {/* =================================================
-            SIDEBAR
-        ================================================= */}
+        {/* Sidebar */}
 
-        <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-white/10 bg-[#080c18]/95 backdrop-blur-xl lg:flex lg:flex-col">
-          <div className="flex h-20 items-center border-b border-white/10 px-6">
+        <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-[#E7E5DC] bg-[#F4F2EB]/90 shadow-[4px_0_24px_rgba(38,59,51,0.03)] backdrop-blur-xl lg:flex lg:flex-col">
+          <div className="flex h-20 items-center border-b border-[#E7E5DC] px-6">
             <Link href="/dashboard" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-300 via-indigo-400 to-violet-500 text-slate-950 shadow-lg shadow-indigo-500/10">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#315E50] to-[#719681] text-white shadow-lg shadow-[#315E50]/15">
                 <Zap className="h-5 w-5" />
               </div>
 
-              <span className="text-xl font-black tracking-tight">Revio</span>
+              <span className="text-xl font-black tracking-tight text-[#263B33]">
+                Revio
+              </span>
             </Link>
           </div>
 
           <nav className="flex-1 space-y-1 p-4">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
-            >
-              <BarChart3 className="h-4 w-4" />
-              Dashboard
-            </Link>
-
-            <Link
-              href="/resume"
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
-            >
-              <FileText className="h-4 w-4" />
-              My Resume
-            </Link>
-
-            <Link
-              href="/templates"
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
-            >
-              <FileSearch className="h-4 w-4" />
-              Templates
-            </Link>
-
-            <Link
-              href="/analyzer"
-              className="flex items-center gap-3 rounded-xl border border-cyan-400/10 bg-gradient-to-r from-cyan-400/10 to-indigo-400/10 px-4 py-3 text-sm font-semibold text-cyan-300"
-            >
-              <Target className="h-4 w-4" />
-              Resume Analyzer
-            </Link>
-
-            <Link
-              href="/ai"
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
-            >
-              <MessageSquareText className="h-4 w-4" />
-              AI Career Coach
-            </Link>
-
-            <Link
-              href="/settings"
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </Link>
+            {navLinks.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition ${
+                  href === "/analyzer"
+                    ? "border border-[#DCE7DF] bg-gradient-to-r from-[#EAF1EB] to-white/80 font-semibold text-[#315E50] shadow-sm"
+                    : "text-[#777D76] hover:bg-white/70 hover:text-[#315E50]"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Link>
+            ))}
           </nav>
 
-          <div className="border-t border-white/10 p-4">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="border-t border-[#E7E5DC] p-4">
+            <div className="rounded-2xl border border-white/90 bg-white/65 p-4 shadow-[0_8px_24px_rgba(38,59,51,0.04)]">
               <div className="mb-2 flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-emerald-300" />
-
-                <span className="text-xs font-semibold text-slate-300">
+                <ShieldCheck className="h-4 w-4 text-[#315E50]" />
+                <span className="text-xs font-semibold text-[#263B33]">
                   Resume analysis
                 </span>
               </div>
 
-              <p className="text-xs leading-5 text-slate-500">
-                Your resume is analyzed locally through the Revio analysis
-                pipeline.
+              <p className="text-xs leading-5 text-[#858A83]">
+                Your resume is processed through the Revio analysis pipeline.
               </p>
             </div>
           </div>
         </aside>
 
-        {/* =================================================
-            MAIN
-        ================================================= */}
+        {/* Main */}
 
         <main className="w-full lg:ml-64">
           <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            {/* HEADER */}
+            {/* Header */}
 
             <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
               <div>
-                <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
-                  <Link href="/dashboard" className="hover:text-slate-300">
+                <div className="mb-2 flex items-center gap-2 text-sm text-[#858A83]">
+                  <Link
+                    href="/dashboard"
+                    className="transition hover:text-[#315E50]"
+                  >
                     Dashboard
                   </Link>
 
                   <ChevronRight className="h-3.5 w-3.5" />
 
-                  <span className="text-slate-400">Resume Analyzer</span>
+                  <span className="font-medium text-[#59645D]">
+                    Resume Analyzer
+                  </span>
                 </div>
 
-                <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+                <h1 className="text-3xl font-black tracking-tight text-[#263B33] sm:text-4xl">
                   Resume Analyzer
                 </h1>
 
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[#777D76]">
                   Get a complete breakdown of your resume, ATS compatibility,
                   skills, projects, experience, and next career move.
                 </p>
@@ -1070,7 +869,7 @@ export default function AnalyzerPage() {
                   <button
                     type="button"
                     onClick={handleNewAnalysis}
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#E2E3D9] bg-white/70 px-4 py-2.5 text-sm font-semibold text-[#59645D] shadow-sm transition hover:border-[#C9D9CE] hover:bg-white hover:text-[#315E50]"
                   >
                     <RefreshCw className="h-4 w-4" />
                     New Analysis
@@ -1079,25 +878,25 @@ export default function AnalyzerPage() {
               </div>
             </div>
 
-            {/* ERROR */}
+            {/* Error */}
 
             {error ? (
-              <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-400/20 bg-red-400/5 p-4">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-300" />
+              <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[#E9C9C0] bg-[#FBF0ED] p-4">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#B97862]" />
 
                 <div>
-                  <p className="font-semibold text-red-200">Analysis failed</p>
+                  <p className="font-semibold text-[#8E5142]">
+                    Analysis failed
+                  </p>
 
-                  <p className="mt-1 text-sm leading-6 text-red-200/70">
+                  <p className="mt-1 text-sm leading-6 text-[#9A6558]">
                     {error}
                   </p>
                 </div>
               </div>
             ) : null}
 
-            {/* =================================================
-                UPLOAD
-            ================================================= */}
+            {/* Upload */}
 
             {!result ? (
               <div className="mx-auto max-w-4xl">
@@ -1108,30 +907,30 @@ export default function AnalyzerPage() {
                   }}
                   onDragLeave={() => setDragActive(false)}
                   onDrop={handleDrop}
-                  className={`relative overflow-hidden rounded-3xl border p-8 text-center transition sm:p-12 ${
+                  className={`relative overflow-hidden rounded-3xl border p-8 text-center shadow-[0_16px_48px_rgba(38,59,51,0.05)] backdrop-blur-xl transition duration-300 sm:p-12 ${
                     dragActive
-                      ? "border-cyan-300/50 bg-cyan-400/5"
-                      : "border-white/10 bg-white/[0.03]"
+                      ? "border-[#719681] bg-[#EAF1EB]"
+                      : "border-white/90 bg-white/65"
                   }`}
                 >
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cyan-400/[0.04] via-transparent to-indigo-500/[0.06]" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#719681]/[0.07] via-transparent to-[#D9C5A2]/[0.13]" />
 
                   <div className="relative">
-                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10">
+                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#DCE7DF] bg-[#EAF1EB] shadow-sm">
                       {isAnalyzing ? (
-                        <Loader2 className="h-7 w-7 animate-spin text-cyan-300" />
+                        <Loader2 className="h-7 w-7 animate-spin text-[#315E50]" />
                       ) : (
-                        <Upload className="h-7 w-7 text-cyan-300" />
+                        <Upload className="h-7 w-7 text-[#315E50]" />
                       )}
                     </div>
 
-                    <h2 className="text-xl font-bold text-white">
+                    <h2 className="text-xl font-bold text-[#263B33]">
                       {isAnalyzing
                         ? "Analyzing your resume..."
                         : "Upload your resume"}
                     </h2>
 
-                    <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-400">
+                    <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#777D76]">
                       Upload your PDF resume and Revio will analyze its
                       structure, ATS compatibility, skills, experience,
                       projects, and career opportunities.
@@ -1142,7 +941,7 @@ export default function AnalyzerPage() {
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-indigo-400 to-violet-500 px-6 py-3 font-bold text-slate-950 shadow-xl shadow-indigo-500/10 transition hover:scale-[1.01]"
+                          className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#315E50] to-[#527B68] px-6 py-3 font-bold text-white shadow-lg shadow-[#315E50]/15 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#315E50]/20"
                         >
                           <Upload className="h-4 w-4" />
                           Choose Resume
@@ -1156,24 +955,23 @@ export default function AnalyzerPage() {
                           onChange={handleFileChange}
                         />
 
-                        <p className="mt-4 text-xs text-slate-500">
+                        <p className="mt-4 text-xs text-[#858A83]">
                           PDF only • Maximum 10MB
                         </p>
                       </>
                     ) : (
                       <div className="mx-auto mt-8 max-w-md">
-                        <div className="mb-2 flex justify-between text-xs text-slate-500">
+                        <div className="mb-2 flex justify-between text-xs text-[#858A83]">
                           <span>Processing</span>
-
-                          <span>{uploadProgress}%</span>
+                          <span className="font-semibold text-[#315E50]">
+                            {uploadProgress}%
+                          </span>
                         </div>
 
-                        <div className="h-2 overflow-hidden rounded-full bg-white/5">
+                        <div className="h-2 overflow-hidden rounded-full bg-[#EAE9E1]">
                           <div
-                            className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-indigo-400 to-violet-400 transition-all duration-500"
-                            style={{
-                              width: `${uploadProgress}%`,
-                            }}
+                            className="h-full rounded-full bg-gradient-to-r from-[#315E50] via-[#719681] to-[#D9C5A2] transition-all duration-500"
+                            style={{ width: `${uploadProgress}%` }}
                           />
                         </div>
                       </div>
@@ -1201,15 +999,17 @@ export default function AnalyzerPage() {
                   ].map(({ icon: Icon, title, text }) => (
                     <div
                       key={title}
-                      className="rounded-2xl border border-white/10 bg-white/[0.025] p-5"
+                      className="rounded-2xl border border-white/90 bg-white/60 p-5 shadow-[0_8px_24px_rgba(38,59,51,0.04)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(38,59,51,0.07)]"
                     >
-                      <Icon className="h-5 w-5 text-cyan-300" />
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1EB]">
+                        <Icon className="h-5 w-5 text-[#315E50]" />
+                      </div>
 
-                      <h3 className="mt-4 text-sm font-bold text-white">
+                      <h3 className="mt-4 text-sm font-bold text-[#263B33]">
                         {title}
                       </h3>
 
-                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                      <p className="mt-1 text-xs leading-5 text-[#858A83]">
                         {text}
                       </p>
                     </div>
@@ -1217,38 +1017,36 @@ export default function AnalyzerPage() {
                 </div>
               </div>
             ) : (
-              /* =================================================
-                 RESULTS
-              ================================================= */
+              /* Results */
 
               <div className="space-y-6">
-                {/* CANDIDATE PROFILE */}
+                {/* Candidate profile */}
 
-                <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
-                  <div className="border-b border-white/10 p-6 sm:p-8">
+                <section className="overflow-hidden rounded-3xl border border-white/90 bg-white/65 shadow-[0_12px_36px_rgba(38,59,51,0.05)] backdrop-blur-xl">
+                  <div className="border-b border-[#E7E5DC] p-6 sm:p-8">
                     <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300/20 via-indigo-400/20 to-violet-500/20 text-cyan-300">
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-[#DCE7DF] bg-gradient-to-br from-[#EAF1EB] to-[#F4EFE4] text-[#315E50]">
                           <CircleUserRound className="h-8 w-8" />
                         </div>
 
                         <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300/70">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#719681]">
                             Candidate Profile
                           </p>
 
-                          <h2 className="mt-1 text-2xl font-black text-white">
+                          <h2 className="mt-1 text-2xl font-black text-[#263B33]">
                             {result.candidate?.name || "Candidate"}
                           </h2>
 
                           {candidateHeadline ? (
-                            <p className="mt-1 text-sm text-slate-400">
+                            <p className="mt-1 text-sm text-[#777D76]">
                               {candidateHeadline}
                             </p>
                           ) : null}
 
                           {result.candidate?.location ? (
-                            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                            <div className="mt-2 flex items-center gap-1.5 text-xs text-[#858A83]">
                               <MapPin className="h-3.5 w-3.5" />
                               {result.candidate.location}
                             </div>
@@ -1256,21 +1054,21 @@ export default function AnalyzerPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 px-6 py-4 text-center">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      <div className="rounded-2xl border border-[#DCE7DF] bg-gradient-to-br from-[#EAF1EB] to-white px-6 py-4 text-center">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[#777D76]">
                           Overall Score
                         </p>
 
-                        <p className="mt-1 text-4xl font-black text-white">
+                        <p className="mt-1 text-4xl font-black text-[#315E50]">
                           {Math.round(result.overallScore)}
                         </p>
 
-                        <p className="text-xs text-slate-500">/ 100</p>
+                        <p className="text-xs text-[#858A83]">/ 100</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid gap-px bg-white/10 sm:grid-cols-3">
+                  <div className="grid gap-px bg-[#E7E5DC] sm:grid-cols-3">
                     {[
                       result.profile?.education,
                       result.profile?.experience,
@@ -1278,18 +1076,18 @@ export default function AnalyzerPage() {
                     ].map((item, index) => (
                       <div
                         key={`${item?.label}-${index}`}
-                        className="bg-[#0a0f1d] p-6"
+                        className="bg-white/75 p-6"
                       >
-                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[#858A83]">
                           {item?.label}
                         </p>
 
-                        <p className="mt-2 font-bold text-white">
+                        <p className="mt-2 font-bold text-[#263B33]">
                           {item?.value || "Not identified"}
                         </p>
 
                         {item?.detail ? (
-                          <p className="mt-1 text-sm text-slate-500">
+                          <p className="mt-1 text-sm text-[#858A83]">
                             {item.detail}
                           </p>
                         ) : null}
@@ -1298,9 +1096,9 @@ export default function AnalyzerPage() {
                   </div>
                 </section>
 
-                {/* SCORE BREAKDOWN */}
+                {/* Score breakdown */}
 
-                <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+                <section className="rounded-3xl border border-white/90 bg-white/65 p-6 shadow-[0_10px_30px_rgba(38,59,51,0.04)] sm:p-8">
                   <SectionHeader
                     icon={BarChart3}
                     title="Score Breakdown"
@@ -1312,22 +1110,18 @@ export default function AnalyzerPage() {
                       label="ATS Compatibility"
                       value={result.scores?.atsCompatibility ?? 0}
                     />
-
                     <ScoreBar
                       label="Skills Strength"
                       value={result.scores?.skillsStrength ?? 0}
                     />
-
                     <ScoreBar
                       label="Experience"
                       value={result.scores?.experience ?? 0}
                     />
-
                     <ScoreBar
                       label="Education Match"
                       value={result.scores?.educationMatch ?? 0}
                     />
-
                     <ScoreBar
                       label="Content Quality"
                       value={result.scores?.contentQuality ?? 0}
@@ -1335,22 +1129,22 @@ export default function AnalyzerPage() {
                   </div>
                 </section>
 
-                {/* SUMMARY */}
+                {/* Summary */}
 
                 {result.summary ? (
-                  <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+                  <section className="rounded-3xl border border-white/90 bg-white/65 p-6 shadow-[0_10px_30px_rgba(38,59,51,0.04)] sm:p-8">
                     <SectionHeader icon={FileText} title="Resume Summary" />
 
-                    <p className="max-w-4xl text-sm leading-7 text-slate-300">
+                    <p className="max-w-4xl text-sm leading-7 text-[#59645D]">
                       {result.summary}
                     </p>
                   </section>
                 ) : null}
 
-                {/* SKILLS */}
+                {/* Skills */}
 
                 {result.skills && result.skills.length > 0 ? (
-                  <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+                  <section className="rounded-3xl border border-white/90 bg-white/65 p-6 shadow-[0_10px_30px_rgba(38,59,51,0.04)] sm:p-8">
                     <SectionHeader
                       icon={Code2}
                       title="Skills"
@@ -1361,7 +1155,7 @@ export default function AnalyzerPage() {
                       {result.skills.map((skill, index) => (
                         <span
                           key={`${skill}-${index}`}
-                          className="rounded-xl border border-indigo-400/15 bg-indigo-400/10 px-3 py-2 text-sm font-medium text-indigo-200"
+                          className="rounded-xl border border-[#DCE7DF] bg-[#EAF1EB] px-3 py-2 text-sm font-medium text-[#315E50]"
                         >
                           {skill}
                         </span>
@@ -1370,10 +1164,10 @@ export default function AnalyzerPage() {
                   </section>
                 ) : null}
 
-                {/* PROJECTS */}
+                {/* Projects */}
 
                 {result.projects && result.projects.length > 0 ? (
-                  <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+                  <section className="rounded-3xl border border-white/90 bg-white/65 p-6 shadow-[0_10px_30px_rgba(38,59,51,0.04)] sm:p-8">
                     <SectionHeader
                       icon={Briefcase}
                       title="Projects"
@@ -1389,7 +1183,7 @@ export default function AnalyzerPage() {
                       ))}
                     </div>
 
-                    <p className="mt-5 text-xs leading-5 text-slate-500">
+                    <p className="mt-5 text-xs leading-5 text-[#858A83]">
                       Project status is inferred from the URL listed in your
                       resume. A non-GitHub URL is treated as a live project
                       link; Revio does not automatically verify whether the
@@ -1398,39 +1192,39 @@ export default function AnalyzerPage() {
                   </section>
                 ) : null}
 
-                {/* EXPERIENCE */}
+                {/* Experience */}
 
                 {result.experienceDetails &&
                 result.experienceDetails.length > 0 ? (
-                  <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+                  <section className="rounded-3xl border border-white/90 bg-white/65 p-6 shadow-[0_10px_30px_rgba(38,59,51,0.04)] sm:p-8">
                     <SectionHeader icon={Award} title="Experience Details" />
 
                     <div className="space-y-4">
                       {result.experienceDetails.map((experience, index) => (
                         <div
                           key={`${experience.company}-${experience.role}-${index}`}
-                          className="rounded-2xl border border-white/10 bg-white/[0.025] p-5"
+                          className="rounded-2xl border border-[#E7E5DC] bg-white/70 p-5"
                         >
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                             <div>
-                              <h3 className="font-bold text-white">
+                              <h3 className="font-bold text-[#263B33]">
                                 {experience.role}
                               </h3>
 
-                              <p className="mt-1 text-sm text-cyan-300">
+                              <p className="mt-1 text-sm font-medium text-[#527B68]">
                                 {experience.company}
                               </p>
                             </div>
 
                             {experience.duration ? (
-                              <span className="text-xs text-slate-500">
+                              <span className="text-xs text-[#858A83]">
                                 {experience.duration}
                               </span>
                             ) : null}
                           </div>
 
                           {experience.description ? (
-                            <p className="mt-4 text-sm leading-6 text-slate-400">
+                            <p className="mt-4 text-sm leading-6 text-[#777D76]">
                               {experience.description}
                             </p>
                           ) : null}
@@ -1442,10 +1236,9 @@ export default function AnalyzerPage() {
                                 (achievement, achievementIndex) => (
                                   <div
                                     key={achievementIndex}
-                                    className="flex gap-2 text-sm text-slate-300"
+                                    className="flex gap-2 text-sm text-[#59645D]"
                                   >
-                                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
-
+                                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#527B68]" />
                                     <span>{achievement}</span>
                                   </div>
                                 ),
@@ -1461,7 +1254,7 @@ export default function AnalyzerPage() {
                 {/* ATS */}
 
                 {result.atsAnalysis ? (
-                  <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+                  <section className="rounded-3xl border border-white/90 bg-white/65 p-6 shadow-[0_10px_30px_rgba(38,59,51,0.04)] sm:p-8">
                     <SectionHeader
                       icon={ShieldCheck}
                       title="ATS Analysis"
@@ -1489,11 +1282,11 @@ export default function AnalyzerPage() {
                       ].map((item) => (
                         <div
                           key={item.label}
-                          className="rounded-2xl border border-white/10 bg-white/[0.025] p-5"
+                          className="rounded-2xl border border-[#E7E5DC] bg-white/70 p-5"
                         >
-                          <p className="text-xs text-slate-500">{item.label}</p>
+                          <p className="text-xs text-[#858A83]">{item.label}</p>
 
-                          <p className="mt-2 text-xl font-black text-white">
+                          <p className="mt-2 text-xl font-black text-[#315E50]">
                             {item.value || "—"}
                           </p>
                         </div>
@@ -1503,7 +1296,7 @@ export default function AnalyzerPage() {
                     {result.atsAnalysis.issues &&
                     result.atsAnalysis.issues.length > 0 ? (
                       <div className="mt-6">
-                        <h3 className="mb-3 text-sm font-bold text-white">
+                        <h3 className="mb-3 text-sm font-bold text-[#263B33]">
                           Issues Found
                         </h3>
 
@@ -1511,10 +1304,9 @@ export default function AnalyzerPage() {
                           {result.atsAnalysis.issues.map((issue, index) => (
                             <div
                               key={index}
-                              className="flex gap-3 rounded-xl border border-amber-400/10 bg-amber-400/5 p-3 text-sm text-slate-300"
+                              className="flex gap-3 rounded-xl border border-[#E9DCC2] bg-[#F9F4E9] p-3 text-sm text-[#6D6250]"
                             >
-                              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
-
+                              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#B28A4F]" />
                               <span>{issue}</span>
                             </div>
                           ))}
@@ -1524,10 +1316,10 @@ export default function AnalyzerPage() {
                   </section>
                 ) : null}
 
-                {/* INSIGHTS */}
+                {/* Insights */}
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                  <section className="rounded-3xl border border-emerald-400/10 bg-emerald-400/[0.03] p-6">
+                  <section className="rounded-3xl border border-[#DCE7DF] bg-[#EDF4EE]/80 p-6 shadow-[0_8px_24px_rgba(38,59,51,0.03)]">
                     <SectionHeader icon={CheckCircle2} title="Strengths" />
 
                     {result.strengths && result.strengths.length > 0 ? (
@@ -1535,22 +1327,21 @@ export default function AnalyzerPage() {
                         {result.strengths.map((item, index) => (
                           <div
                             key={index}
-                            className="flex gap-2 text-sm leading-6 text-slate-300"
+                            className="flex gap-2 text-sm leading-6 text-[#59645D]"
                           >
-                            <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-300" />
-
+                            <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-[#527B68]" />
                             <span>{item}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-[#858A83]">
                         No specific strengths identified.
                       </p>
                     )}
                   </section>
 
-                  <section className="rounded-3xl border border-red-400/10 bg-red-400/[0.03] p-6">
+                  <section className="rounded-3xl border border-[#E9D5CF] bg-[#FAF0ED]/80 p-6 shadow-[0_8px_24px_rgba(38,59,51,0.03)]">
                     <SectionHeader icon={AlertCircle} title="Weaknesses" />
 
                     {result.weaknesses && result.weaknesses.length > 0 ? (
@@ -1558,22 +1349,21 @@ export default function AnalyzerPage() {
                         {result.weaknesses.map((item, index) => (
                           <div
                             key={index}
-                            className="flex gap-2 text-sm leading-6 text-slate-300"
+                            className="flex gap-2 text-sm leading-6 text-[#735B54]"
                           >
-                            <AlertCircle className="mt-1 h-4 w-4 shrink-0 text-red-300" />
-
+                            <AlertCircle className="mt-1 h-4 w-4 shrink-0 text-[#B97862]" />
                             <span>{item}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-[#858A83]">
                         No major weaknesses identified.
                       </p>
                     )}
                   </section>
 
-                  <section className="rounded-3xl border border-amber-400/10 bg-amber-400/[0.03] p-6">
+                  <section className="rounded-3xl border border-[#E9DFC9] bg-[#F9F5EA]/80 p-6 shadow-[0_8px_24px_rgba(38,59,51,0.03)]">
                     <SectionHeader icon={Lightbulb} title="Suggestions" />
 
                     {result.suggestions && result.suggestions.length > 0 ? (
@@ -1581,27 +1371,26 @@ export default function AnalyzerPage() {
                         {result.suggestions.map((item, index) => (
                           <div
                             key={index}
-                            className="flex gap-2 text-sm leading-6 text-slate-300"
+                            className="flex gap-2 text-sm leading-6 text-[#6D6250]"
                           >
-                            <Lightbulb className="mt-1 h-4 w-4 shrink-0 text-amber-300" />
-
+                            <Lightbulb className="mt-1 h-4 w-4 shrink-0 text-[#B28A4F]" />
                             <span>{item}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-[#858A83]">
                         No additional suggestions.
                       </p>
                     )}
                   </section>
                 </div>
 
-                {/* RECOMMENDED ROLES */}
+                {/* Recommended roles */}
 
                 {result.recommendedRoles &&
                 result.recommendedRoles.length > 0 ? (
-                  <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+                  <section className="rounded-3xl border border-white/90 bg-white/65 p-6 shadow-[0_10px_30px_rgba(38,59,51,0.04)] sm:p-8">
                     <SectionHeader
                       icon={TrendingUp}
                       title="Recommended Roles"
@@ -1612,24 +1401,24 @@ export default function AnalyzerPage() {
                       {result.recommendedRoles.map((role, index) => (
                         <div
                           key={`${role.role}-${index}`}
-                          className="rounded-2xl border border-white/10 bg-white/[0.025] p-5"
+                          className="rounded-2xl border border-[#E7E5DC] bg-white/70 p-5 transition duration-300 hover:-translate-y-0.5 hover:border-[#C9D9CE] hover:shadow-[0_10px_24px_rgba(38,59,51,0.06)]"
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <span className="text-xs font-bold text-cyan-300">
+                            <span className="text-xs font-bold text-[#527B68]">
                               {role.rank || `#${index + 1}`}
                             </span>
 
-                            <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs font-bold text-emerald-300">
+                            <span className="rounded-full border border-[#DCE7DF] bg-[#EDF4EE] px-2.5 py-1 text-xs font-bold text-[#315E50]">
                               {Math.round(role.match)}% match
                             </span>
                           </div>
 
-                          <h3 className="mt-4 text-base font-bold text-white">
+                          <h3 className="mt-4 text-base font-bold text-[#263B33]">
                             {role.role}
                           </h3>
 
                           {role.description ? (
-                            <p className="mt-2 text-sm leading-6 text-slate-500">
+                            <p className="mt-2 text-sm leading-6 text-[#777D76]">
                               {role.description}
                             </p>
                           ) : null}
@@ -1641,7 +1430,7 @@ export default function AnalyzerPage() {
                                 .map((skill, skillIndex) => (
                                   <span
                                     key={`${skill}-${skillIndex}`}
-                                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-400"
+                                    className="rounded-lg border border-[#E7E5DC] bg-[#F7F5EF] px-2 py-1 text-[11px] text-[#777D76]"
                                   >
                                     {skill}
                                   </span>
@@ -1654,10 +1443,10 @@ export default function AnalyzerPage() {
                   </section>
                 ) : null}
 
-                {/* SKILL GAPS */}
+                {/* Skill gaps */}
 
                 {result.skillGaps && result.skillGaps.length > 0 ? (
-                  <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+                  <section className="rounded-3xl border border-white/90 bg-white/65 p-6 shadow-[0_10px_30px_rgba(38,59,51,0.04)] sm:p-8">
                     <SectionHeader
                       icon={Target}
                       title="Skill Gaps"
@@ -1674,30 +1463,27 @@ export default function AnalyzerPage() {
                         return (
                           <div
                             key={`${gap.name}-${index}`}
-                            className="rounded-2xl border border-white/10 bg-white/[0.025] p-5"
+                            className="rounded-2xl border border-[#E7E5DC] bg-white/70 p-5"
                           >
                             <div className="flex items-center justify-between">
-                              <h3 className="font-bold text-white">
+                              <h3 className="font-bold text-[#263B33]">
                                 {gap.name}
                               </h3>
 
-                              <span className="text-xs font-semibold text-slate-500">
-                                {Math.round(safeLevel)}
-                                /100
+                              <span className="text-xs font-semibold text-[#858A83]">
+                                {Math.round(safeLevel)}/100
                               </span>
                             </div>
 
-                            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/5">
+                            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#EAE9E1]">
                               <div
-                                className="h-full rounded-full bg-gradient-to-r from-amber-300 to-orange-400"
-                                style={{
-                                  width: `${safeLevel}%`,
-                                }}
+                                className="h-full rounded-full bg-gradient-to-r from-[#D9C5A2] to-[#B97862]"
+                                style={{ width: `${safeLevel}%` }}
                               />
                             </div>
 
                             {gap.reason ? (
-                              <p className="mt-3 text-sm leading-6 text-slate-500">
+                              <p className="mt-3 text-sm leading-6 text-[#777D76]">
                                 {gap.reason}
                               </p>
                             ) : null}
@@ -1708,29 +1494,29 @@ export default function AnalyzerPage() {
                   </section>
                 ) : null}
 
-                {/* NEXT CAREER MOVE */}
+                {/* Next career move */}
 
                 {result.nextCareerMove ? (
-                  <section className="overflow-hidden rounded-3xl border border-indigo-400/20 bg-gradient-to-br from-indigo-500/[0.08] via-violet-500/[0.05] to-cyan-400/[0.04] p-6 sm:p-8">
+                  <section className="overflow-hidden rounded-3xl border border-[#DCE7DF] bg-gradient-to-br from-[#EAF1EB] via-white/80 to-[#F4EFE4] p-6 shadow-[0_12px_32px_rgba(38,59,51,0.05)] sm:p-8">
                     <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="mb-3 flex items-center gap-2">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-400/10">
-                            <ArrowRight className="h-4 w-4 text-indigo-300" />
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE7DF] bg-white/75">
+                            <ArrowRight className="h-4 w-4 text-[#315E50]" />
                           </div>
 
-                          <span className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-300">
+                          <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#527B68]">
                             Next Career Move
                           </span>
                         </div>
 
-                        <h2 className="text-2xl font-black text-white">
+                        <h2 className="text-2xl font-black text-[#263B33]">
                           {result.nextCareerMove.title ||
                             "Your next career move"}
                         </h2>
 
                         {result.nextCareerMove.description ? (
-                          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-400">
+                          <p className="mt-3 max-w-3xl text-sm leading-7 text-[#777D76]">
                             {result.nextCareerMove.description}
                           </p>
                         ) : null}
@@ -1739,20 +1525,20 @@ export default function AnalyzerPage() {
                   </section>
                 ) : null}
 
-                {/* BOTTOM ACTION */}
+                {/* Bottom action */}
 
-                <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:flex-row">
+                <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-white/90 bg-white/65 p-5 shadow-[0_8px_24px_rgba(38,59,51,0.04)] sm:flex-row">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-400/10">
-                      <RefreshCw className="h-4 w-4 text-cyan-300" />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF1EB]">
+                      <RefreshCw className="h-4 w-4 text-[#315E50]" />
                     </div>
 
                     <div>
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-[#263B33]">
                         Analyze another resume
                       </p>
 
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-[#858A83]">
                         Start a fresh analysis anytime.
                       </p>
                     </div>
@@ -1761,7 +1547,7 @@ export default function AnalyzerPage() {
                   <button
                     type="button"
                     onClick={handleNewAnalysis}
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#DCE7DF] bg-[#EAF1EB] px-4 py-2.5 text-sm font-semibold text-[#315E50] transition hover:bg-[#DCE9DF]"
                   >
                     New Analysis
                     <ArrowRight className="h-4 w-4" />

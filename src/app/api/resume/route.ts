@@ -186,9 +186,24 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("[Revio] Resume creation failed:", error);
+    console.error("[Revio] Resume creation failed:");
 
-    return jsonError("Failed to create your resume. Please try again.", 500);
+    if (error instanceof Error) {
+      console.error("Message:", error.message);
+      console.error("Name:", error.name);
+      console.error("Stack:", error.stack);
+    } else {
+      console.error("Unknown error:", error);
+    }
+
+    if (typeof error === "object" && error !== null && "code" in error) {
+      console.error("Prisma error code:", (error as { code?: string }).code);
+    }
+
+    return jsonError(
+      "Failed to create your resume. Check the server logs.",
+      500,
+    );
   }
 }
 

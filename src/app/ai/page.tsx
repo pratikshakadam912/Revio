@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  Activity,
   AlertCircle,
   ArrowRight,
   Award,
@@ -16,13 +15,11 @@ import {
   FileSearch,
   FileText,
   GraduationCap,
-  Lightbulb,
   Loader2,
   MapPin,
   Menu,
   MessageSquareText,
   RefreshCw,
-  Search,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -31,7 +28,6 @@ import {
   Undo2,
   Redo2,
   Upload,
-  UserRound,
   X,
   Zap,
 } from "lucide-react";
@@ -187,8 +183,8 @@ function stringArray(value: unknown): string[] {
     .filter(Boolean);
 }
 
-function arrayValue<T>(value: unknown, fallback: T[] = []): T[] {
-  return Array.isArray(value) ? (value as T[]) : fallback;
+function arrayValue<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
 }
 
 function normalizeResumeData(
@@ -212,9 +208,7 @@ function normalizeResumeData(
       portfolio: stringValue(candidate.portfolio),
       headline: stringValue(candidate.headline),
     },
-
     summary: stringValue(value.summary),
-
     experience: arrayValue<Experience>(value.experience).map((item) => ({
       company: stringValue(item?.company),
       role: stringValue(item?.role),
@@ -225,7 +219,6 @@ function normalizeResumeData(
       achievements: stringArray(item?.achievements),
       technologies: stringArray(item?.technologies),
     })),
-
     education: arrayValue<Education>(value.education).map((item) => ({
       degree: stringValue(item?.degree),
       field: stringValue(item?.field),
@@ -235,7 +228,6 @@ function normalizeResumeData(
       endDate: stringValue(item?.endDate),
       description: stringValue(item?.description),
     })),
-
     projects: arrayValue<Project>(value.projects).map((item) => ({
       name: stringValue(item?.name),
       description: stringValue(item?.description),
@@ -244,9 +236,7 @@ function normalizeResumeData(
       startDate: stringValue(item?.startDate),
       endDate: stringValue(item?.endDate),
     })),
-
     skills: stringArray(value.skills),
-
     certifications: arrayValue<Certification>(value.certifications).map(
       (item) => ({
         name: stringValue(item?.name),
@@ -255,12 +245,10 @@ function normalizeResumeData(
         url: stringValue(item?.url),
       }),
     ),
-
     languages: arrayValue<Language>(value.languages).map((item) => ({
       name: stringValue(item?.name),
       proficiency: stringValue(item?.proficiency),
     })),
-
     achievements: stringArray(value.achievements),
   };
 }
@@ -270,13 +258,9 @@ function deepClone<T>(value: T): T {
 }
 
 function formatChangeValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "Empty";
-  }
+  if (value === null || value === undefined) return "Empty";
 
-  if (typeof value === "string") {
-    return value.trim() || "Empty";
-  }
+  if (typeof value === "string") return value.trim() || "Empty";
 
   if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
@@ -286,51 +270,37 @@ function formatChangeValue(value: unknown): string {
     if (value.length === 0) return "Empty";
 
     return value
-      .map((item) => {
-        if (typeof item === "string") return item;
-        return JSON.stringify(item);
-      })
+      .map((item) => (typeof item === "string" ? item : JSON.stringify(item)))
       .join(", ");
   }
 
-  if (typeof value === "object") {
-    return JSON.stringify(value);
-  }
+  if (typeof value === "object") return JSON.stringify(value);
 
   return String(value);
 }
 
 function truncateValue(value: unknown, max = 180): string {
   const formatted = formatChangeValue(value);
-
-  if (formatted.length <= max) {
-    return formatted;
-  }
-
-  return `${formatted.slice(0, max)}…`;
+  return formatted.length <= max ? formatted : `${formatted.slice(0, max)}…`;
 }
 
 function humanizePath(path: string): string {
-  const cleaned = path
+  return path
     .replace(/\[(\d+)\]/g, " $1")
     .replace(/\./g, " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .trim();
-
-  return cleaned
+    .trim()
     .split(/\s+/)
-    .map((word) => {
-      if (/^\d+$/.test(word)) {
-        return `#${Number(word) + 1}`;
-      }
-
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    })
+    .map((word) =>
+      /^\d+$/.test(word)
+        ? `#${Number(word) + 1}`
+        : word.charAt(0).toUpperCase() + word.slice(1),
+    )
     .join(" ");
 }
 
 /* =========================================================
-   SAFE CHANGE PATHS
+   SAFE AI CHANGE PATHS
 ========================================================= */
 
 const allowedChangePath =
@@ -342,33 +312,22 @@ function isAllowedChangePath(path: string): boolean {
 
 function getPathValue(source: unknown, path: string): unknown {
   const tokens = path.match(/[^.[\]]+/g);
-
   if (!tokens) return undefined;
 
   let current: unknown = source;
 
   for (const token of tokens) {
-    if (current === null || current === undefined) {
-      return undefined;
-    }
+    if (current === null || current === undefined) return undefined;
 
     if (Array.isArray(current)) {
       const index = Number(token);
-
-      if (!Number.isInteger(index)) {
-        return undefined;
-      }
-
+      if (!Number.isInteger(index)) return undefined;
       current = current[index];
-      continue;
-    }
-
-    if (typeof current === "object") {
+    } else if (typeof current === "object") {
       current = (current as Record<string, unknown>)[token];
-      continue;
+    } else {
+      return undefined;
     }
-
-    return undefined;
   }
 
   return current;
@@ -376,13 +335,9 @@ function getPathValue(source: unknown, path: string): unknown {
 
 function setPathValue<T>(source: T, path: string, value: unknown): T {
   const tokens = path.match(/[^.[\]]+/g);
-
-  if (!tokens || tokens.length === 0) {
-    return source;
-  }
+  if (!tokens?.length) return source;
 
   const result = deepClone(source);
-
   let current: unknown = result;
 
   for (let index = 0; index < tokens.length - 1; index += 1) {
@@ -391,20 +346,14 @@ function setPathValue<T>(source: T, path: string, value: unknown): T {
 
     if (Array.isArray(current)) {
       const arrayIndex = Number(token);
-
-      if (!Number.isInteger(arrayIndex)) {
-        return source;
-      }
+      if (!Number.isInteger(arrayIndex)) return source;
 
       if (current[arrayIndex] === undefined) {
         current[arrayIndex] = /^\d+$/.test(nextToken) ? [] : {};
       }
 
       current = current[arrayIndex];
-      continue;
-    }
-
-    if (current && typeof current === "object") {
+    } else if (current && typeof current === "object") {
       const record = current as Record<string, unknown>;
 
       if (!(token in record) || record[token] === null) {
@@ -412,21 +361,16 @@ function setPathValue<T>(source: T, path: string, value: unknown): T {
       }
 
       current = record[token];
-      continue;
+    } else {
+      return source;
     }
-
-    return source;
   }
 
   const finalToken = tokens[tokens.length - 1];
 
   if (Array.isArray(current)) {
     const arrayIndex = Number(finalToken);
-
-    if (!Number.isInteger(arrayIndex)) {
-      return source;
-    }
-
+    if (!Number.isInteger(arrayIndex)) return source;
     current[arrayIndex] = value;
   } else if (current && typeof current === "object") {
     (current as Record<string, unknown>)[finalToken] = value;
@@ -442,11 +386,11 @@ function applyResumeChanges(
   let nextResume = deepClone(currentResume);
 
   for (const change of changes) {
-    if (!change || typeof change.path !== "string") {
-      continue;
-    }
-
-    if (!isAllowedChangePath(change.path)) {
+    if (
+      !change ||
+      typeof change.path !== "string" ||
+      !isAllowedChangePath(change.path)
+    ) {
       continue;
     }
 
@@ -460,40 +404,24 @@ function getValidChanges(
   changes: unknown,
   currentResume: ResumeData,
 ): ResumeChange[] {
-  if (!Array.isArray(changes)) {
-    return [];
-  }
+  if (!Array.isArray(changes)) return [];
 
   return changes.filter((change): change is ResumeChange => {
-    if (!change || typeof change !== "object") {
-      return false;
-    }
+    if (!change || typeof change !== "object") return false;
 
     const item = change as Record<string, unknown>;
 
-    if (typeof item.path !== "string") {
-      return false;
-    }
-
-    if (!isAllowedChangePath(item.path)) {
-      return false;
-    }
-
-    if (!("after" in item)) {
+    if (
+      typeof item.path !== "string" ||
+      !isAllowedChangePath(item.path) ||
+      !("after" in item)
+    ) {
       return false;
     }
 
     const currentValue = getPathValue(currentResume, item.path);
 
-    /*
-     * We deliberately do not trust the AI's "before" value.
-     * The actual current resume is the source of truth.
-     */
-    if (JSON.stringify(currentValue) === JSON.stringify(item.after)) {
-      return false;
-    }
-
-    return true;
+    return JSON.stringify(currentValue) !== JSON.stringify(item.after);
   });
 }
 
@@ -504,6 +432,7 @@ function getValidChanges(
 export default function AIRewritePage() {
   const [resume, setResume] = useState<ResumeData>(emptyResume);
   const [resumeName, setResumeName] = useState("My Resume");
+  const [resumeId, setResumeId] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -524,71 +453,51 @@ export default function AIRewritePage() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const firstLoad = useRef(true);
 
-  /* =========================================================
-   LOAD ORIGINAL UPLOADED RESUME / DRAFT
-========================================================= */
+  /* =======================================================
+     LOAD SELECTED ORIGINAL RESUME AND ITS DRAFT
+  ======================================================= */
 
   const loadResume = useCallback(async () => {
     setLoading(true);
     setError("");
+    firstLoad.current = true;
 
     try {
-      /*
-       * The rewrite page gets the resume ID from the URL.
-       *
-       * Example:
-       * /ai?resumeId=clxxxxxxxx
-       *
-       * There is deliberately NO request to:
-       * /api/resume/latest-analysis
-       */
-
       const params = new URLSearchParams(window.location.search);
-
       let selectedResumeId = params.get("resumeId") ?? "";
 
-      /*
-       * If no resumeId was supplied, ask the resumes endpoint for the
-       * user's uploaded resumes.
-       */
       if (!selectedResumeId) {
         const resumesResponse = await fetch("/api/resume", {
           method: "GET",
           cache: "no-store",
         });
 
-        if (resumesResponse.ok) {
-          const resumesData = await resumesResponse.json();
+        if (!resumesResponse.ok) {
+          throw new Error("Unable to retrieve your uploaded resumes.");
+        }
 
-          const resumes = Array.isArray(resumesData.resumes)
-            ? resumesData.resumes
-            : Array.isArray(resumesData.data)
-              ? resumesData.data
-              : [];
+        const resumesData = await resumesResponse.json();
 
-          const firstResume = resumes[0];
+        const resumes = Array.isArray(resumesData.resumes)
+          ? resumesData.resumes
+          : Array.isArray(resumesData.data)
+            ? resumesData.data
+            : [];
 
-          if (firstResume?.id) {
-            selectedResumeId = String(firstResume.id);
-          }
+        const firstResume = resumes[0];
+
+        if (firstResume?.id) {
+          selectedResumeId = String(firstResume.id);
         }
       }
 
       if (!selectedResumeId) {
         throw new Error(
-          "No uploaded resume was selected. Please choose a resume first.",
+          "No uploaded resume was selected. Please upload or select a resume first.",
         );
       }
 
       setResumeId(selectedResumeId);
-
-      /*
-       * IMPORTANT:
-       *
-       * This endpoint reads the ORIGINAL uploaded file.
-       *
-       * It does not read ResumeAnalysis.
-       */
 
       const sourceResponse = await fetch(
         `/api/resume/rewrite-source?resumeId=${encodeURIComponent(
@@ -610,15 +519,6 @@ export default function AIRewritePage() {
 
       let initialResume = normalizeResumeData(sourceData.resume);
 
-      /*
-       * Now check whether this user already has a Rewrite Studio draft.
-       *
-       * The draft belongs to the original Resume ID.
-       *
-       * If it exists, resume from that draft.
-       * Otherwise, use the original uploaded file.
-       */
-
       const draftResponse = await fetch(
         `/api/resume/draft?resumeId=${encodeURIComponent(selectedResumeId)}`,
         {
@@ -639,19 +539,18 @@ export default function AIRewritePage() {
         }
       }
 
-      /*
-       * The original uploaded filename is used as the initial
-       * Rewrite Studio name.
-       */
+      if (sourceData.source?.fileName) {
+        const fileName = String(sourceData.source.fileName).replace(
+          /\.[^/.]+$/,
+          "",
+        );
 
-      if (sourceData.source?.fileName && !resumeName) {
-        setResumeName(
-          String(sourceData.source.fileName).replace(/\.[^/.]+$/, ""),
+        setResumeName((current) =>
+          current === "My Resume" ? fileName : current,
         );
       }
 
       setResume(initialResume);
-
       setHistory([deepClone(initialResume)]);
       setHistoryIndex(0);
 
@@ -667,35 +566,17 @@ export default function AIRewritePage() {
     } finally {
       setLoading(false);
     }
-  }, [resumeName]);
-  /* =======================================================
-     RESUME ID
-  ======================================================= */
-
-  const [resumeId, setResumeId] = useState("");
+  }, []);
 
   useEffect(() => {
-    async function getResumeId() {
-      try {
-        const response = await fetch("/api/resume/latest-analysis", {
-          method: "GET",
-          cache: "no-store",
-        });
+    void loadResume();
 
-        if (!response.ok) return;
-
-        const data = await response.json();
-
-        if (data.success && data.resume?.id) {
-          setResumeId(data.resume.id);
-        }
-      } catch {
-        // Already handled by the main loader.
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
       }
-    }
-
-    getResumeId();
-  }, []);
+    };
+  }, [loadResume]);
 
   /* =======================================================
      UPDATE RESUME + HISTORY
@@ -708,17 +589,11 @@ export default function AIRewritePage() {
 
         setHistory((currentHistory) => {
           const nextHistory = currentHistory.slice(0, historyIndex + 1);
-
           nextHistory.push(deepClone(updated));
-
           return nextHistory.slice(-30);
         });
 
-        setHistoryIndex((currentIndex) => {
-          const nextIndex = Math.min(currentIndex + 1, 29);
-
-          return nextIndex;
-        });
+        setHistoryIndex((currentIndex) => Math.min(currentIndex + 1, 29));
 
         return updated;
       });
@@ -732,16 +607,12 @@ export default function AIRewritePage() {
 
   const undo = useCallback(() => {
     setHistoryIndex((currentIndex) => {
-      if (currentIndex <= 0) {
-        return currentIndex;
-      }
+      if (currentIndex <= 0) return currentIndex;
 
       const nextIndex = currentIndex - 1;
       const previous = history[nextIndex];
 
-      if (previous) {
-        setResume(deepClone(previous));
-      }
+      if (previous) setResume(deepClone(previous));
 
       return nextIndex;
     });
@@ -749,16 +620,12 @@ export default function AIRewritePage() {
 
   const redo = useCallback(() => {
     setHistoryIndex((currentIndex) => {
-      if (currentIndex >= history.length - 1) {
-        return currentIndex;
-      }
+      if (currentIndex >= history.length - 1) return currentIndex;
 
       const nextIndex = currentIndex + 1;
       const next = history[nextIndex];
 
-      if (next) {
-        setResume(deepClone(next));
-      }
+      if (next) setResume(deepClone(next));
 
       return nextIndex;
     });
@@ -769,9 +636,7 @@ export default function AIRewritePage() {
   ======================================================= */
 
   useEffect(() => {
-    if (firstLoad.current || !resumeId) {
-      return;
-    }
+    if (firstLoad.current || !resumeId) return;
 
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
@@ -800,6 +665,11 @@ export default function AIRewritePage() {
         }
       } catch (saveError) {
         console.error("Resume autosave error:", saveError);
+        setError(
+          saveError instanceof Error
+            ? saveError.message
+            : "Unable to save your changes.",
+        );
       } finally {
         setSaving(false);
       }
@@ -824,6 +694,11 @@ export default function AIRewritePage() {
       return;
     }
 
+    if (!resumeId) {
+      setError("Your resume is not loaded. Please reload the page.");
+      return;
+    }
+
     setGenerating(true);
     setError("");
     setChangeMessage("");
@@ -838,6 +713,7 @@ export default function AIRewritePage() {
         body: JSON.stringify({
           instruction: trimmedInstruction,
           resume,
+          resumeId,
         }),
       });
 
@@ -854,23 +730,16 @@ export default function AIRewritePage() {
           data.message ||
             "No changes were made. Try being more specific about what you want changed.",
         );
-
         return;
       }
 
       const nextResume = applyResumeChanges(resume, changes);
 
-      /*
-       * Push the complete modified resume into history,
-       * so Ctrl/Cmd + Undo can reverse the AI edit.
-       */
       setResume(nextResume);
 
       setHistory((currentHistory) => {
         const nextHistory = currentHistory.slice(0, historyIndex + 1);
-
         nextHistory.push(deepClone(nextResume));
-
         return nextHistory.slice(-30);
       });
 
@@ -908,17 +777,11 @@ export default function AIRewritePage() {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const modifier = event.metaKey || event.ctrlKey;
-
       if (!modifier) return;
 
       if (event.key.toLowerCase() === "z") {
         event.preventDefault();
-
-        if (event.shiftKey) {
-          redo();
-        } else {
-          undo();
-        }
+        event.shiftKey ? redo() : undo();
       }
 
       if (event.key.toLowerCase() === "y") {
@@ -943,7 +806,7 @@ export default function AIRewritePage() {
   };
 
   /* =======================================================
-     SCORE
+     COMPLETION SCORE
   ======================================================= */
 
   const completionScore = useMemo(() => {
@@ -960,49 +823,44 @@ export default function AIRewritePage() {
       resume.projects.length > 0,
     ];
 
-    const completed = checks.filter(Boolean).length;
-
-    return Math.round((completed / checks.length) * 100);
+    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
   }, [resume]);
 
-  if (loading) {
-    return <LoadingScreen />;
-  }
+  if (loading) return <LoadingScreen />;
 
   return (
-    <div className="min-h-screen bg-[#070A10] text-white">
-      {/* Background glow */}
+    <div className="min-h-screen bg-[#F7F5EF] text-[#263B33]">
+      {/* Background decoration */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-indigo-600/10 blur-[120px]" />
-        <div className="absolute right-[-180px] top-[20%] h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-[140px]" />
-        <div className="absolute bottom-[-200px] left-[30%] h-[450px] w-[450px] rounded-full bg-violet-600/10 blur-[140px]" />
+        <div className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-[#719681]/10 blur-[120px]" />
+        <div className="absolute right-[-180px] top-[20%] h-[500px] w-[500px] rounded-full bg-[#D9C5A2]/20 blur-[140px]" />
+        <div className="absolute bottom-[-200px] left-[30%] h-[450px] w-[450px] rounded-full bg-[#B97862]/10 blur-[140px]" />
       </div>
 
       <div className="relative flex min-h-screen">
-        {/* =================================================
-            SIDEBAR
-        ================================================= */}
-
+        {/* SIDEBAR */}
         <aside
           className={`
             fixed inset-y-0 left-0 z-50 w-[260px]
-            border-r border-white/[0.07]
-            bg-[#090C13]/95 backdrop-blur-xl
+            border-r border-[#E7E5DC]
+            bg-[#F9F8F3]/95 backdrop-blur-xl
             transition-transform duration-300
             lg:static lg:translate-x-0
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           `}
         >
           <div className="flex h-full flex-col">
-            <div className="flex h-[78px] items-center justify-between border-b border-white/[0.06] px-6">
+            <div className="flex h-[78px] items-center justify-between border-b border-[#E7E5DC] px-6">
               <Link href="/" className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 shadow-lg shadow-indigo-500/20">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#315E50] to-[#719681] shadow-lg shadow-[#315E50]/15">
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
 
                 <div>
-                  <div className="text-lg font-bold tracking-tight">Revio</div>
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-white/35">
+                  <div className="text-lg font-bold tracking-tight text-[#263B33]">
+                    Revio
+                  </div>
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-[#858A83]">
                     Career Intelligence
                   </div>
                 </div>
@@ -1011,14 +869,14 @@ export default function AIRewritePage() {
               <button
                 type="button"
                 onClick={() => setSidebarOpen(false)}
-                className="rounded-lg p-2 text-white/40 hover:bg-white/5 hover:text-white lg:hidden"
+                className="rounded-lg p-2 text-[#777D76] hover:bg-[#315E50]/5 hover:text-[#315E50] lg:hidden"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <nav className="flex-1 px-4 py-6">
-              <div className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/25">
+              <div className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9A9D95]">
                 Workspace
               </div>
 
@@ -1040,9 +898,9 @@ export default function AIRewritePage() {
                 label="Templates"
               />
 
-              <div className="my-5 border-t border-white/[0.05]" />
+              <div className="my-5 border-t border-[#E7E5DC]" />
 
-              <div className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/25">
+              <div className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9A9D95]">
                 Tools
               </div>
 
@@ -1059,7 +917,7 @@ export default function AIRewritePage() {
                 label="Rewrite Resume"
               />
 
-              <div className="my-5 border-t border-white/[0.05]" />
+              <div className="my-5 border-t border-[#E7E5DC]" />
 
               <SidebarItem
                 href="/settings"
@@ -1068,31 +926,29 @@ export default function AIRewritePage() {
               />
             </nav>
 
-            <div className="border-t border-white/[0.06] p-4">
-              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4">
+            <div className="border-t border-[#E7E5DC] p-4">
+              <div className="rounded-2xl border border-[#E7E5DC] bg-white/65 p-4 shadow-[0_8px_25px_rgba(38,59,51,0.04)]">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-cyan-400" />
-                    <span className="text-xs font-medium text-white/70">
+                    <ShieldCheck className="h-4 w-4 text-[#315E50]" />
+                    <span className="text-xs font-medium text-[#52645A]">
                       Resume status
                     </span>
                   </div>
 
-                  <span className="text-xs font-semibold text-cyan-400">
+                  <span className="text-xs font-semibold text-[#315E50]">
                     {completionScore}%
                   </span>
                 </div>
 
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="h-1.5 overflow-hidden rounded-full bg-[#E7E5DC]">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all"
-                    style={{
-                      width: `${completionScore}%`,
-                    }}
+                    className="h-full rounded-full bg-gradient-to-r from-[#315E50] to-[#719681] transition-all"
+                    style={{ width: `${completionScore}%` }}
                   />
                 </div>
 
-                <p className="mt-3 text-[11px] leading-5 text-white/35">
+                <p className="mt-3 text-[11px] leading-5 text-[#858A83]">
                   Your edits are automatically saved while you work.
                 </p>
               </div>
@@ -1100,46 +956,40 @@ export default function AIRewritePage() {
           </div>
         </aside>
 
-        {/* Mobile overlay */}
         {sidebarOpen && (
           <button
             type="button"
             aria-label="Close navigation"
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-[#263B33]/25 backdrop-blur-sm lg:hidden"
           />
         )}
 
-        {/* =================================================
-            MAIN
-        ================================================= */}
-
+        {/* MAIN */}
         <main className="min-w-0 flex-1">
-          {/* Header */}
-          <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#070A10]/85 backdrop-blur-xl">
+          <header className="sticky top-0 z-30 border-b border-[#E7E5DC] bg-[#F7F5EF]/85 backdrop-blur-xl">
             <div className="flex h-[78px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
               <div className="flex min-w-0 items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
-                  className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-2.5 text-white/60 hover:text-white lg:hidden"
+                  className="rounded-xl border border-[#E7E5DC] bg-white/65 p-2.5 text-[#66766C] hover:text-[#315E50] lg:hidden"
                 >
                   <Menu className="h-5 w-5" />
                 </button>
 
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <FileText className="hidden h-4 w-4 text-indigo-400 sm:block" />
-
+                    <FileText className="hidden h-4 w-4 text-[#315E50] sm:block" />
                     <input
                       value={resumeName}
                       onChange={(event) => setResumeName(event.target.value)}
-                      className="max-w-[220px] truncate border-none bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/30 sm:max-w-[320px]"
+                      className="max-w-[220px] truncate border-none bg-transparent text-sm font-semibold text-[#263B33] outline-none placeholder:text-[#A5A79F] sm:max-w-[320px]"
                       placeholder="My Resume"
                     />
                   </div>
 
-                  <div className="mt-1 flex items-center gap-2 text-[11px] text-white/35">
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-[#858A83]">
                     {saving ? (
                       <>
                         <RefreshCw className="h-3 w-3 animate-spin" />
@@ -1147,7 +997,7 @@ export default function AIRewritePage() {
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                        <CheckCircle2 className="h-3 w-3 text-[#719681]" />
                         All changes saved
                       </>
                     )}
@@ -1156,32 +1006,28 @@ export default function AIRewritePage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
+                <ToolbarButton
                   onClick={undo}
                   disabled={historyIndex <= 0}
                   title="Undo"
-                  className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-2.5 text-white/50 transition hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
                 >
                   <Undo2 className="h-4 w-4" />
-                </button>
+                </ToolbarButton>
 
-                <button
-                  type="button"
+                <ToolbarButton
                   onClick={redo}
                   disabled={historyIndex >= history.length - 1}
                   title="Redo"
-                  className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-2.5 text-white/50 transition hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
                 >
                   <Redo2 className="h-4 w-4" />
-                </button>
+                </ToolbarButton>
 
-                <div className="mx-1 hidden h-6 w-px bg-white/[0.08] sm:block" />
+                <div className="mx-1 hidden h-6 w-px bg-[#E7E5DC] sm:block" />
 
                 <button
                   type="button"
                   onClick={exportPdf}
-                  className="hidden items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-xs font-semibold text-white/75 transition hover:bg-white/[0.08] hover:text-white sm:flex"
+                  className="hidden items-center gap-2 rounded-xl border border-[#E7E5DC] bg-white/65 px-4 py-2.5 text-xs font-semibold text-[#52645A] transition hover:bg-white hover:text-[#315E50] sm:flex"
                 >
                   <Upload className="h-4 w-4 rotate-180" />
                   Export PDF
@@ -1190,39 +1036,34 @@ export default function AIRewritePage() {
             </div>
           </header>
 
-          {/* =================================================
-              CONTENT
-          ================================================= */}
-
           <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-            {/* Heading */}
+            {/* PAGE HEADING */}
             <div className="mb-7">
-              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-400">
+              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#315E50]">
                 <Sparkles className="h-3.5 w-3.5" />
                 AI Resume Editor
               </div>
 
-              <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              <h1 className="text-2xl font-bold tracking-tight text-[#263B33] sm:text-3xl">
                 Tell Revio what you want to change.
               </h1>
 
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/45">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#777D76]">
                 Your resume stays yours. Give Revio a specific instruction and
                 it will change only the parts you ask for.
               </p>
             </div>
 
-            {/* Error */}
+            {/* ERROR */}
             {error && (
-              <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/[0.06] p-4">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+              <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[#B97862]/25 bg-[#B97862]/[0.07] p-4">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#B97862]" />
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-red-300">
+                  <p className="text-sm font-medium text-[#8D5140]">
                     Something went wrong
                   </p>
-
-                  <p className="mt-1 text-xs leading-5 text-red-300/60">
+                  <p className="mt-1 text-xs leading-5 text-[#9A6555]">
                     {error}
                   </p>
                 </div>
@@ -1230,55 +1071,49 @@ export default function AIRewritePage() {
                 <button
                   type="button"
                   onClick={() => setError("")}
-                  className="text-red-300/40 hover:text-red-300"
+                  className="text-[#B97862]/60 hover:text-[#B97862]"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
 
-            {/* =================================================
-                AI INSTRUCTION BAR
-            ================================================= */}
-
-            <section className="mb-6 overflow-hidden rounded-3xl border border-indigo-400/15 bg-gradient-to-br from-indigo-500/[0.09] via-white/[0.025] to-cyan-400/[0.05] shadow-2xl shadow-indigo-950/20">
+            {/* AI INSTRUCTION */}
+            <section className="mb-6 overflow-hidden rounded-3xl border border-[#DCE5DC] bg-gradient-to-br from-white/90 via-white/65 to-[#EAF0E8]/70 shadow-[0_15px_45px_rgba(38,59,51,0.07)] backdrop-blur-xl">
               <div className="p-5 sm:p-6">
                 <div className="mb-4 flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 shadow-lg shadow-indigo-500/20">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#315E50] to-[#719681] shadow-lg shadow-[#315E50]/15">
                     <MessageSquareText className="h-5 w-5 text-white" />
                   </div>
 
                   <div>
-                    <h2 className="text-sm font-semibold text-white">
+                    <h2 className="text-sm font-semibold text-[#263B33]">
                       AI Edit
                     </h2>
-
-                    <p className="mt-1 text-xs leading-5 text-white/40">
+                    <p className="mt-1 text-xs leading-5 text-[#858A83]">
                       Describe exactly what you want changed. Revio will not
                       rewrite unrelated content.
                     </p>
                   </div>
                 </div>
 
-                <div className="relative">
-                  <textarea
-                    value={instruction}
-                    onChange={(event) => setInstruction(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (
-                        event.key === "Enter" &&
-                        (event.metaKey || event.ctrlKey)
-                      ) {
-                        event.preventDefault();
-                        submitInstruction();
-                      }
-                    }}
-                    disabled={generating}
-                    rows={3}
-                    placeholder="Try: Change my name to Kirtesh"
-                    className="w-full resize-none rounded-2xl border border-white/[0.08] bg-[#070A10]/80 px-4 py-4 pr-4 text-sm leading-6 text-white outline-none placeholder:text-white/25 transition focus:border-indigo-400/40 focus:ring-4 focus:ring-indigo-500/5 disabled:cursor-not-allowed disabled:opacity-60"
-                  />
-                </div>
+                <textarea
+                  value={instruction}
+                  onChange={(event) => setInstruction(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" &&
+                      (event.metaKey || event.ctrlKey)
+                    ) {
+                      event.preventDefault();
+                      submitInstruction();
+                    }
+                  }}
+                  disabled={generating}
+                  rows={3}
+                  placeholder="Try: Change my name to Kirtesh"
+                  className="w-full resize-none rounded-2xl border border-[#E3E5DC] bg-white/75 px-4 py-4 text-sm leading-6 text-[#263B33] outline-none placeholder:text-[#A5A79F] transition focus:border-[#719681] focus:ring-4 focus:ring-[#315E50]/[0.07] disabled:cursor-not-allowed disabled:opacity-60"
+                />
 
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-wrap gap-2">
@@ -1288,17 +1123,14 @@ export default function AIRewritePage() {
                         setInstruction("Change my name to Kirtesh")
                       }
                     />
-
                     <InstructionExample
                       text="Remove my GitHub"
                       onClick={() => setInstruction("Remove my GitHub")}
                     />
-
                     <InstructionExample
                       text="Add Next.js to my skills"
                       onClick={() => setInstruction("Add Next.js to my skills")}
                     />
-
                     <InstructionExample
                       text="Make my summary shorter"
                       onClick={() => setInstruction("Make my summary shorter")}
@@ -1309,7 +1141,7 @@ export default function AIRewritePage() {
                     type="button"
                     onClick={submitInstruction}
                     disabled={generating || !instruction.trim()}
-                    className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-400 px-5 py-3 text-xs font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#315E50] to-[#527D68] px-5 py-3 text-xs font-bold text-white shadow-lg shadow-[#315E50]/15 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {generating ? (
                       <>
@@ -1325,32 +1157,28 @@ export default function AIRewritePage() {
                   </button>
                 </div>
 
-                <div className="mt-3 flex items-center gap-2 text-[10px] text-white/25">
-                  <Zap className="h-3 w-3 text-cyan-400/60" />
+                <div className="mt-3 flex items-center gap-2 text-[10px] text-[#999D95]">
+                  <Zap className="h-3 w-3 text-[#B97862]" />
                   Press Ctrl/Cmd + Enter to apply
                 </div>
               </div>
             </section>
 
-            {/* =================================================
-                CHANGE SUMMARY
-            ================================================= */}
-
+            {/* CHANGE SUMMARY */}
             {(changeMessage || appliedChanges.length > 0) && (
-              <section className="mb-6 overflow-hidden rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.035]">
-                <div className="flex items-center justify-between border-b border-white/[0.05] px-5 py-4">
+              <section className="mb-6 overflow-hidden rounded-2xl border border-[#DCE5DC] bg-white/65 shadow-[0_8px_25px_rgba(38,59,51,0.04)]">
+                <div className="flex items-center justify-between border-b border-[#E7E5DC] px-5 py-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400/10">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#719681]/15">
+                      <CheckCircle2 className="h-4 w-4 text-[#315E50]" />
                     </div>
 
                     <div>
-                      <h3 className="text-xs font-semibold text-white">
+                      <h3 className="text-xs font-semibold text-[#263B33]">
                         Changes applied
                       </h3>
-
                       {changeMessage && (
-                        <p className="mt-0.5 text-[11px] text-white/35">
+                        <p className="mt-0.5 text-[11px] text-[#858A83]">
                           {changeMessage}
                         </p>
                       )}
@@ -1358,7 +1186,7 @@ export default function AIRewritePage() {
                   </div>
 
                   {appliedChanges.length > 0 && (
-                    <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-300">
+                    <span className="rounded-full bg-[#719681]/10 px-2.5 py-1 text-[10px] font-semibold text-[#315E50]">
                       {appliedChanges.length}{" "}
                       {appliedChanges.length === 1 ? "change" : "changes"}
                     </span>
@@ -1366,7 +1194,7 @@ export default function AIRewritePage() {
                 </div>
 
                 {appliedChanges.length > 0 && (
-                  <div className="divide-y divide-white/[0.05]">
+                  <div className="divide-y divide-[#E7E5DC]">
                     {appliedChanges.map((change, index) => (
                       <ChangeRow
                         key={`${change.path}-${index}`}
@@ -1378,18 +1206,15 @@ export default function AIRewritePage() {
               </section>
             )}
 
-            {/* =================================================
-                MOBILE TOGGLE
-            ================================================= */}
-
-            <div className="mb-5 flex rounded-xl border border-white/[0.07] bg-white/[0.025] p-1 lg:hidden">
+            {/* MOBILE TOGGLE */}
+            <div className="mb-5 flex rounded-xl border border-[#E7E5DC] bg-white/60 p-1 lg:hidden">
               <button
                 type="button"
                 onClick={() => setMobileView("edit")}
                 className={`flex-1 rounded-lg px-4 py-2.5 text-xs font-semibold transition ${
                   mobileView === "edit"
-                    ? "bg-white/[0.08] text-white"
-                    : "text-white/35"
+                    ? "bg-[#315E50] text-white shadow-sm"
+                    : "text-[#858A83]"
                 }`}
               >
                 Edit
@@ -1400,30 +1225,23 @@ export default function AIRewritePage() {
                 onClick={() => setMobileView("preview")}
                 className={`flex-1 rounded-lg px-4 py-2.5 text-xs font-semibold transition ${
                   mobileView === "preview"
-                    ? "bg-white/[0.08] text-white"
-                    : "text-white/35"
+                    ? "bg-[#315E50] text-white shadow-sm"
+                    : "text-[#858A83]"
                 }`}
               >
                 Preview
               </button>
             </div>
 
-            {/* =================================================
-                EDIT + PREVIEW GRID
-            ================================================= */}
-
+            {/* EDITOR + PREVIEW */}
             <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(480px,620px)]">
-              {/* =================================================
-                  EDITOR
-              ================================================= */}
-
               <div
                 className={
                   mobileView === "preview" ? "hidden lg:block" : "block"
                 }
               >
                 <div className="space-y-5">
-                  {/* Personal */}
+                  {/* PERSONAL INFORMATION */}
                   <EditorSection
                     icon={<CircleUserRound className="h-4 w-4" />}
                     title="Personal Information"
@@ -1436,14 +1254,10 @@ export default function AIRewritePage() {
                         onChange={(value) =>
                           updateResume((current) => ({
                             ...current,
-                            candidate: {
-                              ...current.candidate,
-                              name: value,
-                            },
+                            candidate: { ...current.candidate, name: value },
                           }))
                         }
                       />
-
                       <EditorInput
                         label="Headline"
                         value={resume.candidate.headline}
@@ -1458,35 +1272,26 @@ export default function AIRewritePage() {
                           }))
                         }
                       />
-
                       <EditorInput
                         label="Email"
                         value={resume.candidate.email}
                         onChange={(value) =>
                           updateResume((current) => ({
                             ...current,
-                            candidate: {
-                              ...current.candidate,
-                              email: value,
-                            },
+                            candidate: { ...current.candidate, email: value },
                           }))
                         }
                       />
-
                       <EditorInput
                         label="Phone"
                         value={resume.candidate.phone}
                         onChange={(value) =>
                           updateResume((current) => ({
                             ...current,
-                            candidate: {
-                              ...current.candidate,
-                              phone: value,
-                            },
+                            candidate: { ...current.candidate, phone: value },
                           }))
                         }
                       />
-
                       <EditorInput
                         label="Location"
                         value={resume.candidate.location}
@@ -1500,7 +1305,6 @@ export default function AIRewritePage() {
                           }))
                         }
                       />
-
                       <EditorInput
                         label="LinkedIn"
                         value={resume.candidate.linkedin}
@@ -1515,7 +1319,6 @@ export default function AIRewritePage() {
                           }))
                         }
                       />
-
                       <EditorInput
                         label="GitHub"
                         value={resume.candidate.github}
@@ -1523,14 +1326,10 @@ export default function AIRewritePage() {
                         onChange={(value) =>
                           updateResume((current) => ({
                             ...current,
-                            candidate: {
-                              ...current.candidate,
-                              github: value,
-                            },
+                            candidate: { ...current.candidate, github: value },
                           }))
                         }
                       />
-
                       <EditorInput
                         label="Portfolio"
                         value={resume.candidate.portfolio}
@@ -1548,7 +1347,7 @@ export default function AIRewritePage() {
                     </div>
                   </EditorSection>
 
-                  {/* Summary */}
+                  {/* SUMMARY */}
                   <EditorSection
                     icon={<FileText className="h-4 w-4" />}
                     title="Professional Summary"
@@ -1568,7 +1367,7 @@ export default function AIRewritePage() {
                     />
                   </EditorSection>
 
-                  {/* Experience */}
+                  {/* EXPERIENCE */}
                   <EditorSection
                     icon={<Briefcase className="h-4 w-4" />}
                     title="Experience"
@@ -1580,23 +1379,23 @@ export default function AIRewritePage() {
                           key={index}
                           experience={experience}
                           index={index}
-                          updateExperience={(updated) => {
+                          updateExperience={(updated) =>
                             updateResume((current) => ({
                               ...current,
                               experience: current.experience.map(
                                 (item, itemIndex) =>
                                   itemIndex === index ? updated : item,
                               ),
-                            }));
-                          }}
-                          removeExperience={() => {
+                            }))
+                          }
+                          removeExperience={() =>
                             updateResume((current) => ({
                               ...current,
                               experience: current.experience.filter(
                                 (_, itemIndex) => itemIndex !== index,
                               ),
-                            }));
-                          }}
+                            }))
+                          }
                         />
                       ))}
 
@@ -1624,7 +1423,7 @@ export default function AIRewritePage() {
                     </div>
                   </EditorSection>
 
-                  {/* Education */}
+                  {/* EDUCATION */}
                   <EditorSection
                     icon={<GraduationCap className="h-4 w-4" />}
                     title="Education"
@@ -1636,23 +1435,23 @@ export default function AIRewritePage() {
                           key={index}
                           education={education}
                           index={index}
-                          updateEducation={(updated) => {
+                          updateEducation={(updated) =>
                             updateResume((current) => ({
                               ...current,
                               education: current.education.map(
                                 (item, itemIndex) =>
                                   itemIndex === index ? updated : item,
                               ),
-                            }));
-                          }}
-                          removeEducation={() => {
+                            }))
+                          }
+                          removeEducation={() =>
                             updateResume((current) => ({
                               ...current,
                               education: current.education.filter(
                                 (_, itemIndex) => itemIndex !== index,
                               ),
-                            }));
-                          }}
+                            }))
+                          }
                         />
                       ))}
 
@@ -1679,7 +1478,7 @@ export default function AIRewritePage() {
                     </div>
                   </EditorSection>
 
-                  {/* Skills */}
+                  {/* SKILLS */}
                   <EditorSection
                     icon={<Code2 className="h-4 w-4" />}
                     title="Skills"
@@ -1689,15 +1488,12 @@ export default function AIRewritePage() {
                       values={resume.skills}
                       placeholder="Type a skill and press Enter"
                       onChange={(skills) =>
-                        updateResume((current) => ({
-                          ...current,
-                          skills,
-                        }))
+                        updateResume((current) => ({ ...current, skills }))
                       }
                     />
                   </EditorSection>
 
-                  {/* Projects */}
+                  {/* PROJECTS */}
                   <EditorSection
                     icon={<Target className="h-4 w-4" />}
                     title="Projects"
@@ -1709,23 +1505,23 @@ export default function AIRewritePage() {
                           key={index}
                           project={project}
                           index={index}
-                          updateProject={(updated) => {
+                          updateProject={(updated) =>
                             updateResume((current) => ({
                               ...current,
                               projects: current.projects.map(
                                 (item, itemIndex) =>
                                   itemIndex === index ? updated : item,
                               ),
-                            }));
-                          }}
-                          removeProject={() => {
+                            }))
+                          }
+                          removeProject={() =>
                             updateResume((current) => ({
                               ...current,
                               projects: current.projects.filter(
                                 (_, itemIndex) => itemIndex !== index,
                               ),
-                            }));
-                          }}
+                            }))
+                          }
                         />
                       ))}
 
@@ -1751,7 +1547,7 @@ export default function AIRewritePage() {
                     </div>
                   </EditorSection>
 
-                  {/* Certifications */}
+                  {/* CERTIFICATIONS */}
                   <EditorSection
                     icon={<Award className="h-4 w-4" />}
                     title="Certifications"
@@ -1761,105 +1557,46 @@ export default function AIRewritePage() {
                       {resume.certifications.map((certification, index) => (
                         <div
                           key={index}
-                          className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
+                          className="rounded-2xl border border-[#E7E5DC] bg-white/45 p-4"
                         >
-                          <div className="mb-4 flex items-center justify-between">
-                            <span className="text-xs font-semibold text-white/60">
-                              Certification {index + 1}
-                            </span>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateResume((current) => ({
-                                  ...current,
-                                  certifications: current.certifications.filter(
-                                    (_, itemIndex) => itemIndex !== index,
-                                  ),
-                                }))
-                              }
-                              className="text-[11px] text-red-400/60 hover:text-red-400"
-                            >
-                              Remove
-                            </button>
-                          </div>
+                          <ItemHeader
+                            title={`Certification ${index + 1}`}
+                            onRemove={() =>
+                              updateResume((current) => ({
+                                ...current,
+                                certifications: current.certifications.filter(
+                                  (_, itemIndex) => itemIndex !== index,
+                                ),
+                              }))
+                            }
+                          />
 
                           <div className="grid gap-4 sm:grid-cols-2">
-                            <EditorInput
-                              label="Name"
-                              value={certification.name}
-                              onChange={(value) =>
-                                updateResume((current) => ({
-                                  ...current,
-                                  certifications: current.certifications.map(
-                                    (item, itemIndex) =>
-                                      itemIndex === index
-                                        ? {
-                                            ...item,
-                                            name: value,
-                                          }
-                                        : item,
-                                  ),
-                                }))
-                              }
-                            />
-
-                            <EditorInput
-                              label="Issuer"
-                              value={certification.issuer}
-                              onChange={(value) =>
-                                updateResume((current) => ({
-                                  ...current,
-                                  certifications: current.certifications.map(
-                                    (item, itemIndex) =>
-                                      itemIndex === index
-                                        ? {
-                                            ...item,
-                                            issuer: value,
-                                          }
-                                        : item,
-                                  ),
-                                }))
-                              }
-                            />
-
-                            <EditorInput
-                              label="Date"
-                              value={certification.date}
-                              onChange={(value) =>
-                                updateResume((current) => ({
-                                  ...current,
-                                  certifications: current.certifications.map(
-                                    (item, itemIndex) =>
-                                      itemIndex === index
-                                        ? {
-                                            ...item,
-                                            date: value,
-                                          }
-                                        : item,
-                                  ),
-                                }))
-                              }
-                            />
-
-                            <EditorInput
-                              label="URL"
-                              value={certification.url}
-                              onChange={(value) =>
-                                updateResume((current) => ({
-                                  ...current,
-                                  certifications: current.certifications.map(
-                                    (item, itemIndex) =>
-                                      itemIndex === index
-                                        ? {
-                                            ...item,
-                                            url: value,
-                                          }
-                                        : item,
-                                  ),
-                                }))
-                              }
-                            />
+                            {(
+                              [
+                                ["Name", "name"],
+                                ["Issuer", "issuer"],
+                                ["Date", "date"],
+                                ["URL", "url"],
+                              ] as const
+                            ).map(([label, key]) => (
+                              <EditorInput
+                                key={key}
+                                label={label}
+                                value={certification[key]}
+                                onChange={(value) =>
+                                  updateResume((current) => ({
+                                    ...current,
+                                    certifications: current.certifications.map(
+                                      (item, itemIndex) =>
+                                        itemIndex === index
+                                          ? { ...item, [key]: value }
+                                          : item,
+                                    ),
+                                  }))
+                                }
+                              />
+                            ))}
                           </div>
                         </div>
                       ))}
@@ -1871,12 +1608,7 @@ export default function AIRewritePage() {
                             ...current,
                             certifications: [
                               ...current.certifications,
-                              {
-                                name: "",
-                                issuer: "",
-                                date: "",
-                                url: "",
-                              },
+                              { name: "", issuer: "", date: "", url: "" },
                             ],
                           }))
                         }
@@ -1884,7 +1616,7 @@ export default function AIRewritePage() {
                     </div>
                   </EditorSection>
 
-                  {/* Languages */}
+                  {/* LANGUAGES */}
                   <EditorSection
                     icon={<MessageSquareText className="h-4 w-4" />}
                     title="Languages"
@@ -1894,28 +1626,19 @@ export default function AIRewritePage() {
                       {resume.languages.map((language, index) => (
                         <div
                           key={index}
-                          className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
+                          className="rounded-2xl border border-[#E7E5DC] bg-white/45 p-4"
                         >
-                          <div className="mb-4 flex items-center justify-between">
-                            <span className="text-xs font-semibold text-white/60">
-                              Language {index + 1}
-                            </span>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateResume((current) => ({
-                                  ...current,
-                                  languages: current.languages.filter(
-                                    (_, itemIndex) => itemIndex !== index,
-                                  ),
-                                }))
-                              }
-                              className="text-[11px] text-red-400/60 hover:text-red-400"
-                            >
-                              Remove
-                            </button>
-                          </div>
+                          <ItemHeader
+                            title={`Language ${index + 1}`}
+                            onRemove={() =>
+                              updateResume((current) => ({
+                                ...current,
+                                languages: current.languages.filter(
+                                  (_, itemIndex) => itemIndex !== index,
+                                ),
+                              }))
+                            }
+                          />
 
                           <div className="grid gap-4 sm:grid-cols-2">
                             <EditorInput
@@ -1927,10 +1650,7 @@ export default function AIRewritePage() {
                                   languages: current.languages.map(
                                     (item, itemIndex) =>
                                       itemIndex === index
-                                        ? {
-                                            ...item,
-                                            name: value,
-                                          }
+                                        ? { ...item, name: value }
                                         : item,
                                   ),
                                 }))
@@ -1947,10 +1667,7 @@ export default function AIRewritePage() {
                                   languages: current.languages.map(
                                     (item, itemIndex) =>
                                       itemIndex === index
-                                        ? {
-                                            ...item,
-                                            proficiency: value,
-                                          }
+                                        ? { ...item, proficiency: value }
                                         : item,
                                   ),
                                 }))
@@ -1967,10 +1684,7 @@ export default function AIRewritePage() {
                             ...current,
                             languages: [
                               ...current.languages,
-                              {
-                                name: "",
-                                proficiency: "",
-                              },
+                              { name: "", proficiency: "" },
                             ],
                           }))
                         }
@@ -1978,7 +1692,7 @@ export default function AIRewritePage() {
                     </div>
                   </EditorSection>
 
-                  {/* Achievements */}
+                  {/* ACHIEVEMENTS */}
                   <EditorSection
                     icon={<TrendingUp className="h-4 w-4" />}
                     title="Achievements"
@@ -1998,10 +1712,7 @@ export default function AIRewritePage() {
                 </div>
               </div>
 
-              {/* =================================================
-                  PREVIEW
-              ================================================= */}
-
+              {/* LIVE PREVIEW */}
               <div
                 className={`
                   lg:sticky lg:top-[102px]
@@ -2010,11 +1721,10 @@ export default function AIRewritePage() {
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/30">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#777D76]">
                       Live Preview
                     </p>
-
-                    <p className="mt-1 text-[11px] text-white/20">
+                    <p className="mt-1 text-[11px] text-[#A0A39B]">
                       Updates as you edit
                     </p>
                   </div>
@@ -2022,14 +1732,14 @@ export default function AIRewritePage() {
                   <button
                     type="button"
                     onClick={exportPdf}
-                    className="flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 text-[11px] font-semibold text-white/50 transition hover:bg-white/[0.06] hover:text-white"
+                    className="flex items-center gap-2 rounded-xl border border-[#E7E5DC] bg-white/65 px-3 py-2 text-[11px] font-semibold text-[#66766C] transition hover:bg-white hover:text-[#315E50]"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                     Export
                   </button>
                 </div>
 
-                <div className="overflow-auto rounded-2xl border border-white/[0.07] bg-[#11151D] p-2 shadow-2xl shadow-black/30">
+                <div className="overflow-auto rounded-2xl border border-[#E7E5DC] bg-white/65 p-2 shadow-[0_15px_45px_rgba(38,59,51,0.08)]">
                   <ResumePreview resume={resume} />
                 </div>
               </div>
@@ -2042,8 +1752,32 @@ export default function AIRewritePage() {
 }
 
 /* =========================================================
-   SIDEBAR
+   SHARED UI COMPONENTS
 ========================================================= */
+
+function ToolbarButton({
+  children,
+  onClick,
+  disabled,
+  title,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  title: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="rounded-xl border border-[#E7E5DC] bg-white/65 p-2.5 text-[#777D76] transition hover:bg-white hover:text-[#315E50] disabled:cursor-not-allowed disabled:opacity-30"
+    >
+      {children}
+    </button>
+  );
+}
 
 function SidebarItem({
   href,
@@ -2061,15 +1795,14 @@ function SidebarItem({
       href={href}
       className={`mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-medium transition ${
         active
-          ? "bg-indigo-500/10 text-indigo-300"
-          : "text-white/40 hover:bg-white/[0.04] hover:text-white/80"
+          ? "bg-[#315E50]/10 text-[#315E50]"
+          : "text-[#777D76] hover:bg-[#315E50]/5 hover:text-[#315E50]"
       }`}
     >
       {icon}
       <span>{label}</span>
-
       {active && (
-        <ChevronRight className="ml-auto h-3.5 w-3.5 text-indigo-400/60" />
+        <ChevronRight className="ml-auto h-3.5 w-3.5 text-[#719681]" />
       )}
     </Link>
   );
@@ -2086,10 +1819,6 @@ function LayoutIcon() {
   );
 }
 
-/* =========================================================
-   AI CHANGE UI
-========================================================= */
-
 function InstructionExample({
   text,
   onClick,
@@ -2101,7 +1830,7 @@ function InstructionExample({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-lg border border-white/[0.06] bg-white/[0.025] px-2.5 py-1.5 text-[10px] text-white/35 transition hover:border-indigo-400/20 hover:bg-indigo-400/[0.05] hover:text-white/70"
+      className="rounded-lg border border-[#E7E5DC] bg-white/60 px-2.5 py-1.5 text-[10px] text-[#777D76] transition hover:border-[#719681]/50 hover:bg-[#719681]/10 hover:text-[#315E50]"
     >
       {text}
     </button>
@@ -2113,12 +1842,11 @@ function ChangeRow({ change }: { change: ResumeChange }) {
   const after = truncateValue(change.after);
 
   const beforeEmpty = before === "Empty" || before.trim() === "";
-
   const afterEmpty = after === "Empty" || after.trim() === "";
 
   return (
     <div className="px-5 py-4">
-      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#858A83]">
         {change.label || humanizePath(change.path)}
       </div>
 
@@ -2126,40 +1854,34 @@ function ChangeRow({ change }: { change: ResumeChange }) {
         <div
           className={`min-w-0 flex-1 rounded-xl border px-3 py-2.5 ${
             beforeEmpty
-              ? "border-white/[0.05] bg-white/[0.015] text-white/20"
-              : "border-red-400/10 bg-red-400/[0.025] text-red-200/65"
+              ? "border-[#E7E5DC] bg-[#F7F5EF] text-[#A0A39B]"
+              : "border-[#B97862]/20 bg-[#B97862]/[0.05] text-[#986653]"
           }`}
         >
-          <div className="mb-1 text-[9px] uppercase tracking-wider opacity-50">
+          <div className="mb-1 text-[9px] uppercase tracking-wider opacity-60">
             Before
           </div>
-
           <div className="break-words text-xs leading-5">{before}</div>
         </div>
 
-        <ArrowRight className="hidden h-4 w-4 shrink-0 text-white/20 sm:block" />
+        <ArrowRight className="hidden h-4 w-4 shrink-0 text-[#A0A39B] sm:block" />
 
         <div
           className={`min-w-0 flex-1 rounded-xl border px-3 py-2.5 ${
             afterEmpty
-              ? "border-white/[0.05] bg-white/[0.015] text-white/20"
-              : "border-emerald-400/10 bg-emerald-400/[0.025] text-emerald-200/75"
+              ? "border-[#E7E5DC] bg-[#F7F5EF] text-[#A0A39B]"
+              : "border-[#719681]/25 bg-[#719681]/[0.07] text-[#315E50]"
           }`}
         >
-          <div className="mb-1 text-[9px] uppercase tracking-wider opacity-50">
+          <div className="mb-1 text-[9px] uppercase tracking-wider opacity-60">
             After
           </div>
-
           <div className="break-words text-xs leading-5">{after}</div>
         </div>
       </div>
     </div>
   );
 }
-
-/* =========================================================
-   EDITOR COMPONENTS
-========================================================= */
 
 function EditorSection({
   icon,
@@ -2173,21 +1895,18 @@ function EditorSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.025]">
-      <div className="border-b border-white/[0.06] px-5 py-4">
+    <section className="overflow-hidden rounded-2xl border border-[#E7E5DC] bg-white/65 shadow-[0_8px_25px_rgba(38,59,51,0.035)] backdrop-blur-xl">
+      <div className="border-b border-[#E7E5DC] px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#315E50]/10 text-[#315E50]">
             {icon}
           </div>
-
           <div>
-            <h2 className="text-sm font-semibold text-white/90">{title}</h2>
-
-            <p className="mt-0.5 text-[11px] text-white/30">{description}</p>
+            <h2 className="text-sm font-semibold text-[#263B33]">{title}</h2>
+            <p className="mt-0.5 text-[11px] text-[#858A83]">{description}</p>
           </div>
         </div>
       </div>
-
       <div className="p-5">{children}</div>
     </section>
   );
@@ -2206,15 +1925,14 @@ function EditorInput({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/30">
+      <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#858A83]">
         {label}
       </span>
-
       <input
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-white/[0.07] bg-[#090C13] px-3.5 py-3 text-xs text-white outline-none placeholder:text-white/20 transition focus:border-indigo-400/30 focus:ring-4 focus:ring-indigo-500/5"
+        className="w-full rounded-xl border border-[#E7E5DC] bg-white/75 px-3.5 py-3 text-xs text-[#263B33] outline-none placeholder:text-[#A5A79F] transition focus:border-[#719681] focus:ring-4 focus:ring-[#315E50]/[0.06]"
       />
     </label>
   );
@@ -2235,20 +1953,44 @@ function EditorTextarea({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-white/30">
+      <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#858A83]">
         {label}
       </span>
-
       <textarea
         value={value}
         rows={rows}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full resize-y rounded-xl border border-white/[0.07] bg-[#090C13] px-3.5 py-3 text-xs leading-6 text-white outline-none placeholder:text-white/20 transition focus:border-indigo-400/30 focus:ring-4 focus:ring-indigo-500/5"
+        className="w-full resize-y rounded-xl border border-[#E7E5DC] bg-white/75 px-3.5 py-3 text-xs leading-6 text-[#263B33] outline-none placeholder:text-[#A5A79F] transition focus:border-[#719681] focus:ring-4 focus:ring-[#315E50]/[0.06]"
       />
     </label>
   );
 }
+
+function ItemHeader({
+  title,
+  onRemove,
+}: {
+  title: string;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="mb-4 flex items-center justify-between">
+      <span className="text-xs font-semibold text-[#52645A]">{title}</span>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="text-[11px] text-[#B97862]/75 transition hover:text-[#B97862]"
+      >
+        Remove
+      </button>
+    </div>
+  );
+}
+
+/* =========================================================
+   EXPERIENCE EDITOR
+========================================================= */
 
 function ExperienceEditor({
   experience,
@@ -2262,75 +2004,45 @@ function ExperienceEditor({
   removeExperience: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-xs font-semibold text-white/60">
-          Experience {index + 1}
-        </span>
-
-        <button
-          type="button"
-          onClick={removeExperience}
-          className="text-[11px] text-red-400/60 transition hover:text-red-400"
-        >
-          Remove
-        </button>
-      </div>
+    <div className="rounded-2xl border border-[#E7E5DC] bg-white/45 p-4">
+      <ItemHeader
+        title={`Experience ${index + 1}`}
+        onRemove={removeExperience}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <EditorInput
           label="Company"
           value={experience.company}
           onChange={(value) =>
-            updateExperience({
-              ...experience,
-              company: value,
-            })
+            updateExperience({ ...experience, company: value })
           }
         />
-
         <EditorInput
           label="Role"
           value={experience.role}
-          onChange={(value) =>
-            updateExperience({
-              ...experience,
-              role: value,
-            })
-          }
+          onChange={(value) => updateExperience({ ...experience, role: value })}
         />
-
         <EditorInput
           label="Location"
           value={experience.location}
           onChange={(value) =>
-            updateExperience({
-              ...experience,
-              location: value,
-            })
+            updateExperience({ ...experience, location: value })
           }
         />
-
         <div className="grid grid-cols-2 gap-3">
           <EditorInput
             label="Start"
             value={experience.startDate}
             onChange={(value) =>
-              updateExperience({
-                ...experience,
-                startDate: value,
-              })
+              updateExperience({ ...experience, startDate: value })
             }
           />
-
           <EditorInput
             label="End"
             value={experience.endDate}
             onChange={(value) =>
-              updateExperience({
-                ...experience,
-                endDate: value,
-              })
+              updateExperience({ ...experience, endDate: value })
             }
           />
         </div>
@@ -2342,10 +2054,7 @@ function ExperienceEditor({
           value={experience.description}
           rows={5}
           onChange={(value) =>
-            updateExperience({
-              ...experience,
-              description: value,
-            })
+            updateExperience({ ...experience, description: value })
           }
         />
       </div>
@@ -2356,10 +2065,7 @@ function ExperienceEditor({
           values={experience.achievements}
           placeholder="Add achievement and press Enter"
           onChange={(achievements) =>
-            updateExperience({
-              ...experience,
-              achievements,
-            })
+            updateExperience({ ...experience, achievements })
           }
         />
       </div>
@@ -2370,16 +2076,17 @@ function ExperienceEditor({
           values={experience.technologies}
           placeholder="Add technology and press Enter"
           onChange={(technologies) =>
-            updateExperience({
-              ...experience,
-              technologies,
-            })
+            updateExperience({ ...experience, technologies })
           }
         />
       </div>
     </div>
   );
 }
+
+/* =========================================================
+   EDUCATION EDITOR
+========================================================= */
 
 function EducationEditor({
   education,
@@ -2393,85 +2100,46 @@ function EducationEditor({
   removeEducation: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-xs font-semibold text-white/60">
-          Education {index + 1}
-        </span>
-
-        <button
-          type="button"
-          onClick={removeEducation}
-          className="text-[11px] text-red-400/60 transition hover:text-red-400"
-        >
-          Remove
-        </button>
-      </div>
+    <div className="rounded-2xl border border-[#E7E5DC] bg-white/45 p-4">
+      <ItemHeader title={`Education ${index + 1}`} onRemove={removeEducation} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <EditorInput
           label="Degree"
           value={education.degree}
-          onChange={(value) =>
-            updateEducation({
-              ...education,
-              degree: value,
-            })
-          }
+          onChange={(value) => updateEducation({ ...education, degree: value })}
         />
-
         <EditorInput
           label="Field"
           value={education.field}
-          onChange={(value) =>
-            updateEducation({
-              ...education,
-              field: value,
-            })
-          }
+          onChange={(value) => updateEducation({ ...education, field: value })}
         />
-
         <EditorInput
           label="Institution"
           value={education.institution}
           onChange={(value) =>
-            updateEducation({
-              ...education,
-              institution: value,
-            })
+            updateEducation({ ...education, institution: value })
           }
         />
-
         <EditorInput
           label="Location"
           value={education.location}
           onChange={(value) =>
-            updateEducation({
-              ...education,
-              location: value,
-            })
+            updateEducation({ ...education, location: value })
           }
         />
-
         <EditorInput
           label="Start"
           value={education.startDate}
           onChange={(value) =>
-            updateEducation({
-              ...education,
-              startDate: value,
-            })
+            updateEducation({ ...education, startDate: value })
           }
         />
-
         <EditorInput
           label="End"
           value={education.endDate}
           onChange={(value) =>
-            updateEducation({
-              ...education,
-              endDate: value,
-            })
+            updateEducation({ ...education, endDate: value })
           }
         />
       </div>
@@ -2482,16 +2150,17 @@ function EducationEditor({
           value={education.description}
           rows={4}
           onChange={(value) =>
-            updateEducation({
-              ...education,
-              description: value,
-            })
+            updateEducation({ ...education, description: value })
           }
         />
       </div>
     </div>
   );
 }
+
+/* =========================================================
+   PROJECT EDITOR
+========================================================= */
 
 function ProjectEditor({
   project,
@@ -2505,64 +2174,29 @@ function ProjectEditor({
   removeProject: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-xs font-semibold text-white/60">
-          Project {index + 1}
-        </span>
-
-        <button
-          type="button"
-          onClick={removeProject}
-          className="text-[11px] text-red-400/60 transition hover:text-red-400"
-        >
-          Remove
-        </button>
-      </div>
+    <div className="rounded-2xl border border-[#E7E5DC] bg-white/45 p-4">
+      <ItemHeader title={`Project ${index + 1}`} onRemove={removeProject} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <EditorInput
           label="Project name"
           value={project.name}
-          onChange={(value) =>
-            updateProject({
-              ...project,
-              name: value,
-            })
-          }
+          onChange={(value) => updateProject({ ...project, name: value })}
         />
-
         <EditorInput
           label="URL"
           value={project.url}
-          onChange={(value) =>
-            updateProject({
-              ...project,
-              url: value,
-            })
-          }
+          onChange={(value) => updateProject({ ...project, url: value })}
         />
-
         <EditorInput
           label="Start"
           value={project.startDate}
-          onChange={(value) =>
-            updateProject({
-              ...project,
-              startDate: value,
-            })
-          }
+          onChange={(value) => updateProject({ ...project, startDate: value })}
         />
-
         <EditorInput
           label="End"
           value={project.endDate}
-          onChange={(value) =>
-            updateProject({
-              ...project,
-              endDate: value,
-            })
-          }
+          onChange={(value) => updateProject({ ...project, endDate: value })}
         />
       </div>
 
@@ -2572,10 +2206,7 @@ function ProjectEditor({
           value={project.description}
           rows={5}
           onChange={(value) =>
-            updateProject({
-              ...project,
-              description: value,
-            })
+            updateProject({ ...project, description: value })
           }
         />
       </div>
@@ -2586,16 +2217,17 @@ function ProjectEditor({
           values={project.technologies}
           placeholder="Add technology and press Enter"
           onChange={(technologies) =>
-            updateProject({
-              ...project,
-              technologies,
-            })
+            updateProject({ ...project, technologies })
           }
         />
       </div>
     </div>
   );
 }
+
+/* =========================================================
+   TAG EDITOR
+========================================================= */
 
 function TagEditor({
   label,
@@ -2612,7 +2244,6 @@ function TagEditor({
 
   const addValue = () => {
     const value = input.trim();
-
     if (!value) return;
 
     if (
@@ -2633,25 +2264,24 @@ function TagEditor({
   return (
     <div>
       {label && (
-        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/30">
+        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#858A83]">
           {label}
         </div>
       )}
 
-      <div className="rounded-xl border border-white/[0.07] bg-[#090C13] p-3">
+      <div className="rounded-xl border border-[#E7E5DC] bg-white/75 p-3">
         {values.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
             {values.map((value, index) => (
               <span
                 key={`${value}-${index}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-400/10 bg-indigo-400/[0.06] px-2.5 py-1.5 text-[11px] text-indigo-200/80"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#719681]/20 bg-[#719681]/10 px-2.5 py-1.5 text-[11px] text-[#315E50]"
               >
                 {value}
-
                 <button
                   type="button"
                   onClick={() => removeValue(index)}
-                  className="text-indigo-200/30 hover:text-red-300"
+                  className="text-[#719681] hover:text-[#B97862]"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -2671,13 +2301,12 @@ function TagEditor({
               }
             }}
             placeholder={placeholder}
-            className="min-w-0 flex-1 bg-transparent px-1 py-2 text-xs text-white outline-none placeholder:text-white/20"
+            className="min-w-0 flex-1 bg-transparent px-1 py-2 text-xs text-[#263B33] outline-none placeholder:text-[#A5A79F]"
           />
-
           <button
             type="button"
             onClick={addValue}
-            className="rounded-lg border border-white/[0.07] bg-white/[0.04] px-3 py-2 text-[10px] font-semibold text-white/50 hover:bg-white/[0.07] hover:text-white"
+            className="rounded-lg border border-[#E7E5DC] bg-[#F7F5EF] px-3 py-2 text-[10px] font-semibold text-[#66766C] transition hover:bg-[#315E50]/10 hover:text-[#315E50]"
           >
             Add
           </button>
@@ -2687,12 +2316,16 @@ function TagEditor({
   );
 }
 
+/* =========================================================
+   ADD BUTTON
+========================================================= */
+
 function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/[0.09] bg-white/[0.015] px-4 py-3 text-xs font-medium text-white/35 transition hover:border-indigo-400/20 hover:bg-indigo-400/[0.03] hover:text-indigo-300"
+      className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#C9D5C9] bg-white/35 px-4 py-3 text-xs font-medium text-[#777D76] transition hover:border-[#719681] hover:bg-[#719681]/[0.07] hover:text-[#315E50]"
     >
       <span className="text-base leading-none">+</span>
       {label}
@@ -2702,6 +2335,7 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
 
 /* =========================================================
    RESUME PREVIEW
+   Keep this document white for printing.
 ========================================================= */
 
 function ResumePreview({ resume }: { resume: ResumeData }) {
@@ -2712,7 +2346,6 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
       id="resume-print-area"
       className="mx-auto min-h-[1120px] w-full max-w-[794px] bg-white px-8 py-9 text-[#171A1F] shadow-xl sm:px-12 sm:py-11"
     >
-      {/* Header */}
       <header className="border-b border-[#D8DCE2] pb-5">
         <h1 className="text-[28px] font-bold tracking-[-0.03em] text-[#111318]">
           {candidate.name || "Your Name"}
@@ -2726,14 +2359,12 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
 
         <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[9.5px] text-[#626A75]">
           {candidate.email && <span>{candidate.email}</span>}
-
           {candidate.phone && (
             <>
               <span>•</span>
               <span>{candidate.phone}</span>
             </>
           )}
-
           {candidate.location && (
             <>
               <span>•</span>
@@ -2743,21 +2374,18 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
               </span>
             </>
           )}
-
           {candidate.linkedin && (
             <>
               <span>•</span>
               <span>{candidate.linkedin}</span>
             </>
           )}
-
           {candidate.github && (
             <>
               <span>•</span>
               <span>{candidate.github}</span>
             </>
           )}
-
           {candidate.portfolio && (
             <>
               <span>•</span>
@@ -2785,7 +2413,6 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
                     <h3 className="text-[11.5px] font-bold text-[#171A1F]">
                       {experience.role || "Position"}
                     </h3>
-
                     {experience.company && (
                       <p className="mt-0.5 text-[10px] font-semibold text-[#4B5563]">
                         {experience.company}
@@ -2801,7 +2428,6 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
                         {experience.endDate}
                       </div>
                     )}
-
                     {experience.location && (
                       <div className="mt-0.5">{experience.location}</div>
                     )}
@@ -2816,17 +2442,15 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
 
                 {experience.achievements.length > 0 && (
                   <ul className="mt-2 space-y-1 pl-3">
-                    {experience.achievements.map(
-                      (achievement, achievementIndex) => (
-                        <li
-                          key={achievementIndex}
-                          className="relative text-[9.5px] leading-[1.5] text-[#454C56]"
-                        >
-                          <span className="absolute -left-3">•</span>
-                          {achievement}
-                        </li>
-                      ),
-                    )}
+                    {experience.achievements.map((achievement, itemIndex) => (
+                      <li
+                        key={itemIndex}
+                        className="relative text-[9.5px] leading-[1.5] text-[#454C56]"
+                      >
+                        <span className="absolute -left-3">•</span>
+                        {achievement}
+                      </li>
+                    ))}
                   </ul>
                 )}
 
@@ -2851,7 +2475,6 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
                   <h3 className="text-[11px] font-bold text-[#171A1F]">
                     {project.name || "Project"}
                   </h3>
-
                   {(project.startDate || project.endDate) && (
                     <span className="shrink-0 text-[9px] text-[#737A84]">
                       {project.startDate}
@@ -2911,7 +2534,6 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
                       {education.degree || "Degree"}
                       {education.field ? ` in ${education.field}` : ""}
                     </h3>
-
                     {education.institution && (
                       <p className="mt-0.5 text-[10px] font-semibold text-[#4B5563]">
                         {education.institution}
@@ -2927,7 +2549,6 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
                         {education.endDate}
                       </div>
                     )}
-
                     {education.location && (
                       <div className="mt-0.5">{education.location}</div>
                     )}
@@ -2957,7 +2578,6 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
                   <span className="font-semibold text-[#171A1F]">
                     {certification.name}
                   </span>
-
                   {certification.issuer && (
                     <span className="text-[#59616C]">
                       {" "}
@@ -2965,7 +2585,6 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
                     </span>
                   )}
                 </div>
-
                 {certification.date && (
                   <span className="shrink-0 text-[#737A84]">
                     {certification.date}
@@ -2983,7 +2602,6 @@ function ResumePreview({ resume }: { resume: ResumeData }) {
             {resume.languages.map((language, index) => (
               <div key={index} className="text-[9.5px] text-[#414852]">
                 <span className="font-semibold">{language.name}</span>
-
                 {language.proficiency && (
                   <span className="text-[#737A84]">
                     {" "}
@@ -3027,57 +2645,27 @@ function PreviewSection({
       <h2 className="mb-2.5 border-b border-[#D8DCE2] pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#252A31]">
         {title}
       </h2>
-
       {children}
     </section>
   );
 }
 
 /* =========================================================
-   FALLBACK TEXT PARSER
-========================================================= */
-
-function parseResumeText(extractedText: string): ResumeData {
-  const lines = extractedText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const firstLine = lines[0] || "";
-
-  const email =
-    extractedText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "";
-
-  const phone = extractedText.match(/(?:\+?\d[\d\s().-]{8,}\d)/)?.[0] || "";
-
-  return {
-    ...emptyResume,
-    candidate: {
-      ...emptyCandidate,
-      name: firstLine,
-      email,
-      phone,
-    },
-  };
-}
-
-/* =========================================================
-   LOADING
+   LOADING SCREEN
 ========================================================= */
 
 function LoadingScreen() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#070A10] text-white">
+    <div className="flex min-h-screen items-center justify-center bg-[#F7F5EF] text-[#263B33]">
       <div className="text-center">
-        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 shadow-lg shadow-indigo-500/20">
-          <Sparkles className="h-5 w-5 animate-pulse" />
+        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#315E50] to-[#719681] shadow-lg shadow-[#315E50]/15">
+          <Sparkles className="h-5 w-5 animate-pulse text-white" />
         </div>
 
-        <p className="text-sm font-medium text-white/70">
+        <p className="text-sm font-medium text-[#52645A]">
           Loading your resume…
         </p>
-
-        <p className="mt-1 text-xs text-white/30">
+        <p className="mt-1 text-xs text-[#999D95]">
           Preparing your editing workspace
         </p>
       </div>
