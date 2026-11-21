@@ -67,16 +67,17 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Email */}
       <div>
         <label
           htmlFor="email"
-          className="mb-2.5 block text-[11px] font-bold uppercase tracking-widest text-slate-400"
+          className="mb-2.5 block text-[11px] font-bold uppercase tracking-[0.16em] text-[#858A83]"
         >
           Email address
         </label>
 
         <div className="group relative">
-          <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 transition-colors duration-200 group-focus-within:text-cyan-400" />
+          <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#858A83] transition-colors duration-200 group-focus-within:text-[#315E50]" />
 
           <input
             id="email"
@@ -88,16 +89,17 @@ export function LoginForm() {
             required
             disabled={loading}
             autoComplete="email"
-            className="h-14 w-full rounded-2xl border border-white/10 bg-slate-950/60 pl-11 pr-4 text-sm text-white outline-none backdrop-blur-xl transition-all duration-300 placeholder:text-slate-600 hover:border-white/20 hover:bg-slate-900/60 focus:border-indigo-500/50 focus:bg-slate-900/80 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-14 w-full rounded-2xl border border-[#E7E5DC] bg-white/65 pl-11 pr-4 text-sm text-[#263B33] outline-none backdrop-blur-xl transition-all duration-300 placeholder:text-[#A5A69F] hover:border-[#D9C5A2] focus:border-[#719681] focus:bg-white/90 focus:ring-4 focus:ring-[#719681]/10 disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
       </div>
 
+      {/* Password */}
       <div>
         <div className="mb-2.5 flex items-center justify-between">
           <label
             htmlFor="password"
-            className="text-[11px] font-bold uppercase tracking-widest text-slate-400"
+            className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#858A83]"
           >
             Password
           </label>
@@ -105,14 +107,14 @@ export function LoginForm() {
           <button
             type="button"
             onClick={() => router.push("/forgot-password")}
-            className="text-[11px] font-semibold text-cyan-400/80 transition-colors duration-200 hover:text-cyan-300"
+            className="cursor-pointer text-[11px] font-semibold text-[#315E50] transition-colors duration-200 hover:text-[#719681]"
           >
             Forgot password?
           </button>
         </div>
 
         <div className="group relative">
-          <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 transition-colors duration-200 group-focus-within:text-cyan-400" />
+          <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#858A83] transition-colors duration-200 group-focus-within:text-[#315E50]" />
 
           <input
             id="password"
@@ -124,29 +126,30 @@ export function LoginForm() {
             required
             disabled={loading}
             autoComplete="current-password"
-            className="h-14 w-full rounded-2xl border border-white/10 bg-slate-950/60 pl-11 pr-4 text-sm text-white outline-none backdrop-blur-xl transition-all duration-300 placeholder:text-slate-600 hover:border-white/20 hover:bg-slate-900/60 focus:border-indigo-500/50 focus:bg-slate-900/80 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-14 w-full rounded-2xl border border-[#E7E5DC] bg-white/65 pl-11 pr-4 text-sm text-[#263B33] outline-none backdrop-blur-xl transition-all duration-300 placeholder:text-[#A5A69F] hover:border-[#D9C5A2] focus:border-[#719681] focus:bg-white/90 focus:ring-4 focus:ring-[#719681]/10 disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
       </div>
 
+      {/* Error */}
       {error && (
         <div
           role="alert"
-          className="relative overflow-hidden rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3.5 backdrop-blur-xl"
+          className="relative overflow-hidden rounded-2xl border border-[#B97862]/25 bg-[#B97862]/[0.07] px-4 py-3.5"
         >
-          <div className="pointer-events-none absolute -left-8 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-rose-500/20 blur-2xl" />
+          <div className="pointer-events-none absolute -left-8 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-[#B97862]/10 blur-2xl" />
 
           <div className="relative flex items-start gap-3">
-            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-rose-500/30 bg-rose-500/20 text-rose-400">
+            <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#B97862]/30 bg-[#B97862]/10 text-[#B97862]">
               <AlertCircle className="h-3.5 w-3.5" />
             </div>
 
             <div>
-              <p className="text-xs font-bold text-rose-300">
+              <p className="text-xs font-bold text-[#9E5948]">
                 Sign in unsuccessful
               </p>
 
-              <p className="mt-0.5 text-[11px] leading-4 text-rose-200/60">
+              <p className="mt-0.5 text-[11px] leading-4 text-[#9E5948]/80">
                 {error}
               </p>
             </div>
@@ -154,17 +157,18 @@ export function LoginForm() {
         </div>
       )}
 
+      {/* Submit */}
       <button
         type="submit"
         disabled={loading}
-        className="group relative flex h-14 w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-600 text-sm font-bold text-white shadow-[0_0_30px_rgba(79,70,229,0.35)] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_40px_rgba(6,182,212,0.45)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+        className="group relative flex h-14 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-2xl border border-[#315E50] bg-gradient-to-r from-[#315E50] to-[#426F5D] text-sm font-bold text-white shadow-[0_8px_24px_rgba(49,94,80,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(49,94,80,0.25)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
       >
-        <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+        <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
 
         <span className="relative flex items-center gap-2">
           {loading ? (
             <>
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
               Signing in...
             </>
           ) : (
@@ -176,13 +180,14 @@ export function LoginForm() {
         </span>
       </button>
 
+      {/* Trust message */}
       <div className="flex items-center justify-center gap-2 pt-1">
-        <div className="flex h-6 w-6 items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-950/50 text-cyan-400">
+        <div className="flex h-6 w-6 items-center justify-center rounded-lg border border-[#D9C5A2]/50 bg-[#D9C5A2]/15 text-[#315E50]">
           <Sparkles className="h-3 w-3" />
         </div>
 
-        <span className="text-xs text-slate-500">
-          End-to-end encrypted career intelligence platform.
+        <span className="text-xs text-[#858A83]">
+          Your career journey, thoughtfully managed.
         </span>
       </div>
     </form>
