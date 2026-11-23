@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db/prisma";
-import { auth } from "@/lib/auth";
+import { getOrCreatePrismaUser } from "@/lib/auth/clerk";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
+    const user = await getOrCreatePrismaUser();
 
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const draft = await prisma.resumeDraft.findUnique({
       where: {
         userId_resumeId: {
-          userId: session.user.id,
+          userId: user.id,
           resumeId,
         },
       },
@@ -76,9 +76,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
+    const user = await getOrCreatePrismaUser();
 
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
     const resume = await prisma.resume.findFirst({
       where: {
         id: resumeId,
-        userId: session.user.id,
+        userId: user.id,
       },
       select: {
         id: true,
@@ -138,12 +138,12 @@ export async function POST(req: NextRequest) {
     const draft = await prisma.resumeDraft.upsert({
       where: {
         userId_resumeId: {
-          userId: session.user.id,
+          userId: user.id,
           resumeId,
         },
       },
       create: {
-        userId: session.user.id,
+        userId: user.id,
         resumeId,
         name: name || "My Resume",
         data,

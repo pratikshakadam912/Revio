@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { auth } from "@/lib/auth";
+import { getOrCreatePrismaUser } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 
 export const runtime = "nodejs";
@@ -46,8 +46,8 @@ function jsonError(error: string, status: number) {
 }
 
 async function getUserId(): Promise<string | null> {
-  const session = await auth();
-  return session?.user?.id ?? null;
+  const user = await getOrCreatePrismaUser();
+  return user?.id ?? null;
 }
 
 function normalizeTemplate(value: unknown): AllowedTemplate | null {

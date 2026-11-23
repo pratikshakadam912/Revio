@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 
 import { prisma } from "@/lib/db/prisma";
-import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getOrCreatePrismaUser } from "@/lib/auth/clerk";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -128,34 +129,10 @@ function getRelativeTime(date: Date | null | undefined): string {
 ============================================================ */
 
 export default async function DashboardPage() {
-  const session = await auth();
+  const prismaUser = await getOrCreatePrismaUser();
 
-  if (!session?.user?.id) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F7F5EF] px-6 text-[#263B33]">
-        <div className="w-full max-w-md rounded-[28px] border border-white/90 bg-white/65 p-9 text-center shadow-[0_20px_60px_rgba(38,59,51,0.08)] backdrop-blur-2xl">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1EB] text-[#315E50]">
-            <Sparkles className="h-6 w-6" />
-          </div>
-
-          <h1 className="mt-5 text-xl font-bold tracking-tight">
-            Please sign in
-          </h1>
-
-          <p className="mt-2 text-sm leading-relaxed text-[#858A83]">
-            Your Revio workspace requires an active session.
-          </p>
-
-          <Link
-            href="/login"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#315E50] px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(49,94,80,0.18)] transition hover:-translate-y-0.5 hover:bg-[#264C40]"
-          >
-            Sign in
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </main>
-    );
+  if (!prismaUser) {
+    redirect("/sign-in");
   }
 
   /* ============================================================
@@ -165,7 +142,7 @@ export default async function DashboardPage() {
   const [user, resumes, analyses] = await Promise.all([
     prisma.user.findUnique({
       where: {
-        id: session.user.id,
+        id: prismaUser.id,
       },
       select: {
         name: true,
@@ -175,7 +152,7 @@ export default async function DashboardPage() {
 
     prisma.resume.findMany({
       where: {
-        userId: session.user.id,
+        userId: prismaUser.id,
       },
       orderBy: {
         updatedAt: "desc",
@@ -184,7 +161,7 @@ export default async function DashboardPage() {
 
     prisma.resumeAnalysis.findMany({
       where: {
-        userId: session.user.id,
+        userId: prismaUser.id,
       },
       orderBy: {
         createdAt: "desc",
@@ -287,11 +264,12 @@ export default async function DashboardPage() {
 
   const displayName =
     user?.name ||
-    session.user.name ||
+    prismaUser.name ||
     user?.email?.split("@")[0] ||
-    session.user.email?.split("@")[0] ||
+    prismaUser.email.split("@")[0] ||
     "there";
 
+  const profileEmail = user?.email || prismaUser.email;
   const initials = getInitials(displayName);
 
   /* ============================================================
@@ -455,7 +433,7 @@ export default async function DashboardPage() {
                 </p>
 
                 <p className="truncate font-mono text-[10px] text-[#929990]">
-                  {user?.email || session.user.email || "Revio account"}
+                  {profileEmail}
                 </p>
               </div>
             </Link>

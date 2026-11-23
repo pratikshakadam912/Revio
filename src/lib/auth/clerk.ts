@@ -1,49 +1,44 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "../db/prisma";
 
-export async function getOrcreateprismaUser() {
+export async function getOrCreatePrismaUser() {
   const clerkUser = await currentUser();
 
-  if (!clerkUser) {
-    return null;
-  }
+  if (!clerkUser) return null;
 
   const email = clerkUser.primaryEmailAddress?.emailAddress
     ?.trim()
     .toLowerCase();
 
   if (!email) {
-    throw new Error("Authenticated clerk user had no primary email.");
+    throw new Error("Authenticated Clerk user has no primary email.");
   }
 
   const clerkUserId = clerkUser.id;
-
   const name =
-    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join("") || null;
+    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || null;
 
-  const existingClerkuser = await prisma.user.findUnique({
+  const existingUser = await prisma.user.findUnique({
     where: { clerkUserId },
   });
 
-  if (existingClerkuser) {
+  if (existingUser) {
     return prisma.user.update({
-      where: { id: existingClerkuser.id },
-      data: {
-        email,
-        name,
-      },
+      where: { id: existingUser.id },
+      data: { email, name },
     });
   }
 
-  const existingEmailuser = await prisma.user.findUnique({
+  const emailUser = await prisma.user.findUnique({
     where: { email },
   });
-  if (existingEmailuser) {
+
+  if (emailUser) {
     return prisma.user.update({
-      where: { id: existingEmailuser.id },
+      where: { id: emailUser.id },
       data: {
         clerkUserId,
-        name: name ?? existingEmailuser.name,
+        name: name ?? emailUser.name,
       },
     });
   }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db/prisma";
-import { auth } from "@/lib/auth";
+import { getOrCreatePrismaUser } from "@/lib/auth/clerk";
 import { analyzeResume } from "@/lib/analyzer";
 
 export const runtime = "nodejs";
@@ -36,12 +36,12 @@ export async function POST(request: NextRequest) {
 
   try {
     /* =====================================================
-       AUTHENTICATION
+       AUTHENTICATION - CLERK
     ===================================================== */
 
-    const session = await auth();
+    const user = await getOrCreatePrismaUser();
 
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     const resume = await prisma.resume.findFirst({
       where: {
         id: resumeId,
-        userId: session.user.id,
+        userId: user.id,
       },
     });
 
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     const analysis = await prisma.resumeAnalysis.create({
       data: {
-        userId: session.user.id,
+        userId: user.id,
         resumeId: resume.id,
         status: "PROCESSING",
       },
