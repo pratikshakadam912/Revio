@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db/prisma";
-import { auth } from "@/lib/auth";
+import { getOrCreatePrismaUser } from "@/lib/auth/clerk";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    // ========================================================
     // 1. AUTHENTICATION
-    // ========================================================
+    const user = await getOrCreatePrismaUser();
 
-    const session = await auth();
-
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -32,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     const analysis = await prisma.resumeAnalysis.findFirst({
       where: {
-        userId: session.user.id,
+        userId: user.id,
         status: "COMPLETED",
       },
 
