@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractText, getDocumentProxy } from "unpdf";
 
-import { auth } from "@/lib/auth";
+import { getOrCreatePrismaUser } from "@/lib/auth/clerk";
 import { prisma } from "@/lib/db/prisma";
 
 export const runtime = "nodejs";
@@ -95,9 +95,9 @@ const emptyResume: RewriteResume = {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
+    const user = await getOrCreatePrismaUser();
 
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -135,7 +135,7 @@ export async function GET(req: NextRequest) {
     const resume = await prisma.resume.findFirst({
       where: {
         id: resumeId,
-        userId: session.user.id,
+        userId: user.id,
       },
       select: {
         id: true,

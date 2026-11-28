@@ -4,7 +4,7 @@ import { Readable } from "stream";
 import PDFParser from "pdf2json";
 
 import { prisma } from "@/lib/db/prisma";
-import { auth } from "@/lib/auth";
+import { getOrCreatePrismaUser } from "@/lib/auth/clerk";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -809,10 +809,9 @@ export async function POST(request: NextRequest) {
     /* ---------------------------------------------------------------------- */
     /* AUTH                                                                   */
     /* ---------------------------------------------------------------------- */
+    const user = await getOrCreatePrismaUser();
 
-    const session = await auth();
-
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -914,7 +913,7 @@ export async function POST(request: NextRequest) {
 
     const resume = await prisma.resume.create({
       data: {
-        userId: session.user.id,
+        userId: user.id,
         fileName: file.name,
         fileUrl: uploadedFile.secure_url,
         cloudinaryId: uploadedFile.public_id,
@@ -926,7 +925,7 @@ export async function POST(request: NextRequest) {
 
     const analysis = await prisma.resumeAnalysis.create({
       data: {
-        userId: session.user.id,
+        userId: user.id,
         resumeId: resume.id,
         status: "PENDING",
       },
